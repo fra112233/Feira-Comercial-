@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Pedidos</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <script src="https://kit.fontawesome.com" crossorigin="anonymous"></script>
+    <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --brand: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #0f172a; 
+            --surface: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); min-height: 100vh; }
+
+        /* Sidebar & Main */
+        .sidebar { width: 260px; background: rgba(0,0,0,0.3); padding: 30px 20px; position: fixed; height: 100vh; border-right: 1px solid var(--border); z-index: 100; }
+        .main { margin-left: 260px; padding: 40px; max-width: 1000px; transition: 0.3s; }
+
+        .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: none; background: transparent; color: var(--text-sub); cursor: pointer; border-radius: 12px; font-weight: 600; margin-bottom: 5px; }
+        .nav-btn.active { background: var(--brand); color: #fff; }
+
+        /* Sub-abas de Pedidos */
+        .sub-nav { display: flex; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid var(--border); }
+        .sub-tab { padding: 12px 5px; cursor: pointer; color: var(--text-sub); border-bottom: 2px solid transparent; font-size: 14px; font-weight: 600; }
+        .sub-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+        /* Listagem */
+        .request-card { 
+            background: var(--surface); border-radius: 16px; padding: 16px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            margin-bottom: 12px; border: 1px solid var(--border);
+            animation: fadeIn 0.3s ease;
+        }
+
+
+
+
+.nav-btn {
+    text-decoration: none !important; /* Remove o sublinhado padrão */
+    outline: none;                   /* Remove o contorno ao clicar */
+}
+
+
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-info img { width: 40px; height: 40px; border-radius: 10px; }
+
+        .btn-group { display: flex; gap: 8px; }
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 12px; }
+        .btn-confirm { background: var(--success); color: white; }
+        .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-cancel { background: rgba(255, 255, 255, 0.05); color: var(--text-sub); border: 1px solid var(--border); }
+
+        /* Responsivo Mobile */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: 65px; bottom: 0; top: auto; display: flex; justify-content: space-around; padding: 10px; border-top: 1px solid var(--border); }
+            .nav-btn { flex-direction: column; font-size: 10px; gap: 4px; padding: 5px; width: auto; }
+            .sidebar h2 { display: none; }
+            .main { margin-left: 0; padding: 20px 20px 80px 20px; }
+            .request-card { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .btn-group { width: 100%; }
+            .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h3 style="color:#e5f508; margin-bottom: 30px;"><i class="fas fa-link"></i>Feira Comercial</h3>
+        <a href="amigos.html" class="nav-btn active" return false><i class="fas fa-user-friends"></i> Amigos</a>
+        <button class="nav-btn active" onclick="setView('pedidos')"><i class="fas fa-user-clock"></i> Pedidos</button>
+        
+
+    </aside>
+
+    <main class="main">
+        <header id="header-section">
+            <h1 id="view-title">Gestão de Pedidos</h1>
+            <p id="view-desc" style="color: var(--text-sub); margin-bottom: 25px;">Gerencie as suas conexões pendentes.</p>
+        </header>
+
+        <!-- Sub-navegação visível apenas em Pedidos -->
+        <div class="sub-nav" id="pedidos-nav">
+            <div class="sub-tab active" onclick="setSubView('recebidos', this)">Recebidos (2)</div>
+            <div class="sub-tab" onclick="setSubSubView('enviados', this)">Enviados (1)</div>
+        </div>
+
+        <div id="content-list">
+            <!-- Render dinâmico aqui -->
+        </div>
+    </main>
+
+    <script>
+        // Dados Simulados
+        const pedidosRecebidos = [
+            { id: 1, nome: 'Ana Rebelo', info: 'Amigos em comum: 4', tipo: 'recebido' },
+            { id: 2, nome: 'Inovação Digital Lda', info: 'Setor: Tecnologia', tipo: 'recebido' }
+        ];
+
+        const pedidosEnviados = [
+            { id: 3, nome: 'Carlos Sousa', info: 'Aguardando resposta...', tipo: 'enviado' }
+        ];
+
+        let currentSubView = 'recebidos';
+
+        function setSubView(type, element) {
+            currentSubView = type;
+            document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+            renderRequests();
+        }
+
+        // Função separada para corrigir erro de nomeação no clique
+        function setSubSubView(type, element) { setSubView(type, element); }
+
+        function renderRequests() {
+            const container = document.getElementById('content-list');
+            const list = currentSubView === 'recebidos' ? pedidosRecebidos : pedidosEnviados;
+
+            if (list.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:var(--text-sub); margin-top:40px;">Não há pedidos nesta categoria.</p>`;
+                return;
+            }
+
+            container.innerHTML = list.map(item => `
+                <div class="request-card">
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com{item.nome}&background=random">
+                        <div>
+                            <div style="font-weight:700">${item.nome}</div>
+                            <div style="font-size:12px; color:var(--text-sub)">${item.info}</div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        ${currentSubView === 'recebidos' 
+                            ? `<button class="btn btn-confirm" onclick="action(${item.id}, 'confirmar')">Confirmar</button>
+                               <button class="btn btn-delete" onclick="action(${item.id}, 'eliminar')">Eliminar</button>`
+                            : `<button class="btn btn-cancel" onclick="action(${item.id}, 'cancelar')">Cancelar Pedido</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function action(id, type) {
+            alert(`Ação "${type}" realizada com sucesso!`);
+            // Aqui você removeria o item do array na vida real
+            renderRequests();
+        }
+
+        function setView(view) {
+            const nav = document.getElementById('pedidos-nav');
+            if(view === 'explorar') {
+                nav.style.display = 'none';
+                document.getElementById('view-title').innerText = "Explorar Comunidade";
+                document.getElementById('content-list').innerHTML = "<p style='color:var(--text-sub)'>Pesquise novos perfis acima...</p>";
+            } else {
+                nav.style.display = 'flex';
+                document.getElementById('view-title').innerText = "Gestão de Pedidos";
+                renderRequests();
+            }
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // Início
+        renderRequests();
+    </script>
+</body>
+</html>

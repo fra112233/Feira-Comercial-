@@ -1,0 +1,365 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Perfil Profissional</title>
+     <script
+      src="https://kit.fontawesome.com/1da7d53075.js"
+      crossorigin="anonymous"
+    ></script>
+    <link
+      rel="stylesheet"
+      media="screen and (max-width: 768px)"
+      href="styles/mobile.css"
+    />
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --bg: #e3f2fd;
+            --white: #ffffff;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: #1e293b;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .form-card {
+            background: var(--white);
+            max-width: 700px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        h2 { text-align: center; margin-bottom: 30px; color: var(--primary); }
+        .group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+
+    
+        input[type="text"], input[type="tel"], input[type="email"], select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+
+        .type-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .type-option {
+            border: 2px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .type-option input { display: none; }
+        .type-option:has(input:checked) {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+
+        .hidden { display: none; }
+
+        .file-box {
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        .geo-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+         .item-link {
+            width: 100%;
+            background: #efc144;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+            
+        }
+
+input[type="text"], input[type="tel"], input[type="email"], input[type="password"], select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 15px;
+}
+
+        #location-status { font-size: 12px; margin-top: 8px; color: var(--secondary); }
+    </style>
+</head>
+<body>
+
+<div class="form-card">
+    <h2>Perfil do Usuário </h2>
+
+    <form id="mainForm">
+        <!-- Seleção de Tipo -->
+        <div class="type-selector">
+            <label class="type-option">
+                <input type="radio" name="perfilType" value="singular" checked onchange="toggleForm()">
+                <span>👤 Pessoa Singular</span>
+            </label>
+            <label class="type-option">
+                <input type="radio" name="perfilType" value="empresa" onchange="toggleForm()">
+                <span>🏢 Empresa</span>
+            </label>
+        </div>
+
+    <!-- Bloco das Credenciais de Acesso -->
+<div class="group-title" style="margin: 25px 0 15px 0; color: #64748b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; font-weight: bold;">
+    <i class="fas fa-lock"></i> Credenciais de Acesso
+</div>
+
+<div class="group">
+    <label>E-mail de Login:</label>
+    <input type="email" id="email" placeholder="exemplo@dominio.com" required>
+</div>
+
+<div class="group">
+    <label>Criar PIN de Acesso (8 dígitos numéricos,inclua pelo menos 1 Símbolo !, @, #, $, %, etc):</label>
+    <input type="password" id="pin" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="********" required>
+</div>
+
+<div class="group">
+    <label>Confirmar PIN de Acesso:</label>
+    <input type="password" id="pin_confirm" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="********" required>
+</div>
+
+        <!-- Foto de Perfil -->
+        <div class="group">
+            <label>Foto de Perfil (Avatar):</label>
+            <input type="file" accept="image/*" class="file-box">
+        </div>
+
+        <!-- Campo Comum: Celular -->
+        <div class="group">
+            <label>Número de Celular / WhatsApp:</label>
+            <input type="tel" name="celular" placeholder="+258 8X XXX XXXX" required>
+        </div>
+
+        <!-- Seção Pessoa Singular -->
+        <div id="section-singular">
+            <div class="group">
+                <label>Nome Completo:</label>
+                <input type="text" placeholder="Como consta no documento">
+            </div>
+            <div class="group">
+                <label>Tipo de Documento:</label>
+                <select name="doc_tipo_singular">
+                    <option value="BI">BI (Bilhete de Identidade)</option>
+                    <option value="Passaporte">Passaporte</option>
+                    <option value="DIRE">DIRE</option>
+                    <option value="Certidão">Certidão de Registo Comercial / Certidão Permanente</option>
+                    <option value="Contrato">Contrato Social ou Estatutos da Sociedade / NUIT</option>
+                    <option value="BR">Boletim da República</option>
+                </select>
+            </div>
+            <div class="group">
+                <label>Número do Documento:</label>
+                <input type="text" placeholder="Digite o número do documento">
+            </div>
+            <div class="group">
+                <label>Gênero:</label>
+                <select name="genero">
+                    <option value="">Selecione...</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                    <option value="E">Empresa</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Seção Empresa -->
+        <div id="section-empresa" class="hidden">
+            <div class="group">
+                <label>Denominação Social:</label>
+                <input type="text" placeholder="Ex: Cisco Systems Portugal, Lda ">
+            </div>
+            <div class="group">
+                <label>NUIT :</label>
+                <input type="text" placeholder="Número de identificação fiscal">
+            </div>
+        </div>
+
+        <!-- Setor de Serviço -->
+        <div class="group">
+            <label>Sector de Atuação:</label>
+            <select name="sector">
+                <option value="">Selecione uma opção...</option>
+                <option value="tecnologia">Tecnologia e IT</option>
+                <option value="construcao">Construção e Obras</option>
+                <option value="saude">Saúde e Bem-estar</option>
+                <option value="educacao">Educação/Formação</option>
+                <option value="outro">Outros Serviços</option>
+            </select>
+        </div>
+
+        <!-- Foto do Documento -->
+        <div class="group">
+            <label>Upload do Documento (Frente e verso/Alvará):</label>
+            <input type="file" accept="image/*" class="file-box">
+        </div>
+
+        <!-- Localização -->
+        <div class="group">
+            <label>Localização Geográfica:</label>
+            <button type="button" class="geo-btn" onclick="capturarLocalizacao()">
+                📍 Obter Localização Atual
+            </button>
+            <div id="location-status">Não localizado</div>
+            <input type="hidden" id="lat" name="latitude">
+            <input type="hidden" id="lng" name="longitude">
+        </div>
+
+        <!-- Visibilidade -->
+        <div class="group">
+            <label>Visibilidade do Perfil:</label>
+            <select name="visibilidade">
+                <option value="publico">🌍 Público(Visível para todos)</option>
+                <option value="privado">🔒 Privado(Apenas eu)</option>
+                <option value="apenas_clientes">👥 Apenas Clientes Cadastrados</option>
+            </select>
+        </div>
+
+        <button type="submit" class="submit-btn">Finalizar Cadastro</button> <br>
+        
+        <b><a href="Portal.html" class="item-link" style="text-decoration: none; color: inherit;">
+    <i class="fas fa-light fa-person-walking-arrow-right"></i>
+    <strong>Voltar a pagina</strong>
+</a></b>
+     
+
+      </div> 
+    </form>
+</div>
+
+<script>
+    function toggleForm() {
+        const type = document.querySelector('input[name="perfilType"]:checked').value;
+        document.getElementById('section-singular').classList.toggle('hidden', type === 'empresa');
+        document.getElementById('section-empresa').classList.toggle('hidden', type === 'singular');
+    }
+
+    function capturarLocalizacao() {
+        const status = document.getElementById('location-status');
+        if (!navigator.geolocation) {
+            status.textContent = "Geolocalização não suportada pelo seu navegador.";
+            return;
+        }
+        status.textContent = "Localizando...";
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                document.getElementById('lat').value = position.coords.latitude;
+                document.getElementById('lng').value = position.coords.longitude;
+                status.style.color = "var(--success)";
+                status.textContent = `📍 Localizado com sucesso! (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`;
+            },
+            () => {
+                status.style.color = "var(--error)";
+                status.textContent = "Erro: Permissão de localização negada.";
+            }
+        );
+    }
+
+   
+
+document.getElementById('mainForm').onsubmit = async function(e) {
+    e.preventDefault();
+
+    // 1. Capturar os valores inseridos manualmente
+    const email = document.getElementById('email').value;
+    const pin = document.getElementById('pin').value;
+    const pinConfirm = document.getElementById('pin_confirm').value;
+
+    // 2. Validar se os PINs coincidem
+    if (pin !== pinConfirm) {
+        alert('Erro: Os PINs introduzidos não coincidem!');
+        return; // Bloqueia o envio do formulário
+    }
+
+    // 3. Validar se tem exatamente 6 números
+    if (!/^\d{8}$/.test(pin)) {
+        alert('Erro: O PIN deve conter exatamente 8 dígitos numéricos.');
+        return; // Bloqueia o envio do formulário
+    }
+
+    // Se passou nas validações, o código continua para o envio do Supabase
+    alert('Validação do PIN concluída com sucesso! A processar dados...');
+    
+    // O seu objeto de dados que vai para o Supabase agora deve incluir:
+    // email: email,
+    // pin: pin,
+};
+
+
+        alert('Cadastro enviado com sucesso !');
+        console.log('Dados prontos para envio.');
+    
+
+const { data, error } = await supabase
+  .from('profiles')
+  .insert([
+    { 
+      id: user.id, // ID que vem do Auth
+      username: 'NomeDaEmpresa',
+      full_name: 'Empresa LTDA',
+      role: 'empresa' // <--- IMPORTANTE: Define como empresa aqui
+    }
+  ]);
+  
+</script>
+
+</body>
+</html>

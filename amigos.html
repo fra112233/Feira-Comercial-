@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amigos</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <script src="https://kit.fontawesome.com" crossorigin="anonymous"></script>
+        <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
+
+
+    <style>
+        :root {
+            --brand: #2563eb;
+            --brand-pro: #7c3aed;
+            --bg: #0f172a; 
+            --surface: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --radius: 18px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); min-height: 100vh; }
+
+        /* NAVEGAÇÃO ADAPTATIVA */
+        .sidebar { 
+            width: 280px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); 
+            padding: 30px 20px; position: fixed; height: 100vh; border-right: 1px solid var(--border); z-index: 1000; 
+        }
+
+        .nav-link { 
+            display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; 
+            border: none; background: transparent; color: var(--text-sub); cursor: pointer; 
+            border-radius: 14px; transition: 0.3s; font-weight: 600; margin-bottom: 5px;
+        }
+        .nav-link.active { background: var(--brand); color: #fff; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
+
+        /* CONTEÚDO */
+        .main { margin-left: 280px; padding: 40px; max-width: 1200px; margin-right: auto; transition: 0.3s; }
+
+        /* MODO PROFISSIONAL CARD */
+        .pro-card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid var(--brand-pro); padding: 20px; border-radius: var(--radius);
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+        }
+
+        /* CHIPS DE FILTRO */
+        .filter-group { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 15px; margin-bottom: 20px; scrollbar-width: none; }
+        .filter-chip { 
+            white-space: nowrap; padding: 8px 18px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 100px; color: var(--text-sub); font-size: 13px; cursor: pointer; transition: 0.2s;
+        }
+        .filter-chip:hover { border-color: var(--brand); color: #fff; }
+        .filter-chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+        /* GRID DE CONTACTOS */
+        .contact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .contact-card { 
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 20px; transition: 0.3s; position: relative;
+        }
+        .contact-card:hover { transform: translateY(-5px); border-color: var(--brand); }
+
+        .btn-more { position: absolute; top: 15px; right: 15px; color: var(--text-sub); cursor: pointer; padding: 5px; }
+
+        /* TOAST NOTIFICATION */
+        #toast {
+            position: fixed; bottom: 30px; right: 30px; background: var(--brand);
+            color: white; padding: 15px 25px; border-radius: 12px; display: none;
+            animation: slideIn 0.3s ease-out; z-index: 9999;
+        }
+
+
+.nav-link {
+    text-decoration: none !important; /* Remove o sublinhado padrão */
+    outline: none;                   /* Remove o contorno ao clicar */
+}
+
+
+
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* RESPONSIVIDADE MOBILE */
+        @media (max-width: 850px) {
+            .sidebar { 
+                width: 100%; height: 75px; bottom: 0; top: auto; border-right: none; border-top: 1px solid var(--border);
+                display: flex; justify-content: space-around; padding: 10px;
+            }
+            .sidebar h2, .section-label { display: none; }
+            .nav-link { flex-direction: column; font-size: 10px; gap: 5px; padding: 8px; width: auto; }
+            .main { margin-left: 0; padding: 20px 20px 100px 20px; }
+            .pro-card { flex-direction: column; text-align: center; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h3 style="color: #f0ec0fee; margin-bottom: 40px; text-align: center; "><i class="fas fa-bolt"></i>Feira Comercial</h3>
+    
+        <a href="gestaoAMIGO.html" class="nav-link active" ><i class="fas fa-user-clock"></i> <span>Pedidos</span></a>
+        <a href="index.html" class="nav-link active" return false><i class="fas fa-solid fa-home icon-btn"></i> <span>Pagina inicial</span></a>
+
+
+    </aside>
+
+    <main class="main">
+        <div class="pro-card">
+            <div>
+                <h3 style="font-weight: 700;">Modo Profissional</h3>
+                <p style="color: var(--text-sub); font-size: 13px;">Alterne para o modo de seguidores e convites diretos.</p>
+            </div>
+            <button id="togglePro" onclick="togglePro()" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--brand-pro); color: white; font-weight: 700; cursor: pointer;">ATIVAR</button>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-chip active">Todos</div>
+            <div class="filter-chip">💻 Tecnologia</div>
+            <div class="filter-chip">🎓 Educação</div>
+            <div class="filter-chip">🛍️ Varejo</div>
+            <div class="filter-chip">🏢 Empresas</div>
+        </div>
+
+        <div class="contact-grid" id="mainGrid">
+            <!-- Render dinâmico -->
+        </div>
+    </main>
+
+    <div id="toast">Mensagem enviada!</div>
+
+    <script>
+        let isPro = false;
+        let friendsCount = 1240;
+
+        const users = [
+            { id: 1, nome: 'Tech Inovação', cluster: 'Tecnologia', tipo: 'empresa', bio: 'Líder em soluções digitais.' },
+            { id: 2, nome: 'Carlos Mendes', cluster: 'Educação', tipo: 'utilizador', bio: 'Mentor de carreira e docente.' },
+            { id: 3, nome: 'Fashion Hub', cluster: 'Varejo', tipo: 'empresa', bio: 'O maior marketplace de moda.' }
+        ];
+
+        function togglePro() {
+            isPro = !isPro;
+            const btn = document.getElementById('togglePro');
+            btn.innerText = isPro ? "DESATIVAR" : "ATIVAR";
+            btn.style.background = isPro ? "#ef4444" : "var(--brand-pro)";
+            showToast(isPro ? "Modo Profissional Ativo" : "Modo Pessoal Ativo");
+            render();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function render() {
+            const grid = document.getElementById('mainGrid');
+            grid.innerHTML = users.map(user => `
+                <div class="contact-card">
+                    <div class="btn-more"><i class="fas fa-ellipsis-v"></i></div>
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <img src="https://ui-avatars.com{user.nome}&background=random" style="width: 50px; border-radius: 12px;">
+                        <div>
+                            <div style="font-weight: 700;">${user.nome}</div>
+                            <div style="font-size: 11px; color: var(--text-sub);">${user.cluster}</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 20px;">${user.bio}</p>
+                    <button onclick="action(${user.id})" style="width: 100%; padding: 12px; border: none; border-radius: 10px; background: ${isPro ? 'var(--brand-pro)' : 'var(--brand)'}; color: white; font-weight: 700; cursor: pointer; transition: 0.3s;">
+                        ${isPro ? '<i class="fas fa-rss"></i> Seguir' : '<i class="fas fa-user-plus"></i> Adicionar Amigo'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function action(id) {
+            if(friendsCount >= 5000 && !isPro) {
+                showToast("Limite de 5.000 amigos atingido!");
+                return;
+            }
+            showToast(isPro ? "Agora segue este perfil!" : "Solicitação de amizade enviada!");
+        }
+
+        render();
+    </script>
+</body>
+</html>

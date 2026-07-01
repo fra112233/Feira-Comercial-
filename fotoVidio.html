@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fotos/Vidios </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com">
+    <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --primary: #1a73e8; --bg: #c3c97a; --surface: #787c66;
+            --accent: #c2e7ff; --text: #eee3e3; --subtext: #444746;
+            --radius: 20px; --shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        body, html { 
+            margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text); overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* NAVBAR SUPERIOR MODERNA */
+        header {
+            position: fixed; top: 0; width: 100%; height: 70px;
+            background: rgba(102, 99, 99, 0.8); backdrop-filter: blur(15px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 25px; z-index: 1000; border-bottom: 1px solid rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        .search-pill {
+            flex-grow: 0.5; background: #eef3f8; border-radius: 30px;
+            height: 45px; display: flex; align-items: center; padding: 0 20px;
+            transition: 0.3s; border: 1px solid transparent;
+        }
+        .search-pill:focus-within { background: white; border-color: var(--primary); box-shadow: var(--shadow); }
+        .search-pill input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-size: 15px; }
+
+        /* MENU LATERAL (DRAWER) */
+        .drawer {
+            position: fixed; left: -300px; top: 0; width: 280px; height: 100%;
+            background: var(--surface); z-index: 2000; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 20px; box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+        }
+        .drawer.open { left: 0; }
+        .drawer-item {
+            padding: 15px; border-radius: 15px; display: flex; align-items: center; gap: 15px;
+            cursor: pointer; transition: 0.2s; color: var(--subtext); font-weight: 500;
+        }
+        .drawer-item:hover { background: var(--accent); color: var(--primary); }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1999; display: none; backdrop-filter: blur(4px); }
+
+        /* GRELHA DINÂMICA */
+        main { padding: 90px 20px 120px 20px; max-width: 1400px; margin: 0 auto; }
+        .grid { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 12px; transition: 0.4s;
+        }
+
+        .media-card {
+            position: relative; aspect-ratio: 1; border-radius: var(--radius);
+            overflow: hidden; cursor: pointer; background: #eee;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .media-card:hover { transform: scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .media-card img, .media-card video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* SELEÇÃO */
+        .media-card.selected { outline: 4px solid var(--primary); transform: scale(0.95); }
+        .check-mark {
+            position: absolute; top: 12px; left: 12px; width: 24px; height: 24px;
+            background: var(--primary); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+            opacity: 0; transform: scale(0); transition: 0.3s;
+        }
+        .media-card.selected .check-mark { opacity: 1; transform: scale(1); }
+
+        /* BARRA DE SELEÇÃO (FLOATING) */
+        #selection-bar {
+            position: fixed; top: 85px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white; padding: 12px 30px;
+            border-radius: 40px; display: none; align-items: center; gap: 30px;
+            box-shadow: 0 10px 30px rgba(26, 115, 232, 0.4); z-index: 1500;
+        }
+
+        /* EDITOR E VIEWER */
+        .viewer {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.98); 
+            z-index: 3000; display: none; flex-direction: column; animation: zoomIn 0.3s;
+        }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+        .viewer-content { flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
+        .viewer-content img, .viewer-content video { max-width: 100%; max-height: 90vh; border-radius: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            background: var(--accent); border-radius: 20px; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 8px 25px rgba(26, 115, 232, 0.2); transition: 0.3s;
+        }
+        .fab:hover { transform: rotate(90deg) scale(1.1); }
+
+        .hidden { display: none; }
+
+
+a {
+    text-decoration: none; /* Remove o sublinhado */
+    color: inherit;        /* Faz o link herdar a cor do texto original (opcional) */
+}
+
+
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY SELEÇÃO -->
+    <div id="selection-bar">
+        <span id="sel-count">0 itens</span>
+        <div style="display:flex; gap:20px; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 20px;">
+            <i class="fa-solid fa-star" title="Favoritar" onclick="actionFav()"></i>
+            <i class="fa-solid fa-trash" title="Lixo" onclick="actionTrash()"></i>
+            <i class="fa-solid fa-share-nodes" title="Enviar para amigos" onclick="actionExport()"></i>
+            <i class="fa-solid fa-xmark" title="Cancelar" onclick="clearSelection()"></i>
+        </div>
+    </div>
+
+    <header>
+        <div style="display:flex; align-items:center; gap:20px">
+            <i class="fa-solid fa-bars" onclick="toggleDrawer()" style="font-size:22px; cursor:pointer"></i>
+            <span style="font-size:22px; font-weight:600; color:#c3c97a">FC <span style="color:#090a0a; font-weight:400">Fotos</span></span>
+        </div>
+        <div class="search-pill">
+            <i class="fa-solid fa-magnifying-glass" style="color:var(--subtext)"></i>
+            <input type="text" placeholder="Pesquise as suas memórias..." id="searchInput">
+        </div>
+        <div style="display:flex; gap:20px; align-items:center">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:20px; color:var(--primary); cursor:pointer" id="cloudIcon"></i>
+            <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(45deg, #1a73e8, #7c4dff); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold">A</div>
+        </div>
+    </header>
+
+    <!-- DRAWER LATERAL -->
+    <div class="overlay" id="overlay" onclick="toggleDrawer()"></div>
+    <div class="drawer" id="drawer">
+        <a></a><h2 style="margin-bottom:30px; color:var(--primary)">Menu</h2></a>
+        <div class="drawer-item" onclick="changeView('all')"><i class="fa-solid fa-image"></i> Todas as Fotos</div>
+        <div class="drawer-item" onclick="changeView('fav')"><i class="fa-solid fa-star"></i> Favoritos</div>
+        <div class="drawer-item" onclick="changeView('video')"><i class="fa-solid fa-video"></i> Vídeos </div>
+        <div style="border-top:1px solid #eee; margin:15px 0"></div>
+        <div class="drawer-item" onclick="changeView('trash')"><i class="fa-solid fa-trash-can" style="color:#ea4335"></i> Lixo</div>
+        <a href="index.html"><div class="drawer-item" onclick="changeView('trash')"><i class="fa-solid fa-home icon-btn" style="color:#ea4335"></i> home</div></a>
+                
+
+        <div class="drawer-item" onclick="alert('Definições Modernas')"><i class="fa-solid fa-gear"></i> Definições</div>
+    </div>
+
+    <main>
+        <div class="grid" id="photoGrid"></div>
+    </main>
+
+    <!-- VIEWER IMERSIVO -->
+    <div class="viewer" id="viewer">
+        <div style="padding:20px; display:flex; justify-content:space-between; align-items:center">
+            <button onclick="closeViewer()" style="border:none; background:none; font-size:24px; cursor:pointer"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="display:flex; gap:30px; font-size:20px">
+                <i class="fa-solid fa-share-nodes" onclick="actionExport()" style="cursor:pointer"></i>
+                <i class="fa-solid fa-wand-magic-sparkles" onclick="alert('IA: Otimizando imagem...')" style="cursor:pointer"></i>
+                <i class="fa-solid fa-trash" onclick="trashSingle()" style="cursor:pointer; color:#ea4335"></i>
+            </div>
+        </div>
+        <div class="viewer-content" id="viewerContent"></div>
+    </div>
+
+    <!-- FAB DE UPLOAD -->
+    <div class="fab" onclick="document.getElementById('fileIn').click()">
+        <i class="fa-solid fa-plus" style="font-size:28px; color:var(--primary)"></i>
+    </div>
+    <input type="file" id="fileIn" multiple accept="image/*,video/*" class="hidden">
+
+    <script>
+        // BASE DE DADOS LOCAL
+        let media = [
+            { id: 1, type: 'image', src: 'https://picsum.photos', fav: false, trash: false },
+            { id: 2, type: 'video', src: 'https://www.w3schools.com', fav: false, trash: false },
+            { id: 3, type: 'image', src: 'https://picsum.photos', fav: true, trash: false }
+        ];
+
+        let selected = [];
+        let viewMode = 'all';
+        let currentOpenId = null;
+
+        // 1. GESTÃO DE UPLOAD (FOTOS E VÍDEOS > 30 MIN)
+        document.getElementById('fileIn').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            const cloud = document.getElementById('cloudIcon');
+            cloud.classList.add('fa-spin');
+
+            files.forEach(file => {
+                const url = URL.createObjectURL(file);
+                media.unshift({
+                    id: Date.now() + Math.random(),
+                    type: file.type.startsWith('video') ? 'video' : 'image',
+                    src: url,
+                    fav: false, trash: false
+                });
+            });
+
+            setTimeout(() => {
+                render();
+                cloud.classList.remove('fa-spin');
+                alert("Memórias carregadas com sucesso!");
+            }, 1500);
+        });
+
+        // 2. RENDERIZAÇÃO INTELIGENTE
+        function render() {
+            const grid = document.getElementById('photoGrid');
+            let filtered = media.filter(m => {
+                if(viewMode === 'trash') return m.trash;
+                if(viewMode === 'fav') return m.fav && !m.trash;
+                if(viewMode === 'video') return m.type === 'video' && !m.trash;
+                return !m.trash;
+            });
+
+            grid.innerHTML = filtered.map(m => `
+                <div class="media-card ${selected.includes(m.id) ? 'selected' : ''}" 
+                     onclick="handleInteraction(${m.id})" 
+                     oncontextmenu="event.preventDefault(); toggleSelect(${m.id})">
+                    ${m.type === 'video' 
+                        ? `<video src="${m.src}#t=0.5"></video><i class="fa-solid fa-play" style="position:absolute; bottom:15px; right:15px; color:white; font-size:18px"></i>`
+                        : `<img src="${m.src}" loading="lazy">`
+                    }
+                    <div class="check-mark"><i class="fa-solid fa-check"></i></div>
+                    ${m.fav ? '<i class="fa-solid fa-star" style="position:absolute; top:12px; right:12px; color:#fbbc05"></i>' : ''}
+                </div>
+            `).join('');
+            
+            updateUI();
+        }
+
+        // 3. SISTEMA DE SELEÇÃO E ACÇÕES
+        function handleInteraction(id) {
+            if(selected.length > 0) toggleSelect(id);
+            else openViewer(id);
+        }
+
+        function toggleSelect(id) {
+            const idx = selected.indexOf(id);
+            if(idx > -1) selected.splice(idx, 1);
+            else selected.push(id);
+            render();
+        }
+
+        function updateUI() {
+            const bar = document.getElementById('selection-bar');
+            if(selected.length > 0) {
+                bar.style.display = 'flex';
+                document.getElementById('sel-count').innerText = `${selected.length} selecionados`;
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        function actionTrash() {
+            if(confirm("Mover selecionados para o lixo?")) {
+                media.forEach(m => { if(selected.includes(m.id)) m.trash = true; });
+                clearSelection();
+            }
+        }
+
+        function actionFav() {
+            media.forEach(m => { if(selected.includes(m.id)) m.fav = !m.fav; });
+            clearSelection();
+        }
+
+        function actionExport() {
+            alert("A preparar link de partilha para amigos...");
+            clearSelection();
+        }
+
+        // 4. VIEWER E INTERFACE
+        function openViewer(id) {
+            currentOpenId = id;
+            const item = media.find(m => m.id === id);
+            const content = document.getElementById('viewerContent');
+            document.getElementById('viewer').style.display = 'flex';
+            
+            content.innerHTML = item.type === 'video' 
+                ? `<video src="${item.src}" controls autoplay></video>`
+                : `<img src="${item.src}">`;
+        }
+
+        function closeViewer() { document.getElementById('viewer').style.display = 'none'; }
+
+        function trashSingle() {
+            media.find(m => m.id === currentOpenId).trash = true;
+            closeViewer();
+            render();
+        }
+
+        function toggleDrawer() {
+            document.getElementById('drawer').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function changeView(mode) {
+            viewMode = mode;
+            toggleDrawer();
+            render();
+        }
+
+        function clearSelection() { selected = []; render(); }
+
+        render();
+    </script>
+</body>
+</html>

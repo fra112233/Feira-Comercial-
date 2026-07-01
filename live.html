@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com">
+    <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
+
+
+    <style>
+        /* 1. ESTRUTURA E RESET */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: #202124; color: white; 
+            font-family: 'Segoe UI', sans-serif; height: 100vh;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .main-content { display: flex; flex: 1; height: calc(100vh - 70px); position: relative; }
+
+        /* 2. GRID DE VÍDEOS (AJUSTADO PARA MOBILE) */
+        .video-container {
+            flex: 1; display: grid; padding: 10px; gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            align-content: center;
+        }
+
+        .video-card {
+            background-color: #3c4043; border-radius: 8px; aspect-ratio: 16/9;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+
+        .avatar-img {
+            width: 100px; height: 100px; border-radius: 50%;
+            object-fit: cover; border: 3px solid transparent; transition: 0.3s;
+        }
+
+        .speaking { border-color: #8ab4f8; animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(138, 180, 248, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0); }
+        }
+
+        /* BOTÃO DO MODERADOR */
+        .mute-btn {
+            position: absolute; top: 8px; right: 8px;
+            background: rgba(234, 67, 53, 0.9); border: none;
+            color: white; width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; z-index: 10; font-size: 12px;
+        }
+
+        /* 3. SIDEBAR (HEADER REDUZIDO) */
+        .sidebar {
+            width: 320px; background: white; margin: 10px; border-radius: 8px;
+            display: flex; flex-direction: column; color: #202124; transition: 0.3s;
+        }
+
+        .sidebar-header { 
+            padding: 8px 10px; /* ESPAÇO REDUZIDO NO TOPO */
+            display: flex; justify-content: space-around; 
+            border-bottom: 1px solid #eee; font-size: 0.85rem;
+        }
+
+        .tab { cursor: pointer; padding: 4px 10px; color: #5f6368; }
+        .tab-active { color: #1a73e8; border-bottom: 2px solid #1a73e8; font-weight: bold; }
+
+        #chatMessages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .msg { background: #f1f3f4; padding: 6px 10px; border-radius: 10px; max-width: 85%; font-size: 0.85rem; align-self: flex-start; }
+        .msg-me { background: #e8f0fe; color: #1967d2; align-self: flex-end; }
+        .time { font-size: 0.65rem; color: #70757a; display: block; margin-top: 2px; text-align: right; }
+
+        /* 4. BARRA INFERIOR */
+        .bottom-bar { height: 70px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; }
+        .btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #3c4043; color: white; cursor: pointer; }
+        .btn-off { background: #ea4335 !important; }
+        .btn-end { background: #ea4335; width: 55px; border-radius: 20px; }
+
+
+
+  .c-btn { 
+            width: 48px; height: 48px; border-radius: 50%; border: none; 
+            background: #3c4043; color: white; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+
+    
+/* Estilo base do botão (exemplo) */
+.c-btn {
+  background-color: #3c4043; /* Cinza padrão do Meet */
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.2s;
+  width: 45px;
+  height: 45px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estado Ativado (Igual ao Google Meet) */
+.c-btn.active {
+  background-color: #ea4335 !important; /* Vermelho do Meet */
+  color: #ffffff !important;
+}
+
+
+
+        /* 5. RESPONSIVIDADE CELULAR */
+        @media (max-width: 768px) {
+            .video-container { grid-template-columns: 1fr; } /* Vídeos um por baixo do outro */
+            .sidebar { 
+                position: absolute; right: 0; top: 0; bottom: 0; 
+                width: 85%; z-index: 100; margin: 5px; display: none; 
+            }
+            .sidebar.active { display: flex; }
+            .info-text { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-content">
+        <div class="video-container">
+            <!-- Participante -->
+            <div class="video-card">
+                <button class="mute-btn" title="Silenciar participante" onclick="muteUser('p1')"><i class="fas fa-microphone-slash"></i></button>
+                <img src="https://i.pravatar.cc" class="avatar-img speaking" id="p1">
+                <div style="position:absolute; bottom:8px; left:8px; font-size:11px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:4px;">Apresentador</div>
+            </div>
+
+            <!-- Você -->
+            <div class="video-card">
+                <img src="https://i.pravatar.cc" class="avatar-img" id="pMe">
+                <div style="position:absolute; bottom:8px; left:8px; font-size:11px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:4px;">Você</div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span id="tC" class="tab tab-active" onclick="switchTab('c')">Chat</span>
+                <span id="tP" class="tab" onclick="switchTab('p')">Pessoas</span>
+            </div>
+            
+            <div id="boxC" style="flex:1; display:flex; flex-direction:column;">
+                <div id="chatMessages"></div>
+                <div style="padding: 10px; border-top:1px solid #eee; display:flex; gap:8px;">
+                    <input type="text" id="mIn" placeholder="Enviar mensagem..." style="flex:1; border:none; background:#f1f3f4; padding:10px; border-radius:18px; outline:none; font-size: 14px;">
+                    <button onclick="sendMsg()" style="border:none; background:none; color:#1a73e8; cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <div id="boxP" style="display:none; padding:10px; color:#3c4043; font-size: 0.9rem;">
+                <p><i class="fas fa-circle" style="color:#34a853; font-size:8px;"></i> Você (Moderador)</p>
+                <p style="margin-top:8px;"><i class="fas fa-circle" style="color:#34a853; font-size:8px;"></i> Apresentador</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Ferramentas -->
+    <div class="bottom-bar">
+        <div class="info-text" style="font-size: 0.8rem;">18:30 | Projeto Final</div>
+        <div class="controls" style="display:flex; gap:10px;">
+            <button class="btn btn-off" id="bM" onclick="toggle('m')"><i class="fas fa-microphone-slash"></i></button>
+            <button class="btn" id="bV" onclick="toggle('v')"><i class="fas fa-video"></i></button>
+            <button class="btn btn-end"><i class="fas fa-phone-slash"></i></button>
+           <button id="btn-mao" class="c-btn" title="Levantar Mão">
+  <i id="icone-mao" class="far fa-hand-paper"></i></button>
+
+
+            <a href="index.html" class="c-btn" title="home"><i class="fas fa-home"></i></a>
+  <!-- BOTÃO MINIATURA (O QUE VOCÊ PEDIU) -->
+            <button class="c-btn" onclick="startMiniMode()" style="background: #1a73e8;" title="Ver em Miniatura e sair">
+                <i class="fas fa-external-link-alt"></i>
+            </button>
+
+
+        </div>
+        <div style="text-align:right;">
+            <button class="btn" style="background:none;" onclick="document.getElementById('sidebar').classList.toggle('active')">
+                <i class="fas fa-comment-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // SILENCIAR PARTICIPANTE
+        function muteUser(id) {
+            document.getElementById(id).classList.remove('speaking');
+            alert("Moderador: Participante silenciado.");
+        }
+
+        // TOGGLE MIC/CAM
+        let mStatus = false, vStatus = true;
+        function toggle(t) {
+            if(t === 'm') {
+                mStatus = !mStatus;
+                document.getElementById('bM').className = mStatus ? 'btn' : 'btn btn-off';
+                document.getElementById('bM').innerHTML = `<i class="fas fa-microphone${mStatus?'':'-slash'}"></i>`;
+                document.getElementById('pMe').classList.toggle('speaking', mStatus);
+            } else {
+                vStatus = !vStatus;
+                document.getElementById('bV').className = vStatus ? 'btn' : 'btn btn-off';
+                document.getElementById('bV').innerHTML = `<i class="fas fa-video${vStatus?'':'-slash'}"></i>`;
+                document.getElementById('pMe').style.opacity = vStatus ? '1' : '0.2';
+
+
+    // 1. Seleciona o botão na página pelo ID
+const botaoMao = document.getElementById('btnLevantarMao');
+
+// 2. Define o que acontece quando o botão for clicado
+botaoMao.addEventListener('click', function() {
+    // Escreva aqui a lógica da sua ação
+    alert('Você levantou a mão!'); 
+    
+    // Exemplo: Alternar uma classe visual de ativo/inativo
+    botaoMao.classList.toggle('ativo');
+});
+
+            }
+        }
+
+        // CHAT
+        function sendMsg() {
+            const i = document.getElementById('mIn'), b = document.getElementById('chatMessages');
+            if(i.value.trim() !== "") {
+                const h = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                b.innerHTML += `<div class="msg msg-me">${i.value}<span class="time">${h}</span></div>`;
+                i.value = ""; b.scrollTop = b.scrollHeight;
+            }
+        }
+
+        // ABAS
+        function switchTab(t) {
+            const isC = t==='c';
+            document.getElementById('boxC').style.display = isC ? 'flex' : 'none';
+            document.getElementById('boxP').style.display = isC ? 'none' : 'block';
+            document.getElementById('tC').className = isC ? 'tab tab-active' : 'tab';
+            document.getElementById('tP').className = isC ? 'tab' : 'tab tab-active';
+        }
+
+        // ENTER PARA ENVIAR
+        document.getElementById('mIn').addEventListener('keypress', (e) => { if(e.key==='Enter') sendMsg(); });
+
+const botao = document.getElementById('btn-mao');
+const icone = document.getElementById('icone-mao');
+
+botao.addEventListener('click', () => {
+  // 1. Altera a cor do botão (coloca/tira a classe .active)
+  botao.classList.toggle('active');
+  
+  // 2. Altera o ícone entre preenchido (fas) e linha (far)
+  if (botao.classList.contains('active')) {
+    icone.classList.remove('far');
+    icone.classList.add('fas'); // Mão preenchida
+    botao.title = "Abaixar Mão";
+  } else {
+    icone.classList.remove('fas');
+    icone.classList.add('far'); // Mão vazia
+    botao.title = "Levantar Mão";
+  }
+});
+
+
+
+    </script>
+</body>
+</html>

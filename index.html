@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social App - Unificado</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-theme="dark">
+
+    <header>
+        <div class="h-left">
+            <div style="font-size: 24px; font-weight: bold; color: var(--fb-red); cursor: pointer;">LOGO</div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="pesquisar...">
+            </div>
+        </div>
+        <div class="h-center">
+            <i class="fas fa-play-circle"></i>
+        </div>
+        <div class="h-right">
+            <div class="btn-circle" onclick="toggleDarkMode()"><i class="fas fa-moon"></i></div>
+            <div class="btn-circle" onclick="toggleDropdown(event)"><i class="fas fa-bars"></i></div>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="#"><i class="fas fa-user-circle"></i>Meu Perfil</a>
+                <a href="#" class="item-link"><i class="fas fa-user-friends" style="color: #f3425f;"></i> Amigos</a>
+                <a href="#"><i class="fas fa-message" style="color:#f3425f"></i> Mensagens</a>
+                <hr>
+                <a href="#"><i class="fas fa-right-from-bracket" style="color: #f3425f"></i>Sair</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <aside class="col-left">
+            <a href="#" class="item-link"><i class="fas fa-user-circle fa-lg"></i> <strong>Meu Perfil</strong></a>
+            <a href="#" class="item-link"><i class="fas fa-user-friends"></i> <span>Amigos</span></a>
+            <a href="#" class="item-link"><i class="fas fa-message"></i> <span>Mensagens</span></a>
+            <a href="#" class="item-link"><i class="fas fa-bullhorn"></i> <span>Anúncios</span></a>
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--border-color);">
+            <a href="#" class="item-link"><i class="fas fa-video" style="color: #f3425f;"></i> Live</a>
+            <a href="#" class="item-link"><i class="fa-solid fa-photo-film" style="color: #f3425f;"></i> Biblioteca</a>
+        </aside>
+
+        <section class="col-center">
+            <!-- STORIES -->
+            <div class="stories-section">
+                <div class="stories-container" id="stories-list">
+                    <div class="story-circle add" onclick="document.getElementById('up-story-input').click()">
+                        <i class="fas fa-plus"></i>
+                        <input type="file" id="up-story-input" hidden accept="image/*,video/*" onchange="addStory(event)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- POST BOX -->
+            <div class="post-card">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fas fa-user-circle fa-2x" style="color:#1877f2"></i>
+                    <textarea id="post-text" placeholder="No que você está pensando?" 
+                           style="flex:1; border-radius:20px; border:none; padding:12px; background:var(--bg-body); outline:none; resize:none; height:45px;"></textarea>
+                </div>
+                <div id="post-preview-area"></div>
+                <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px;">
+                    <label style="color:var(--fb-blue); cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-images fa-lg"></i> Fotos/Vídeos
+                        <input type="file" id="post-media-input" hidden accept="image/*,video/*" multiple onchange="previewPostMedia(event)">
+                    </label>
+                    <button onclick="publishPost()" style="background:var(--fb-blue); color:white; border:none; padding:10px 30px; border-radius:25px; cursor:pointer; font-weight:bold;">Publicar</button>
+                </div>
+            </div>
+
+            <div id="feed"></div>
+        </section>
+
+        <aside class="col-right">
+            <p style="color:var(--text-secondary); font-weight:bold;">Sugestões para você</p>
+            <div id="rolling-feed" class="rolling-feed-container">
+                <!-- Rolling items will be injected here -->
+            </div>
+            
+            <p style="color:var(--text-secondary); font-weight:bold; margin-top:20px;">Contatos</p>
+            <div class="item-link"><i class="fas fa-user-circle"></i> <span>Ana Tech</span></div>
+            <div class="item-link"><i class="fas fa-user-circle"></i> <span>Marcos Dev</span></div>
+        </aside>
+    </main>
+
+    <!-- STORY MODAL -->
+    <div id="storyModal" class="story-modal">
+        <div class="story-window">
+            <div class="story-bar-bg"><div id="storyBarFill" class="story-bar-fill"></div></div>
+            <button onclick="closeStory()" style="position:absolute; top:20px; right:20px; color:white; background:none; border:none; font-size:30px; cursor:pointer; z-index:20;">&times;</button>
+            <div id="storyViewer" style="width:100%; height:100%;"></div>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX -->
+    <div id="janelaModal" style="display:none; position:fixed; z-index:99999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.95); align-items:center; justify-content:center;">
+        <span id="modalFechar" style="position:absolute; top:20px; right:30px; color:white; font-size:40px; font-weight:bold; cursor:pointer; user-select:none; z-index:100001;">&times;</span>
+        <button id="modalPrev" style="position:absolute; left:20px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.1); color:white; border:none; font-size:30px; padding:15px 20px; cursor:pointer; border-radius:50%; user-select:none; z-index:100001;">&#10094;</button>
+        <img id="fotoExpandida" style="max-width:85%; max-height:85%; border-radius:4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: transform 0.2s;">
+        <button id="modalNext" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.1); color:white; border:none; font-size:30px; padding:15px 20px; cursor:pointer; border-radius:50%; user-select:none; z-index:100001;">&#10095;</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
