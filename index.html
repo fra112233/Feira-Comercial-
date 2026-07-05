@@ -5,9 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pagina inicial</title>
     <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
+   
 
+
+<!-- Importa o Supabase -->
+<script src="https://jsdelivr.net"></script>
+
+<script>
+    // Configuração com os dados corretos (com o número 1 na URL)
+    const SUPABASE_URL = 'https://supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // SEGURANÇA ESTILO FACEBOOK: Verifica se o utilizador está logado
+    async function verificarSessao() {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // Se NÃO estiver logado, expulsa a pessoa para a página de login
+        if (!session) {
+            window.location.href = 'login.html'; // Coloque aqui o nome correto da sua página de login
+        } else {
+            console.log("Utilizador autorizado! ID:", session.user.id);
+            // Aqui pode chamar a função para carregar os posts ou dados da feira
+            carregarConteudoDaFeira(); 
+        }
+    }
+
+    // Executa a verificação assim que a página abre
+    verificarSessao();
+</script>
+
+
+
+
+
+
+
+    
     <style>
         :root {
             --bg-body: #f0f2f5;
