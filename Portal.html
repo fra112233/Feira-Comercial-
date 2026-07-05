@@ -1,107 +1,75 @@
 <!DOCTYPE html>
 <html lang="pt">
-   <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="styles/styles.css" />
-      
-    <script
-      src="https://kit.fontawesome.com/1da7d53075.js"
-      crossorigin="anonymous"
-    ></script>
-    <link
-      rel="stylesheet"
-      media="screen and (max-width: 768px)"
-      href="styles/mobile.css"
-    />
-    <title>portal</title>
-  </head>
-  <body>
+    <script src="https://kit.fontawesome.com/1da7d53075.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" media="screen and (max-width: 768px)" href="styles/mobile.css" />
+    <title>Portal</title>
+</head>
+<body>
     <header>
-      <nav id="navbar">
-        <div class="container">
-          <h1 >Feira Comercial</a></h1>
-          <ul>
-          <li><a class="actual" href="about.html">Voltar </a></li>
-         
-          
-          </ul>
-        </div>
-      </nav>
+        <nav id="navbar">
+            <div class="container">
+                <h1>Feira Comercial</h1>
+                <ul>
+                    <li><a class="actual" href="about.html">Voltar</a></li>
+                </ul>
+            </div>
+        </nav>
     </header>
-  
-  <body>
-    <header>
-     
-  <section id="Portal-form" class="py-3">
-    <div class="container">
-      <h1 class="titulo"
-        ><span class="texto-primario">Faça login</span></h1
-      >
-      <div class="login-box">
-        <action="#" method="post">
-          <div class="row">
 
-          </div>
-        </form>
+    <section id="Portal-form" class="py-3">
+        <div class="container">
+            <h1 class="titulo"><span class="texto-primario">Faça login</span></h1>
+            
+            <div class="login-box">
+                <!-- CORREÇÃO AQUI: Mudámos para id="loginForm" e tirámos o action/method -->
+                <form id="loginForm">
+                    <div class="row">
+                        <label for="username">Username</label>
+                        <input id="username" name="username" type="text" required>
+                    </div>
 
-      </div>
-      
-<div class="login-box">
- 
+                    <div class="row">
+                        <label for="password">Password</label>
+                        <input id="password" name="password" type="password" required>
+                    </div>
+                    
+                    <div class="row check">
+                        <input id="warn" name="warn" type="checkbox">
+                        <label for="warn">Antes de fazer login</label>
+                    </div> 
 
-  <form action="#" method="post">
-      <div class="row">
-          <label for="username">Username</label>
-          <input id="username" name="username" type="text" required>
-      </div>
+                    <button class="btn" type="submit">Log In</button>
+                </form>
 
-      <div class="row">
-          <label for="password">Password</label>
-          <input id="password" name="password" type="password" required>
-      </div>
-      
-      <div class="row check">
-          <input id="warn" name="warn" type="checkbox">
-          <label for="warn">Antes de fazar login </label>
-      </div> 
+                <div class="row btn-row" style="margin-top: 20px;">
+                    <a href="password.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid : user-lock fa-shake" style="color: rgb(255, 212, 59);"></i>
+                        <strong>Esqueceu-se da palavra-passe</strong>
+                    </a>
+                </div> 
 
-      <button class="btn" type="submit">Log In</button>
-  </form>
+                <p style="margin-top: 15px;">Segurança: Faça logout ou feche o navegador quando quiser sair do aplicativo.</p>
 
-<div class="row btn-row">
-         
-         <a href="password.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
- <i class="fa-solid fa-user-lock fa-shake" style="color: rgb(255, 212, 59);"></i>
-<strong>Esqueceu-se da palavra-passe</strong>
-</a>
-      </div> 
+                <a href="reclamacao.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid : book fa-beat" style="color: rgb(255, 212, 59);"></i>
+                    <strong>Livro de Reclamações</strong>
+                </a>
+            </div>
+        </div>
+    </section>
 
-
-      
-      <p>Segurança: Faça logout ou feche o navegador quando quiser sair do aplicativo.</p>
-
-<a href="reclamacao.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
-  <i class="fa-solid fa-book fa-beat" style="color: rgb(255, 212, 59);"></i>
- <strong>Livro de Reclamações</strong>
-</a>
-  </div>
-
-  </section>
-
-
-
-
-  <footer id="main-footer">
-    <p>
-      
-      <b><a href="politicas.html" class="item-link" style="text-decoration: none; color: inherit;">
-    
-    <span >Termos e Políticas de Segurança|Feira Comercial</span>
-</a></b>
-
-       
-    </p>
-  </footer>
+    <footer id="main-footer">
+        <p>
+            <b>
+                <a href="politicas.html" class="item-link" style="text-decoration: none; color: inherit;">
+                    <span>Termos e Políticas de Segurança | Feira Comercial</span>
+                </a>
+            </b>
+        </p>
+    </footer>
 </body>
 </html>
