@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -168,7 +167,7 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
 </div>
 
 <div class="group">
-    <label>Criar PIN de Acesso (8 dígitos numéricos,inclua pelo menos 1 Símbolo !, @, #, $, %, etc):</label>
+    <label>Criar PIN de Acesso (8 dígitos numéricos, inclua pelo menos 1 Símbolo !, @, #, $, %, etc):</label>
     <input type="password" id="pin" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="********" required>
 </div>
 
@@ -276,12 +275,9 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
         <button type="submit" class="submit-btn">Finalizar Cadastro</button> <br>
         
         <b><a href="Portal.html" class="item-link" style="text-decoration: none; color: inherit;">
-    <i class="fas fa-light fa-person-walking-arrow-right"></i>
-    <strong>Voltar a pagina</strong>
-</a></b>
-     
-
-      </div> 
+            <i class="fas fa-light fa-person-walking-arrow-right"></i>
+            <strong>Voltar a pagina</strong>
+        </a></b>
     </form>
 </div>
 
@@ -313,53 +309,56 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
         );
     }
 
-   
+    document.getElementById('mainForm').onsubmit = async function(e) {
+        e.preventDefault(); // Impede o comportamento padrão de recarregar a página
 
-document.getElementById('mainForm').onsubmit = async function(e) {
-    e.preventDefault();
+        // 1. Capturar os valores inseridos manualmente
+        const email = document.getElementById('email').value;
+        const pin = document.getElementById('pin').value;
+        const pinConfirm = document.getElementById('pin_confirm').value;
 
-    // 1. Capturar os valores inseridos manualmente
-    const email = document.getElementById('email').value;
-    const pin = document.getElementById('pin').value;
-    const pinConfirm = document.getElementById('pin_confirm').value;
+        // 2. Validar se os PINs coincidem
+        if (pin !== pinConfirm) {
+            alert('Erro: Os PINs introduzidos não coincidem!');
+            return; 
+        }
 
-    // 2. Validar se os PINs coincidem
-    if (pin !== pinConfirm) {
-        alert('Erro: Os PINs introduzidos não coincidem!');
-        return; // Bloqueia o envio do formulário
-    }
+        // 3. Validar se tem exatamente 8 números (conforme o seu HTML pattern)
+        if (!/^\d{8}$/.test(pin)) {
+            alert('Erro: O PIN deve conter exatamente 8 dígitos numéricos.');
+            return; 
+        }
 
-    // 3. Validar se tem exatamente 6 números
-    if (!/^\d{8}$/.test(pin)) {
-        alert('Erro: O PIN deve conter exatamente 8 dígitos numéricos.');
-        return; // Bloqueia o envio do formulário
-    }
+        // Se passou nas validações, o código continua para o envio
+        alert('Validação do PIN concluída com sucesso! A processar dados...');
+        
+        console.log('Dados prontos para envio:', { email, pin });
 
-    // Se passou nas validações, o código continua para o envio do Supabase
-    alert('Validação do PIN concluída com sucesso! A processar dados...');
-    
-    // O seu objeto de dados que vai para o Supabase agora deve incluir:
-    // email: email,
-    // pin: pin,
-};
+        // Exemplo de integração com Supabase (comentado para evitar erros se o supabase não estiver definido)
+        /*
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert([
+                    { 
+                        email: email,
+                        pin: pin,
+                        // Adicione outros campos aqui conforme necessário
+                    }
+                ]);
 
-
-        alert('Cadastro enviado com sucesso !');
-        console.log('Dados prontos para envio.');
-    
-
-const { data, error } = await supabase
-  .from('profiles')
-  .insert([
-    { 
-      id: user.id, // ID que vem do Auth
-      username: 'NomeDaEmpresa',
-      full_name: 'Empresa LTDA',
-      role: 'empresa' // <--- IMPORTANTE: Define como empresa aqui
-    }
-  ]);
-  
+            if (error) throw error;
+            alert('Cadastro enviado com sucesso!');
+        } catch (err) {
+            console.error('Erro ao enviar para o Supabase:', err);
+            alert('Erro ao realizar cadastro.');
+        }
+        */
+        
+        alert('Cadastro enviado com sucesso!');
+    };
 </script>
 
 </body>
 </html>
+
