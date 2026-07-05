@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>pagina inicial</title>
     <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
+     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
     <style>
         :root {
             --bg-body: #f0f2f5;
@@ -521,7 +523,12 @@
 
         <div id="feed"></div>
     </section>
+ // Configurações do Supabase
+    const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    
     <!-- RIGHT SIDEBAR -->
     <aside class="col-right">
         <p style="font-weight: 700; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Explorar Conteúdo</p>
@@ -810,7 +817,7 @@ async function publishPost() {
 }
 
 // ─────────────────────────────────────
-//  RENDER POSTS — GROUPED (WhatsApp style)
+//  RENDER POSTS — GROUPED (WApp style)
 // ─────────────────────────────────────
 function renderPosts() {
     const feed = document.getElementById('feed');
