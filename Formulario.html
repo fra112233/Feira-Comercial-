@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -48,14 +47,20 @@
         .group { margin-bottom: 20px; }
         label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
 
-    
-        input[type="text"], input[type="tel"], input[type="email"], select, textarea {
+        input[type="text"], input[type="tel"], input[type="email"], input[type="password"], select, textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             box-sizing: border-box;
             font-size: 15px;
+        }
+
+        small.hint {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--secondary);
         }
 
         .type-selector {
@@ -114,9 +119,37 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
-         .item-link {
+
+        .submit-btn:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .submit-btn.loading .spinner { display: inline-block; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .item-link {
             width: 100%;
+            display: block;
+            text-align: center;
             background: #efc144;
             color: white;
             border: none;
@@ -126,19 +159,34 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 16px;
-            
         }
 
-input[type="text"], input[type="tel"], input[type="email"], input[type="password"], select, textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 15px;
-}
-
         #location-status { font-size: 12px; margin-top: 8px; color: var(--secondary); }
+
+        #submit-status {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        #submit-status.show { display: block; }
+        #submit-status.info    { background: #eff6ff; color: var(--primary); }
+        #submit-status.success { background: #f0fdf4; color: #15803d; }
+        #submit-status.error   { background: #fef2f2; color: #b91c1c; }
+
+        .field-error {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+        .field-error.show { display: block; }
+        input.invalid {
+            border-color: var(--error) !important;
+        }
     </style>
 </head>
 <body>
@@ -146,7 +194,7 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
 <div class="form-card">
     <h2>Perfil do Usuário </h2>
 
-    <form id="mainForm">
+    <form id="mainForm" novalidate>
         <!-- Seleção de Tipo -->
         <div class="type-selector">
             <label class="type-option">
@@ -167,39 +215,43 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
 <div class="group">
     <label>E-mail de Login:</label>
     <input type="email" id="email" placeholder="exemplo@dominio.com" required>
+    <div class="field-error" id="email-error">Introduza um e-mail válido.</div>
 </div>
 
 <div class="group">
-    <label>Criar PIN de Acesso (8 dígitos numéricos,inclua pelo menos 1 Símbolo !, @, #, $, %, etc):</label>
-    <input type="password" id="pin" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="********" required>
+    <label>Criar PIN de Acesso (8 caracteres: números + pelo menos 1 símbolo !, @, #, $, %, etc):</label>
+    <input type="password" id="pin" maxlength="8" placeholder="Ex: 1234!567" required>
+    <small class="hint">Exatamente 8 caracteres, misturando números e pelo menos 1 símbolo (! @ # $ % & *).</small>
+    <div class="field-error" id="pin-error">O PIN deve ter 8 caracteres, com números e pelo menos 1 símbolo.</div>
 </div>
 
 <div class="group">
     <label>Confirmar PIN de Acesso:</label>
-    <input type="password" id="pin_confirm" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="********" required>
+    <input type="password" id="pin_confirm" maxlength="8" placeholder="Repita o PIN" required>
+    <div class="field-error" id="pin-confirm-error">Os PINs não coincidem.</div>
 </div>
 
         <!-- Foto de Perfil -->
         <div class="group">
             <label>Foto de Perfil (Avatar):</label>
-            <input type="file" accept="image/*" class="file-box">
+            <input type="file" id="foto_perfil" accept="image/*" class="file-box">
         </div>
 
         <!-- Campo Comum: Celular -->
         <div class="group">
             <label>Número de Celular / WhatsApp:</label>
-            <input type="tel" name="celular" placeholder="+258 8X XXX XXXX" required>
+            <input type="tel" id="celular" name="celular" placeholder="+258 8X XXX XXXX" required>
         </div>
 
         <!-- Seção Pessoa Singular -->
         <div id="section-singular">
             <div class="group">
                 <label>Nome Completo:</label>
-                <input type="text" placeholder="Como consta no documento">
+                <input type="text" id="nome_completo" placeholder="Como consta no documento">
             </div>
             <div class="group">
                 <label>Tipo de Documento:</label>
-                <select name="doc_tipo_singular">
+                <select id="doc_tipo_singular" name="doc_tipo_singular">
                     <option value="BI">BI (Bilhete de Identidade)</option>
                     <option value="Passaporte">Passaporte</option>
                     <option value="DIRE">DIRE</option>
@@ -210,11 +262,11 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
             </div>
             <div class="group">
                 <label>Número do Documento:</label>
-                <input type="text" placeholder="Digite o número do documento">
+                <input type="text" id="numero_documento" placeholder="Digite o número do documento">
             </div>
             <div class="group">
                 <label>Gênero:</label>
-                <select name="genero">
+                <select id="genero" name="genero">
                     <option value="">Selecione...</option>
                     <option value="M">Masculino</option>
                     <option value="F">Feminino</option>
@@ -227,18 +279,18 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
         <div id="section-empresa" class="hidden">
             <div class="group">
                 <label>Denominação Social:</label>
-                <input type="text" placeholder="Ex: Cisco Systems Portugal, Lda ">
+                <input type="text" id="denominacao_social" placeholder="Ex: Cisco Systems Portugal, Lda ">
             </div>
             <div class="group">
                 <label>NUIT :</label>
-                <input type="text" placeholder="Número de identificação fiscal">
+                <input type="text" id="nuit" placeholder="Número de identificação fiscal">
             </div>
         </div>
 
         <!-- Setor de Serviço -->
         <div class="group">
             <label>Sector de Atuação:</label>
-            <select name="sector">
+            <select id="sector" name="sector">
                 <option value="">Selecione uma opção...</option>
                 <option value="tecnologia">Tecnologia e IT</option>
                 <option value="construcao">Construção e Obras</option>
@@ -251,13 +303,10 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
         <!-- Foto do Documento -->
         <div class="group">
             <label>Upload do Documento (Frente e verso/Alvará):</label>
-            <input type="file" accept="image/*" class="file-box">
+            <input type="file" id="foto_documento" accept="image/*" class="file-box">
         </div>
 
-       
-
-
- <!-- Localização -->
+        <!-- Localização -->
         <div class="group">
             <label>Localização Geográfica:</label>
             <button type="button" class="geo-btn" onclick="capturarLocalizacao()">
@@ -268,36 +317,42 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
             <input type="hidden" id="lng" name="longitude">
         </div>
 
-
         <!-- Visibilidade -->
         <div class="group">
             <label>Visibilidade do Perfil:</label>
-            <select name="visibilidade">
+            <select id="visibilidade" name="visibilidade">
                 <option value="publico">🌍 Público(Visível para todos)</option>
                 <option value="privado">🔒 Privado(Apenas eu)</option>
                 <option value="apenas_clientes">👥 Apenas Clientes Cadastrados</option>
             </select>
         </div>
 
-        <button type="submit" class="submit-btn">Finalizar Cadastro</button> <br>
-        
-        <b><a href="Portal.html" class="item-link" style="text-decoration: none; color: inherit;">
-    <i class="fas fa-light fa-person-walking-arrow-right"></i>
-    <strong>Voltar a pagina</strong>
-</a></b>
-     
+        <button type="submit" class="submit-btn" id="submitBtn">
+            <span class="spinner"></span>
+            <span id="submitBtnText">Finalizar Cadastro</span>
+        </button>
 
-      </div> 
+        <div id="submit-status"></div>
+
+        <br>
+        <b><a href="Portal.html" class="item-link" style="text-decoration: none; color: inherit;">
+            <i class="fas fa-light fa-person-walking-arrow-right"></i>
+            <strong>Voltar a pagina</strong>
+        </a></b>
+
     </form>
 </div>
 
 <script>
 
-  // Configurações do Supabase
+    // Configurações do Supabase
     const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Regra do PIN: exatamente 8 caracteres, pelo menos 1 número e pelo menos 1 símbolo
+    // permitido, o resto pode ser número. Símbolos aceites: ! @ # $ % & *
+    const PIN_REGEX = /^(?=.*[0-9])(?=.*[!@#$%^&*])[0-9!@#$%^&*]{8}$/;
 
     function toggleForm() {
         const type = document.querySelector('input[name="perfilType"]:checked').value;
@@ -326,82 +381,122 @@ input[type="text"], input[type="tel"], input[type="email"], input[type="password
         );
     }
 
-
-document.getElementById('mainForm').onsubmit = async function(e) {
-    e.preventDefault();
-
-    // 1. Capturar os valores inseridos manualmente
-    const email = document.getElementById('email').value;
-    const pin = document.getElementById('pin').value;
-    const pinConfirm = document.getElementById('pin_confirm').value;
-
-    // 2. Validar se os PINs coincidem
-    if (pin !== pinConfirm) {
-        alert('Erro: Os PINs introduzidos não coincidem!');
-        return; // Bloqueia o envio do formulário
+    function setFieldError(inputEl, errorEl, show) {
+        inputEl.classList.toggle('invalid', show);
+        errorEl.classList.toggle('show', show);
     }
 
-    // 3. Validar se tem exatamente 6 números
-    if (!/^\d{8}$/.test(pin)) {
-        alert('Erro: O PIN deve conter exatamente 8 dígitos numéricos.');
-        return; // Bloqueia o envio do formulário
+    function setStatus(message, type) {
+        const box = document.getElementById('submit-status');
+        box.textContent = message;
+        box.className = 'show ' + type; // 'info' | 'success' | 'error'
     }
 
-    // Se passou nas validações, o código continua para o envio do Supabase
-    alert('Validação do PIN concluída com sucesso! A processar dados...');
-    
-    // O seu objeto de dados que vai para o Supabase agora deve incluir:
-    // email: email,
-    // pin: pin,
-};
-
-
-        alert('Cadastro enviado com sucesso !');
-        console.log('Dados prontos para envio.');
-    
-
-const { data, error } = await supabase
-  .from('profiles')
-  .insert([
-    { 
-      id: user.id, // ID que vem do Auth
-      username: 'NomeDaEmpresa',
-      full_name: 'Empresa LTDA',
-      role: 'empresa' // <--- IMPORTANTE: Define como empresa aqui
+    function setLoading(isLoading) {
+        const btn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('submitBtnText');
+        btn.classList.toggle('loading', isLoading);
+        btn.disabled = isLoading;
+        btnText.textContent = isLoading ? 'A processar...' : 'Finalizar Cadastro';
     }
-  ]);
-  
-    // 2. Se o usuário foi criado, salvar dados adicionais na tabela 'profiles'
-            if (authData.user) {
-                const perfilType = document.querySelector('input[name="perfilType"]:checked').value;
-                const nome = perfilType === 'singular' ? 
-                    document.getElementById('nome_completo').value : 
-                    document.getElementById('denominacao_social').value;
 
-                const { error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: authData.user.id,
-                            email: email,
-                            full_name: nome,
-                            phone: document.getElementById('celular').value,
-                            type: perfilType,
-                            latitude: document.getElementById('lat').value,
-                            longitude: document.getElementById('lng').value
-                        }
-                    ]);
+    document.getElementById('mainForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
 
-                if (profileError) throw profileError;
+        const emailEl = document.getElementById('email');
+        const pinEl = document.getElementById('pin');
+        const pinConfirmEl = document.getElementById('pin_confirm');
 
-                showMessage("Cadastro realizado! Verifique o seu e-mail para confirmar a conta.", false);
-                
-                setTimeout(() => {
-                    window.location.href = 'Portal.html';
-                }, 3000);
-            }
+        const email = emailEl.value.trim();
+        const pin = pinEl.value;
+        const pinConfirm = pinConfirmEl.value;
 
-        
+        // reset previous error states
+        setFieldError(emailEl, document.getElementById('email-error'), false);
+        setFieldError(pinEl, document.getElementById('pin-error'), false);
+        setFieldError(pinConfirmEl, document.getElementById('pin-confirm-error'), false);
+        document.getElementById('submit-status').className = '';
+
+        let hasError = false;
+
+        // Validar e-mail
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setFieldError(emailEl, document.getElementById('email-error'), true);
+            hasError = true;
+        }
+
+        // Validar formato do PIN (8 caracteres, números + pelo menos 1 símbolo)
+        if (!PIN_REGEX.test(pin)) {
+            setFieldError(pinEl, document.getElementById('pin-error'), true);
+            hasError = true;
+        }
+
+        // Validar se os PINs coincidem
+        if (pin !== pinConfirm) {
+            setFieldError(pinConfirmEl, document.getElementById('pin-confirm-error'), true);
+            hasError = true;
+        }
+
+        if (hasError) {
+            setStatus('Corrija os campos assinalados a vermelho antes de continuar.', 'error');
+            return;
+        }
+
+        // Recolher restantes dados do formulário
+        const perfilType = document.querySelector('input[name="perfilType"]:checked').value;
+        const nome = perfilType === 'singular'
+            ? document.getElementById('nome_completo').value
+            : document.getElementById('denominacao_social').value;
+        const celular = document.getElementById('celular').value;
+        const lat = document.getElementById('lat').value;
+        const lng = document.getElementById('lng').value;
+        const sector = document.getElementById('sector').value;
+        const visibilidade = document.getElementById('visibilidade').value;
+
+        setLoading(true);
+        setStatus('A processar o seu cadastro, aguarde...', 'info');
+
+        try {
+            // 1. Criar o utilizador na autenticação do Supabase
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email: email,
+                password: pin
+            });
+
+            if (authError) throw authError;
+            if (!authData.user) throw new Error('Não foi possível criar o utilizador. Tente novamente.');
+
+            // 2. Guardar os dados adicionais na tabela 'profiles'
+            const { error: profileError } = await supabaseClient
+                .from('profiles')
+                .insert([
+                    {
+                        id: authData.user.id,
+                        email: email,
+                        full_name: nome,
+                        phone: celular,
+                        type: perfilType,
+                        sector: sector,
+                        visibility: visibilidade,
+                        latitude: lat || null,
+                        longitude: lng || null
+                    }
+                ]);
+
+            if (profileError) throw profileError;
+
+            setStatus('✅ Cadastro realizado com sucesso! Verifique o seu e-mail para confirmar a conta. A redirecionar...', 'success');
+
+            setTimeout(() => {
+                window.location.href = 'Portal.html';
+            }, 3000);
+
+        } catch (err) {
+            console.error('Erro no cadastro:', err);
+            setStatus('❌ Erro ao submeter o cadastro: ' + (err.message || 'Tente novamente mais tarde.'), 'error');
+            setLoading(false);
+        }
+    });
 
 </script>
 
