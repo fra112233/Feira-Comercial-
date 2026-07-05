@@ -6,7 +6,9 @@
     <link rel="stylesheet" href="styles/styles.css" />
     <script src="https://kit.fontawesome.com/1da7d53075.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" media="screen and (max-width: 768px)" href="styles/mobile.css" />
-    <title>Portal</title>
+    <!-- SDK do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Portal - Login Ativo</title>
 </head>
 <body>
     <header>
@@ -25,29 +27,30 @@
             <h1 class="titulo"><span class="texto-primario">Faça login</span></h1>
             
             <div class="login-box">
-                <!-- CORREÇÃO AQUI: Mudámos para id="loginForm" e tirámos o action/method -->
                 <form id="loginForm">
                     <div class="row">
-                        <label for="username">Username</label>
-                        <input id="username" name="username" type="text" required>
+                        <label for="username">E-mail</label>
+                        <input id="username" name="username" type="email" placeholder="exemplo@email.com" required>
                     </div>
 
                     <div class="row">
                         <label for="password">Password</label>
-                        <input id="password" name="password" type="password" required>
+                        <input id="password" name="password" type="password" placeholder="Sua senha" required>
                     </div>
                     
                     <div class="row check">
-                        <input id="warn" name="warn" type="checkbox">
-                        <label for="warn">Antes de fazer login</label>
+                        <input id="warn" name="warn" type="checkbox" required>
+                        <label for="warn">Aceito os termos antes de fazer login</label>
                     </div> 
 
-                    <button class="btn" type="submit">Log In</button>
+                    <button class="btn" type="submit" id="loginBtn">Log In</button>
                 </form>
+
+                <div id="message" style="margin-top: 15px; padding: 12px; border-radius: 6px; display: none; font-size: 14px; text-align: center;"></div>
 
                 <div class="row btn-row" style="margin-top: 20px;">
                     <a href="password.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid : user-lock fa-shake" style="color: rgb(255, 212, 59);"></i>
+                        <i class="fa-solid fa-user-lock fa-shake" style="color: rgb(255, 212, 59);"></i>
                         <strong>Esqueceu-se da palavra-passe</strong>
                     </a>
                 </div> 
@@ -55,7 +58,7 @@
                 <p style="margin-top: 15px;">Segurança: Faça logout ou feche o navegador quando quiser sair do aplicativo.</p>
 
                 <a href="reclamacao.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid : book fa-beat" style="color: rgb(255, 212, 59);"></i>
+                    <i class="fa-solid fa-book fa-beat" style="color: rgb(255, 212, 59);"></i>
                     <strong>Livro de Reclamações</strong>
                 </a>
             </div>
@@ -71,5 +74,82 @@
             </b>
         </p>
     </footer>
+
+    <script>
+        // Configurações do Supabase fornecidas
+        const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
+        
+        // Inicializar o cliente Supabase
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loginForm = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        const messageDiv = document.getElementById('message');
+
+        function showMessage(text, isError = true) {
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+            messageDiv.style.backgroundColor = isError ? '#fee2e2' : '#dcfce7';
+            messageDiv.style.color = isError ? '#991b1b' : '#166534';
+            messageDiv.style.border = `1px solid ${isError ? '#ef4444' : '#22c55e'}`;
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Feedback visual de carregamento
+            loginBtn.disabled = true;
+            loginBtn.textContent = "A autenticar...";
+            messageDiv.style.display = 'none';
+
+            try {
+                // Tentativa de login
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                // Sucesso
+                showMessage("Login efetuado com sucesso! Redirecionando...", false);
+                console.log('Sessão iniciada:', data.session);
+
+                // Redirecionar após 1.5 segundos
+                setTimeout(() => {
+                    window.location.href = 'index.html'; // Ajuste para a sua página de destino
+                }, 1500);
+
+            } catch (error) {
+                console.error('Erro:', error.message);
+                let errorMsg = "Erro ao entrar. Verifique as suas credenciais.";
+                
+                if (error.message.includes("Invalid login credentials")) {
+                    errorMsg = "E-mail ou palavra-passe incorretos.";
+                } else if (error.message.includes("Email not confirmed")) {
+                    errorMsg = "Por favor, confirme o seu e-mail antes de fazer login.";
+                }
+                
+                showMessage(errorMsg);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = "Log In";
+            }
+        });
+
+        // Verificar se já existe uma sessão ativa
+        async function checkUser() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                console.log('Utilizador já autenticado');
+                // Opcional: window.location.href = 'index.html';
+            }
+        }
+        checkUser();
+    </script>
 </body>
 </html>
