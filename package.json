@@ -1,0 +1,17 @@
+{
+  "name": "feira-comercial",
+  "version": "1.0.0",
+  "description": "Feira Comercial - Commercial Fair Platform",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static site - no build required'",
+    "lint": "echo 'No linter configured'"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^1.0.0"
+  },
+  "devDependencies": {},
+  "keywords": ["feira", "comercial", "static"],
+  "author": "",
+  "license": "ISC"
+}

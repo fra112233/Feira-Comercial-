@@ -103,6 +103,12 @@
             cursor: default;
         }
     </style>
+    
+    <!-- Vercel Speed Insights -->
+    <script>
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
 </head>
 <body>
 
@@ -188,7 +194,7 @@
                 return null;
             }
 
-            // 2. Função para criar o cookie (Válido por 365 dias)
+            // 2. Fun��ão para criar o cookie (Válido por 365 dias)
             function definirCookie(nome, valor, dias) {
                 let expira = "";
                 if (dias) {
