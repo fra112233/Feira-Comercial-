@@ -479,9 +479,8 @@ const ME   = { id: 'me',   name: 'Eu',   color: '#00a884' };
 const PEER = { id: 'peer', name: 'Amigo', color: '#53bdeb' };
 
 let contacts = JSON.parse(localStorage.getItem('ca_contacts')) || [
-    { id: 1, name: 'Amigo',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
-    { id: 2, name: 'Maria',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 2, preview: 'Até logo! 👋' },
-    { id: 3, name: 'João',   status: 'offline', blocked: false, lastSeen: 'Visto hoje', unread: 0, preview: 'Ok, combinado.' },
+    { id: 1, name: 'Feira Comercial',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
+    
 ];
 
 let messages = JSON.parse(localStorage.getItem('ca_messages')) || {};
