@@ -451,7 +451,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
             <div class="chat-footer" id="chatFooter">
                 <div class="user-switch-bar">
                     <button class="user-tab active" id="tab-me" onclick="switchUser('me')">Eu</button>
-                
+                    <button class="user-tab" id="tab-peer" onclick="switchUser('peer')">Amigo</button>
                 </div>
                 <div class="msg-input-wrap">
                     <label class="attach-btn" title="Anexar">
@@ -474,16 +474,46 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 </div>
 
 <script>
+// ─── SAFE STORAGE FALLBACK ────────────────────────────────
+const storage = (() => {
+    try {
+        const test = '__storage_test__';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        return localStorage;
+    } catch (e) {
+        console.warn('⚠️ localStorage bloqueado ou indisponível. Usando memória temporária.');
+        const memoryStorage = {};
+        return {
+            getItem: (key) => memoryStorage[key] || null,
+            setItem: (key, value) => { memoryStorage[key] = String(value); },
+            removeItem: (key) => { delete memoryStorage[key]; },
+            clear: () => { for (let key in memoryStorage) delete memoryStorage[key]; }
+        };
+    }
+})();
+
 // ─── STATE ───────────────────────────────────────────────
 const ME   = { id: 'me',   name: 'Eu',   color: '#00a884' };
 const PEER = { id: 'peer', name: 'Amigo', color: '#53bdeb' };
 
-let contacts = JSON.parse(localStorage.getItem('ca_contacts')) || [
-    { id: 1, name: 'Feira Comercial',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
-    
-];
+let contacts = [];
+try {
+    const savedContacts = storage.getItem('ca_contacts');
+    contacts = savedContacts ? JSON.parse(savedContacts) : [
+        { id: 1, name: 'Feira Comercial',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
+    ];
+} catch (e) {
+    contacts = [{ id: 1, name: 'Feira Comercial',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' }];
+}
 
-let messages = JSON.parse(localStorage.getItem('ca_messages')) || {};
+let messages = {};
+try {
+    const savedMessages = storage.getItem('ca_messages');
+    messages = savedMessages ? JSON.parse(savedMessages) : {};
+} catch (e) {
+    messages = {};
+}
 let activeContactId = null;
 let currentSender = 'me';
 let replyTarget = null;
@@ -640,7 +670,8 @@ function openContact(id) {
     cancelReply();
 
     // Update peer tab label to contact name
-    document.getElementById('tab-peer').textContent = c.name.split(' ')[0];
+    const peerTab = document.getElementById('tab-peer');
+    if (peerTab) peerTab.textContent = c.name.split(' ')[0];
 
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
 }
@@ -654,7 +685,11 @@ function getMessages(contactId) { return messages[contactId] || []; }
 
 function saveMessages(contactId, msgs) {
     messages[contactId] = msgs;
-    localStorage.setItem('ca_messages', JSON.stringify(messages));
+    try {
+        storage.setItem('ca_messages', JSON.stringify(messages));
+    } catch (e) {
+        console.error('Erro ao salvar mensagens:', e);
+    }
 }
 
 function renderMessages(contactId) {
@@ -999,8 +1034,67 @@ function showToast(msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ─── SUPABASE INTEGRATION ────────────────────────────────────────────────
+// Initialize Supabase client (make sure supabase-config.js exists with proper configuration)
+let supabaseClient = null;
+
+function initSupabase() {
+    if (typeof window.supabaseClient !== 'undefined') {
+        supabaseClient = window.supabaseClient;
+        console.log('✅ Supabase initialized successfully');
+        // Optional: Load messages from Supabase on startup
+        // loadMessagesFromSupabase();
+    } else {
+        console.warn('⚠️ Supabase config not loaded. Using localStorage only.');
+    }
+}
+
+// Load messages from Supabase (optional - for real-time chat)
+async function loadMessagesFromSupabase() {
+    if (!supabaseClient) return;
+    try {
+        // Example: fetch messages from Supabase
+        // const { data, error } = await supabaseClient.from('messages').select('*');
+        // if (error) throw error;
+        // Process data and update messages object...
+        console.log('Messages loaded from Supabase');
+    } catch (err) {
+        console.error('Erro ao carregar mensagens:', err);
+    }
+}
+
+// Save message to Supabase (optional - for persistence)
+async function saveMessageToSupabase(msg, contactId) {
+    if (!supabaseClient) return;
+    try {
+        // Example: insert message into Supabase
+        // const { error } = await supabaseClient.from('messages').insert([{ 
+        //     ...msg, 
+        //     contact_id: contactId,
+        //     created_at: new Date()
+        // }]);
+        // if (error) throw error;
+        console.log('Message saved to Supabase');
+    } catch (err) {
+        console.error('Erro ao guardar mensagem:', err);
+    }
+}
+
 // ─── SAVE ────────────────────────────────────────────────
-function saveContacts() { localStorage.setItem('ca_contacts', JSON.stringify(contacts)); }
+function saveContacts() { 
+    try {
+        storage.setItem('ca_contacts', JSON.stringify(contacts)); 
+    } catch (e) {
+        console.error('Erro ao salvar contactos:', e);
+    }
+}
+
+// Initialize Supabase when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSupabase);
+} else {
+    initSupabase();
+}
 </script>
 </body>
 </html>
