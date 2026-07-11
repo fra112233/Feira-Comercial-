@@ -49,7 +49,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
 html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
-.app { display: flex; height: 100vh; width: 100%; max-width: 1600px; margin: 0 auto; position: relative; }
+.app { display: flex; height: 100%; width: 100%; max-width: 1600px; margin: 0 auto; position: relative; }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -228,6 +228,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
 /* Footer */
 .chat-footer { padding: 8px 12px; background: var(--bg-input); display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; z-index: 10; position: relative; }
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .chat-footer {
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+}
 
 /* Reply bar above footer */
 .reply-bar {
@@ -254,10 +259,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .send-btn:hover { background: var(--green-dark); }
 .send-btn:active { transform: scale(0.92); }
 
-/* User switcher */
-.user-switch-bar { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-.user-tab { padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-secondary); background: none; transition: 0.15s; }
-.user-tab.active { background: var(--green); color: white; border-color: var(--green); }
+    /* User switcher removido */
+    .user-switch-bar { display: none !important; }
 
 /* Blocked banner */
 .blocked-banner { display: none; background: rgba(234,0,56,0.1); border-top: 1px solid rgba(234,0,56,0.3); padding: 14px 20px; text-align: center; color: var(--danger); font-size: 14px; gap: 10px; align-items: center; justify-content: center; }
@@ -312,32 +315,21 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
 @media (max-width: 768px) {
     .sidebar { 
-        position: fixed; /* Mantém visível mesmo com scroll */
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 85%; /* Um pouco menor que 100% para UX */
-        max-width: 300px; /* Limite para não ficar gigante em tablets */
-        z-index: 9999;
-        transition: transform 0.3s ease-in-out;
-        min-width: unset; 
-        border-right: none; 
-        background: white; /* Garante que não seja transparente */
-        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 100%;
+        position: relative;
     }
-
-    .sidebar.hidden { 
-        transform: translateX(-100%); 
+    .main-chat {
+        display: none; /* Esconde o chat inicialmente no mobile */
+        width: 100%;
     }
-
-    /* O restante do seu código está ótimo */
     .back-btn { display: flex !important; }
     .user-switch-bar { display: none; }
     .emoji-picker { 
-        left: 10px; 
-        right: 10px; 
-        width: auto; 
-        bottom: 70px; 
+        left: 0; 
+        right: 0; 
+        width: 100%; 
+        bottom: 60px; 
     }
 }
 
@@ -476,10 +468,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
             </div>
 
             <div class="chat-footer" id="chatFooter">
-                <div class="user-switch-bar">
-                    <button class="user-tab active" id="tab-me" onclick="switchUser('me')">Eu</button>
-                    <button class="user-tab" id="tab-peer" onclick="switchUser('peer')">Amigo</button>
-                </div>
+                <!-- User switcher removido -->
                 <div class="msg-input-wrap">
                     <label class="attach-btn" title="Anexar">
                         <i class="fas fa-paperclip"></i>
@@ -700,11 +689,16 @@ function openContact(id) {
     const peerTab = document.getElementById('tab-peer');
     if (peerTab) peerTab.textContent = c.name.split(' ')[0];
 
-    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').style.display = 'none';
+        document.querySelector('.main-chat').style.display = 'flex';
+    }
 }
 
 function goBackToList() {
-    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('sidebar').style.display = 'flex';
+    document.querySelector('.main-chat').style.display = 'none';
+    activeContactId = null;
 }
 
 // ─── MESSAGES ────────────────────────────────────────────
@@ -898,8 +892,10 @@ function showCtxMenu(e, msg, bubble) {
     const y = Math.min(e.clientY, window.innerHeight - 200);
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
-    menu.querySelectorAll('.ctx-item')[1].style.display = (msg.text && !msg.deleted) ? 'flex' : 'none';
-    menu.querySelectorAll('.ctx-item')[4].style.display = msg.deleted ? 'none' : 'flex';
+    // Ajuste dinâmico baseado na existência dos itens
+    const items = menu.querySelectorAll('.ctx-item');
+    if (items.length > 1) items[1].style.display = (msg.text && !msg.deleted) ? 'flex' : 'none';
+    if (items.length > 3) items[3].style.display = msg.deleted ? 'none' : 'flex';
 }
 
 function ctxReply() {
@@ -1014,12 +1010,7 @@ function openPeerProfile() {
 function openMyProfile() { showToast('Perfil: Eu'); }
 function closeProfile() { document.getElementById('profileModal').classList.remove('show'); }
 
-// ─── USER SWITCHER ────────────────────────────────────────
-function switchUser(who) {
-    currentSender = who;
-    document.getElementById('tab-me').classList.toggle('active', who === 'me');
-    document.getElementById('tab-peer').classList.toggle('active', who === 'peer');
-}
+// ─── USER SWITCHER REMOVIDO ───
 
 // ─── ADD CONTACT → abre conversa automaticamente ─────────
 function addNewContact() {
