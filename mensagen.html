@@ -309,13 +309,40 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .profile-btn:hover { opacity: 0.88; }
 
 /* Mobile */
+
 @media (max-width: 768px) {
-    .sidebar { position: absolute; width: 100%; min-width: unset; border-right: none; }
-    .sidebar.hidden { transform: translateX(-100%); }
+    .sidebar { 
+        position: fixed; /* Mantém visível mesmo com scroll */
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 85%; /* Um pouco menor que 100% para UX */
+        max-width: 300px; /* Limite para não ficar gigante em tablets */
+        z-index: 9999;
+        transition: transform 0.3s ease-in-out;
+        min-width: unset; 
+        border-right: none; 
+        background: white; /* Garante que não seja transparente */
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.hidden { 
+        transform: translateX(-100%); 
+    }
+
+    /* O restante do seu código está ótimo */
     .back-btn { display: flex !important; }
     .user-switch-bar { display: none; }
-    .emoji-picker { left: 0; right: 0; width: auto; bottom: 65px; }
+    .emoji-picker { 
+        left: 10px; 
+        right: 10px; 
+        width: auto; 
+        bottom: 70px; 
+    }
 }
+
+
+     
 </style>
 </head>
 <body data-theme="dark">
