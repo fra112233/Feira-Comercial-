@@ -336,6 +336,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
      
 </style>
+<base target="_blank">
 </head>
 <body data-theme="dark">
 
@@ -548,7 +549,7 @@ const EMOJI_CATS = [
 ];
 
 // ─── INIT ────────────────────────────────────────────────
-window.onload = () => { renderContacts(); setupScrollBtn(); buildEmojiPicker(); };
+window.onload = () => { renderContacts(); setupScrollBtn(); buildEmojiPicker(); processarRascunhoResposta(); };
 
 // ─── EMOJI PICKER ─────────────────────────────────────────
 let currentEmojiCat = 0;
@@ -711,6 +712,52 @@ function saveMessages(contactId, msgs) {
     } catch (e) {
         console.error('Erro ao salvar mensagens:', e);
     }
+}
+
+// ─── RESPOSTA A PUBLICAÇÃO/STATUS VINDA DO FEED (estilo WhatsApp) ───
+function processarRascunhoResposta() {
+    let draft = null;
+    try { draft = JSON.parse(storage.getItem('fc_reply_draft') || 'null'); } catch(e) {}
+    if (!draft) return;
+    storage.removeItem('fc_reply_draft');
+
+    // Procurar ou criar o contacto (autor do post/status)
+    let c = contacts.find(x => x.name === draft.userName);
+    if (!c) {
+        c = { id: Date.now(), name: draft.userName, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: '' };
+        contacts.push(c);
+        saveContacts();
+    }
+
+    // Criar a mensagem-referência (a publicação/status citado) se ainda não existir
+    const msgs = getMessages(c.id);
+    if (!msgs.some(m => m.id === draft.refId)) {
+        msgs.push({
+            id: draft.refId,
+            sender: 'peer',
+            text: draft.text || '',
+            mediaType: draft.thumb ? 'image' : null,
+            mediaData: draft.thumb || null,
+            time: draft.time || nowTime(),
+            reaction: null,
+            deleted: false,
+            replyTo: null
+        });
+        saveMessages(c.id, msgs);
+        c.preview = draft.text || '📷 Publicação';
+        c.lastSeen = nowTime();
+        saveContacts();
+    }
+
+    renderContacts();
+    openContact(c.id);
+
+    // Ativar a barra de resposta citando a publicação
+    replyTarget = { msgId: draft.refId, sender: 'peer', text: draft.text || (draft.thumb ? '📷 Foto' : '') };
+    document.getElementById('reply-bar-name').textContent = c.name;
+    document.getElementById('reply-bar-text').textContent = replyTarget.text;
+    document.getElementById('replyBar').classList.add('show');
+    setTimeout(() => document.getElementById('msgInput').focus(), 300);
 }
 
 function renderMessages(contactId) {
