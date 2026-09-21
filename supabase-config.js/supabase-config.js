@@ -1,9 +1,5 @@
 /* ============================================================
    Feira Comercial — supabase-config.js (partilhado por TODAS as páginas)
-   - Cria o cliente Supabase UMA vez
-   - Garante sessão (expulsa para Portal.html se não houver login)
-   - Carrega o perfil do utilizador e identifica-o com FOTO + NOME
-     em qualquer página (basta usar data-fc-avatar / data-fc-name)
    ============================================================ */
 
 const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
@@ -31,26 +27,30 @@ FC.signOut = async function () {
   window.location.href = 'Portal.html';
 };
 
-/* ---------- perfis (com cache local para abrir rápido) ---------- */
-FC.loadMyperfis = async function () {
+/* ---------- Perfil (tabela "perfis", com cache local) ---------- */
+FC.loadMyProfile = async function () {
   const session = await FC.getSession();
   if (!session) return null;
 
-  // cache (só para render imediato; depois atualiza)
-  const cached = localStorage.getItem('fc_perfis');
-  if (cached) { try { FC.me = JSON.parse(cached); } catch (e) {} }
+  // cache só para render imediato, e só se for do utilizador atual
+  const cached = localStorage.getItem('fc_profile');
+  if (cached) {
+    try {
+      const c = JSON.parse(cached);
+      if (c && c.id === session.user.id) FC.me = c;
+    } catch (e) {}
+  }
 
   const { data, error } = await supabaseClient
-    .from('profiles')
+    .from('perfis')
     .select('*')
     .eq('id', session.user.id)
     .maybeSingle();
 
   if (!error && data) {
-    FC.me = data;
-    localStorage.setItem('fc_perfis', JSON.stringify(data));
+    FC.me = { ...data, email: session.user.email };
+    localStorage.setItem('fc_profile', JSON.stringify(FC.me));
   } else if (!FC.me) {
-    // fallback: mínimo a partir do auth
     FC.me = {
       id: session.user.id,
       full_name: session.user.email.split('@')[0],
@@ -61,13 +61,9 @@ FC.loadMyperfis = async function () {
   return FC.me;
 };
 
-/* ---------- Identidade visual: aplica FOTO + NOME em toda a rede ----------
-   No HTML de qualquer página basta:
-   <img data-fc-avatar>  e  <span data-fc-name></span>
-   Ou: FC.applyIdentity({ avatar: '#meuImg', name: '#meuNome' })
-------------------------------------------------------------------------- */
+/* ---------- Identidade visual: FOTO + NOME ---------- */
 FC.applyIdentity = async function (opts = {}) {
-  const me = await FC.loadMyperfis();
+  const me = await FC.loadMyProfile();
   if (!me) return null;
 
   const avatarUrl = me.avatar_url ||
@@ -85,7 +81,7 @@ FC.applyIdentity = async function (opts = {}) {
   return me;
 };
 
-/* ---------- Upload para Storage (foto de perfil / capa / documentos) ---------- */
+/* ---------- Upload para Storage ---------- */
 FC.uploadImage = async function (bucket, file, path) {
   const { error } = await supabaseClient.storage
     .from(bucket).upload(path, file, { upsert: true, contentType: file.type });
@@ -94,7 +90,7 @@ FC.uploadImage = async function (bucket, file, path) {
   return data.publicUrl;
 };
 
-/* ---------- Arranque padrão: exige login + aplica identidade ---------- */
+/* ---------- Arranque padrão ---------- */
 FC.boot = async function (opts = {}) {
   const session = await FC.requireAuth(opts.loginPage);
   if (!session) return null;
