@@ -31,13 +31,13 @@ FC.signOut = async function () {
   window.location.href = 'Portal.html';
 };
 
-/* ---------- Perfil (com cache local para abrir rápido) ---------- */
-FC.loadMyProfile = async function () {
+/* ---------- perfis (com cache local para abrir rápido) ---------- */
+FC.loadMyperfis = async function () {
   const session = await FC.getSession();
   if (!session) return null;
 
   // cache (só para render imediato; depois atualiza)
-  const cached = localStorage.getItem('fc_profile');
+  const cached = localStorage.getItem('fc_perfis');
   if (cached) { try { FC.me = JSON.parse(cached); } catch (e) {} }
 
   const { data, error } = await supabaseClient
@@ -48,7 +48,7 @@ FC.loadMyProfile = async function () {
 
   if (!error && data) {
     FC.me = data;
-    localStorage.setItem('fc_profile', JSON.stringify(data));
+    localStorage.setItem('fc_perfis', JSON.stringify(data));
   } else if (!FC.me) {
     // fallback: mínimo a partir do auth
     FC.me = {
@@ -67,7 +67,7 @@ FC.loadMyProfile = async function () {
    Ou: FC.applyIdentity({ avatar: '#meuImg', name: '#meuNome' })
 ------------------------------------------------------------------------- */
 FC.applyIdentity = async function (opts = {}) {
-  const me = await FC.loadMyProfile();
+  const me = await FC.loadMyperfis();
   if (!me) return null;
 
   const avatarUrl = me.avatar_url ||
