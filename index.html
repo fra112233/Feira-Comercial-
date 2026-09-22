@@ -656,7 +656,7 @@ let posts   = JSON.parse(localStorage.getItem('sa_posts'))   || [];
 let stories = JSON.parse(localStorage.getItem('sa_stories')) || [];
 let tempMedia = [];
 
-const currentUser = { id: 1, name: "Você", avatar: "images/perfil.jpg" };
+const currentUser = { id: 1, name: localStorage.getItem('fc_name') || "Você", avatar: localStorage.getItem('fc_avatar') || "images/perfil.jpg" };
 
 // Lightbox state
 let lbImages = [], lbIndex = 0;
@@ -698,6 +698,13 @@ window.onload = () => {
     initSearch();
     initCompose();
     setInterval(limparExpirados, 60 * 1000); // verifica a cada minuto
+
+    // Sincronizar avatar e nome com a página de perfil
+    const cav = document.querySelector('.compose-avatar img');
+    if (cav) {
+        cav.src = currentUser.avatar;
+        cav.onerror = () => { cav.style.display = 'none'; cav.nextElementSibling.style.display = 'block'; };
+    }
 };
 
 // ─────────────────────────────────────
