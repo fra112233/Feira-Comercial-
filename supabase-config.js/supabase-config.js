@@ -23,7 +23,7 @@ FC.requireAuth = async function (loginPage = 'Portal.html') {
 
 FC.signOut = async function () {
   await supabaseClient.auth.signOut();
-  localStorage.removeItem('fc_profis');
+  localStorage.removeItem('fc_profile');
   window.location.href = 'Portal.html';
 };
 
@@ -33,7 +33,7 @@ FC.loadMyProfile = async function () {
   if (!session) return null;
 
   // cache só para render imediato, e só se for do utilizador atual
-  const cached = localStorage.getItem('fc_profis');
+  const cached = localStorage.getItem('fc_profile');
   if (cached) {
     try {
       const c = JSON.parse(cached);
@@ -49,7 +49,7 @@ FC.loadMyProfile = async function () {
 
   if (!error && data) {
     FC.me = { ...data, email: session.user.email };
-    localStorage.setItem('fc_profis', JSON.stringify(FC.me));
+    localStorage.setItem('fc_profile', JSON.stringify(FC.me));
   } else if (!FC.me) {
     FC.me = {
       id: session.user.id,
@@ -63,7 +63,7 @@ FC.loadMyProfile = async function () {
 
 /* ---------- Identidade visual: FOTO + NOME ---------- */
 FC.applyIdentity = async function (opts = {}) {
-  const me = await FC.loadMyProfis();
+  const me = await FC.loadMyProfile();
   if (!me) return null;
 
   const avatarUrl = me.avatar_url ||
