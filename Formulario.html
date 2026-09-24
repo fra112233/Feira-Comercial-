@@ -1,504 +1,423 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Perfil Profissional</title>
-     <script
-      src="https://kit.fontawesome.com/1da7d53075.js"
-      crossorigin="anonymous"
-    ></script>
-    <link
-      rel="stylesheet"
-      media="screen and (max-width: 768px)"
-      href="styles/mobile.css"
-    />
-     <!-- SDK do Supabase -->
-      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
+    <title>Criar Conta | Feira Comercial</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <style>
         :root {
             --primary: #2563eb;
+            --primary-light: #eff6ff;
             --secondary: #64748b;
             --bg: #e3f2fd;
             --white: #ffffff;
             --success: #22c55e;
+            --warning: #f59e0b;
             --error: #ef4444;
+            --border: #cbd5e1;
         }
-
+        * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
+            background: var(--bg);
             color: #1e293b;
             display: flex;
             justify-content: center;
-            padding: 40px 20px;
+            padding: 40px 16px;
+            margin: 0;
         }
-
         .form-card {
             background: var(--white);
-            max-width: 700px;
+            max-width: 480px;
             width: 100%;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 32px 28px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
         }
+        h2 { text-align: center; margin: 0 0 6px; color: var(--primary); }
+        .subtitle { text-align: center; color: var(--secondary); font-size: 14px; margin-bottom: 24px; }
 
-        h2 { text-align: center; margin-bottom: 30px; color: var(--primary); }
-        .group { margin-bottom: 20px; }
-        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
-
-        input[type="text"], input[type="tel"], input[type="email"], input[type="password"], select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 15px;
-        }
-
-        small.hint {
-            display: block;
-            margin-top: 6px;
-            font-size: 12px;
-            color: var(--secondary);
-        }
-
-        .type-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
+        .type-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
         .type-option {
             border: 2px solid #e2e8f0;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 14px;
+            border-radius: 10px;
             text-align: center;
             cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .type-option input { display: none; }
-        .type-option:has(input:checked) {
-            border-color: var(--primary);
-            background-color: #eff6ff;
-        }
-
-        .hidden { display: none; }
-
-        .file-box {
-            background: #f1f5f9;
-            border: 2px dashed #cbd5e1;
-            padding: 10px;
-            border-radius: 8px;
-            width: 100%;
-        }
-
-        .geo-btn {
-            background: #334155;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            transition: 0.2s;
             font-size: 14px;
+            font-weight: 600;
         }
+        .type-option input { display: none; }
+        .type-option:has(input:checked) { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+        .group { margin-bottom: 18px; position: relative; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+        input[type="text"], input[type="tel"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 12px 40px 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.15s;
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+        input.invalid { border-color: var(--error); }
+        input.valid { border-color: var(--success); }
+
+        small.hint { display: block; margin-top: 5px; font-size: 12px; color: var(--secondary); }
+        small.hint.ok { color: var(--success); }
+        small.hint.err { color: var(--error); }
+
+        .pw-toggle {
+            position: absolute; right: 10px; top: 35px;
+            background: none; border: none; cursor: pointer;
+            color: var(--secondary); font-size: 16px; padding: 4px;
+        }
+
+        /* ── Medidor de força ── */
+        .strength-bar { height: 5px; border-radius: 3px; background: #e2e8f0; margin-top: 8px; overflow: hidden; }
+        .strength-fill { height: 100%; width: 0%; border-radius: 3px; transition: width 0.25s, background 0.25s; }
+        .strength-fill.weak   { width: 33%; background: var(--error); }
+        .strength-fill.medium { width: 66%; background: var(--warning); }
+        .strength-fill.strong { width: 100%; background: var(--success); }
+        #strength-label { font-size: 12px; margin-top: 4px; font-weight: 600; }
+
+        /* ── Botão gerar senha ── */
+        .gen-btn {
+            background: var(--primary-light); color: var(--primary);
+            border: 1px solid #bfdbfe; border-radius: 8px;
+            padding: 8px 12px; font-size: 13px; font-weight: 600;
+            cursor: pointer; margin-top: 8px; transition: 0.15s;
+        }
+        .gen-btn:hover { background: #dbeafe; }
+
+        .avatar-row { display: flex; align-items: center; gap: 14px; }
+        .avatar-preview {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: var(--primary-light); border: 2px dashed var(--border);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; flex-shrink: 0; font-size: 24px; color: var(--secondary);
+        }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
 
         .submit-btn {
             width: 100%;
             background: var(--primary);
             color: white;
             border: none;
-            padding: 16px;
-            border-radius: 8px;
+            padding: 15px;
+            border-radius: 10px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            margin-top: 8px;
+            transition: 0.15s;
         }
-
-        .submit-btn:disabled {
-            background: #93c5fd;
-            cursor: not-allowed;
-        }
-
-        .spinner {
-            width: 18px;
-            height: 18px;
-            border: 3px solid rgba(255,255,255,0.4);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            display: none;
-        }
-
-        .submit-btn.loading .spinner { display: inline-block; }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .item-link {
-            width: 100%;
-            display: block;
-            text-align: center;
-            background: #efc144;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 16px;
-        }
-
-        #location-status { font-size: 12px; margin-top: 8px; color: var(--secondary); }
+        .submit-btn:hover:not(:disabled) { background: #1d4ed8; }
+        .submit-btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
         #submit-status {
-            margin-top: 16px;
-            padding: 12px 14px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            display: none;
+            margin-top: 14px; padding: 12px 14px; border-radius: 8px;
+            font-size: 14px; font-weight: 600; display: none;
         }
-
         #submit-status.show { display: block; }
         #submit-status.info    { background: #eff6ff; color: var(--primary); }
         #submit-status.success { background: #f0fdf4; color: #15803d; }
         #submit-status.error   { background: #fef2f2; color: #b91c1c; }
 
-        .field-error {
-            color: var(--error);
-            font-size: 12px;
-            margin-top: 6px;
-            display: none;
-        }
-        .field-error.show { display: block; }
-        input.invalid {
-            border-color: var(--error) !important;
-        }
+        .login-link { text-align: center; margin-top: 18px; font-size: 14px; color: var(--secondary); }
+        .login-link a { color: var(--primary); font-weight: 600; text-decoration: none; }
     </style>
+<base target="_blank">
 </head>
 <body>
 
 <div class="form-card">
-    <h2>Perfil do Usuário </h2>
+    <h2>Criar Conta</h2>
+    <p class="subtitle">Só precisamos do essencial. O resto completas no teu perfil.</p>
 
     <form id="mainForm" novalidate>
-        <!-- Seleção de Tipo -->
+        <!-- Tipo de conta -->
         <div class="type-selector">
             <label class="type-option">
-                <input type="radio" name="perfilType" value="singular" checked onchange="toggleForm()">
-                <span>👤 Pessoa Singular</span>
+                <input type="radio" name="perfilType" value="singular" checked onchange="toggleType()">
+                👤 Pessoa
             </label>
             <label class="type-option">
-                <input type="radio" name="perfilType" value="empresa" onchange="toggleForm()">
-                <span>🏢 Empresa</span>
+                <input type="radio" name="perfilType" value="empresa" onchange="toggleType()">
+                🏢 Empresa
             </label>
         </div>
 
-    <!-- Bloco das Credenciais de Acesso -->
-<div class="group-title" style="margin: 25px 0 15px 0; color: #64748b; font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; font-weight: bold;">
-    <i class="fas fa-lock"></i> Credenciais de Acesso
-</div>
-
-<div class="group">
-    <label>E-mail de Login:</label>
-    <input type="email" id="email" placeholder="exemplo@dominio.com" required>
-    <div class="field-error" id="email-error">Introduza um e-mail válido.</div>
-</div>
-
-<div class="group">
-    <label>Criar PIN de Acesso (8 caracteres: números + pelo menos 1 símbolo !, @, #, $, %, etc):</label>
-    <input type="password" id="pin" maxlength="8" placeholder="Ex: 1234!567" required>
-    <small class="hint">Exatamente 8 caracteres, misturando números e pelo menos 1 símbolo (! @ # $ % & *).</small>
-    <div class="field-error" id="pin-error">O PIN deve ter 8 caracteres, com números e pelo menos 1 símbolo.</div>
-</div>
-
-<div class="group">
-    <label>Confirmar PIN de Acesso:</label>
-    <input type="password" id="pin_confirm" maxlength="8" placeholder="Repita o PIN" required>
-    <div class="field-error" id="pin-confirm-error">Os PINs não coincidem.</div>
-</div>
-
-        <!-- Foto de Perfil -->
+        <!-- Nome -->
         <div class="group">
-            <label>Foto de Perfil (Avatar):</label>
-            <input type="file" id="foto_perfil" accept="image/*" class="file-box">
+            <label id="label-nome" for="nome">Nome completo:</label>
+            <input type="text" id="nome" placeholder="O teu nome" autocomplete="name" required>
         </div>
 
-        <!-- Campo Comum: Celular -->
+        <!-- Email -->
         <div class="group">
-            <label>Número de Celular / WhatsApp:</label>
-            <input type="tel" id="celular" name="celular" placeholder="+258 8X XXX XXXX" required>
+            <label for="email">E-mail:</label>
+            <input type="email" id="email" placeholder="exemplo@dominio.com" autocomplete="email" required>
+            <small class="hint" id="email-hint"></small>
         </div>
 
-        <!-- Seção Pessoa Singular -->
-        <div id="section-singular">
-            <div class="group">
-                <label>Nome Completo:</label>
-                <input type="text" id="nome_completo" placeholder="Como consta no documento">
-            </div>
-            <div class="group">
-                <label>Tipo de Documento:</label>
-                <select id="doc_tipo_singular" name="doc_tipo_singular">
-                    <option value="BI">BI (Bilhete de Identidade)</option>
-                    <option value="Passaporte">Passaporte</option>
-                    <option value="DIRE">DIRE</option>
-                    <option value="Certidão">Certidão de Registo Comercial / Certidão Permanente</option>
-                    <option value="Contrato">Contrato Social ou Estatutos da Sociedade / NUIT</option>
-                    <option value="BR">Boletim da República</option>
-                </select>
-            </div>
-            <div class="group">
-                <label>Número do Documento:</label>
-                <input type="text" id="numero_documento" placeholder="Digite o número do documento">
-            </div>
-            <div class="group">
-                <label>Gênero:</label>
-                <select id="genero" name="genero">
-                    <option value="">Selecione...</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Feminino</option>
-                    <option value="E">Empresa</option>
-                </select>
+        <!-- Palavra-passe (nova — simples e amigável) -->
+        <div class="group">
+            <label for="password">Palavra-passe (mínimo 8 letras/números):</label>
+            <input type="password" id="password" placeholder="Ex: gatoazul42" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('password', this)" title="Mostrar/ocultar">👁</button>
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <div id="strength-label"></div>
+            <button type="button" class="gen-btn" onclick="gerarSenha()">✨ Gerar senha forte fácil (copiar)</button>
+            <small class="hint">Letras e números. Sem símbolos obrigatórios — escolhe algo que consigas memorizar.</small>
+        </div>
+
+        <!-- Confirmar -->
+        <div class="group">
+            <label for="password_confirm">Confirmar palavra-passe:</label>
+            <input type="password" id="password_confirm" placeholder="Repita a palavra-passe" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" onclick="togglePw('password_confirm', this)" title="Mostrar/ocultar">👁</button>
+            <small class="hint" id="pw-confirm-hint"></small>
+        </div>
+
+        <!-- Celular (opcional) -->
+        <div class="group">
+            <label for="celular">Celular / WhatsApp <span style="font-weight:400;color:var(--secondary)">(opcional)</span>:</label>
+            <input type="tel" id="celular" placeholder="+258 8X XXX XXXX" autocomplete="tel">
+        </div>
+
+        <!-- Avatar (opcional) -->
+        <div class="group">
+            <label>Foto de perfil <span style="font-weight:400;color:var(--secondary)">(opcional)</span>:</label>
+            <div class="avatar-row">
+                <div class="avatar-preview" id="avatar-preview">📷</div>
+                <input type="file" id="foto_perfil" accept="image/*" style="font-size:13px;">
             </div>
         </div>
 
-        <!-- Seção Empresa -->
-        <div id="section-empresa" class="hidden">
-            <div class="group">
-                <label>Denominação Social:</label>
-                <input type="text" id="denominacao_social" placeholder="Ex: Cisco Systems Portugal, Lda ">
-            </div>
-            <div class="group">
-                <label>NUIT :</label>
-                <input type="text" id="nuit" placeholder="Número de identificação fiscal">
-            </div>
-        </div>
-
-        <!-- Setor de Serviço -->
-        <div class="group">
-            <label>Sector de Atuação:</label>
-            <select id="sector" name="sector">
-                <option value="">Selecione uma opção...</option>
-                <option value="tecnologia">Tecnologia e IT</option>
-                <option value="construcao">Construção e Obras</option>
-                <option value="saude">Saúde e Bem-estar</option>
-                <option value="educacao">Educação/Formação</option>
-                <option value="outro">Outros Serviços</option>
-            </select>
-        </div>
-
-        <!-- Foto do Documento -->
-        <div class="group">
-            <label>Upload do Documento (Frente e verso/Alvará):</label>
-            <input type="file" id="foto_documento" accept="image/*" class="file-box">
-        </div>
-
-        <!-- Localização -->
-        <div class="group">
-            <label>Localização Geográfica:</label>
-            <button type="button" class="geo-btn" onclick="capturarLocalizacao()">
-                📍 Obter Localização Atual
-            </button>
-            <div id="location-status">Não localizado</div>
-            <input type="hidden" id="lat" name="latitude">
-            <input type="hidden" id="lng" name="longitude">
-        </div>
-
-        <!-- Visibilidade -->
-        <div class="group">
-            <label>Visibilidade do Perfil:</label>
-            <select id="visibilidade" name="visibilidade">
-                <option value="publico">🌍 Público(Visível para todos)</option>
-                <option value="privado">🔒 Privado(Apenas eu)</option>
-                <option value="apenas_clientes">👥 Apenas Clientes Cadastrados</option>
-            </select>
-        </div>
-
-        <button type="submit" class="submit-btn" id="submitBtn">
-            <span class="spinner"></span>
-            <span id="submitBtnText">Finalizar Cadastro</span>
-        </button>
+        <button type="submit" class="submit-btn" id="submitBtn" disabled>Criar Conta</button>
 
         <div id="submit-status"></div>
 
-        <br>
-        <b><a href="Portal.html" class="item-link" style="text-decoration: none; color: inherit;">
-            <i class="fas fa-light fa-person-walking-arrow-right"></i>
-            <strong>Voltar a pagina</strong>
-        </a></b>
-
+        <p class="login-link">Já tens conta? <a href="login.html">Entrar</a></p>
     </form>
 </div>
 
 <script>
-
-    // Configurações do Supabase
+    // ═══ Cliente Supabase (usa o supabase-config.js se existir) ═══
     const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const client = (typeof window.supabaseClient !== 'undefined') ? window.supabaseClient
+                 : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Regra do PIN: exatamente 8 caracteres, pelo menos 1 número e pelo menos 1 símbolo
-    // permitido, o resto pode ser número. Símbolos aceites: ! @ # $ % & *
-    const PIN_REGEX = /^(?=.*[0-9])(?=.*[!@#$%^&*])[0-9!@#$%^&*]{8}$/;
+    // Regra LEVE: mínimo 8 caracteres (ajusta no Supabase: Auth → Settings → Minimum password length)
+    const MIN_PW = 8;
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    function toggleForm() {
-        const type = document.querySelector('input[name="perfilType"]:checked').value;
-        document.getElementById('section-singular').classList.toggle('hidden', type === 'empresa');
-        document.getElementById('section-empresa').classList.toggle('hidden', type === 'singular');
+    const nomeEl   = document.getElementById('nome');
+    const emailEl  = document.getElementById('email');
+    const pwEl     = document.getElementById('password');
+    const pwConf   = document.getElementById('password_confirm');
+    const celEl    = document.getElementById('celular');
+    const fotoEl   = document.getElementById('foto_perfil');
+    const btn      = document.getElementById('submitBtn');
+
+    function toggleType() {
+        const tipo = document.querySelector('input[name="perfilType"]:checked').value;
+        document.getElementById('label-nome').textContent = tipo === 'empresa' ? 'Nome da empresa:' : 'Nome completo:';
+        nomeEl.placeholder = tipo === 'empresa' ? 'Ex: Cisco Systems, Lda' : 'O teu nome';
+        validateAll();
     }
 
-    function capturarLocalizacao() {
-        const status = document.getElementById('location-status');
-        if (!navigator.geolocation) {
-            status.textContent = "Geolocalização não suportada pelo seu navegador.";
-            return;
+    function togglePw(id, btn) {
+        const el = document.getElementById(id);
+        el.type = el.type === 'password' ? 'text' : 'password';
+        btn.textContent = el.type === 'password' ? '👁' : '🙈';
+    }
+
+    // ── Gerador de senha forte mas LEGÍVEL: 3 palavras + número + símbolo ──
+    const PALAVRAS = ['gato','casa','verde','sol','mar','flor','pao','lua','rio','vento',
+                      'cafe','mesa','livro','campo','areia','pedra','nuvem','festa','porta','janela'];
+    function gerarSenha() {
+        const pick = () => PALAVRAS[Math.floor(Math.random() * PALAVRAS.length)];
+        const num = Math.floor(Math.random() * 90) + 10;
+        const simb = ['!','@','#','*'][Math.floor(Math.random() * 4)];
+        const senha = pick() + pick() + num + simb; // ex: gatocasa42!
+        pwEl.value = senha;
+        pwConf.value = senha;
+        checkPw();
+        checkPwMatch();
+        validateAll();
+        // copiar automaticamente para a área de transferência
+        navigator.clipboard?.writeText(senha).then(() => {
+            document.getElementById('strength-label').textContent = 'Senha copiada! Guarda-a num sítio seguro. ✅';
+        });
+    }
+
+    // ── Medidor de força ──
+    function checkPw() {
+        const v = pwEl.value;
+        const fill = document.getElementById('strength-fill');
+        const label = document.getElementById('strength-label');
+
+        fill.className = 'strength-fill';
+        label.textContent = '';
+
+        if (!v) { pwEl.classList.remove('valid','invalid'); return false; }
+
+        let score = 0;
+        if (v.length >= MIN_PW) score++;
+        if (v.length >= 12) score++;
+        if (/[a-z]/.test(v) && /[A-Z]/.test(v)) score++;
+        if (/\d/.test(v)) score++;
+        if (/[^a-zA-Z0-9]/.test(v)) score++;
+
+        if (v.length < MIN_PW) {
+            fill.classList.add('weak');
+            label.textContent = 'Muito curta — usa pelo menos ' + MIN_PW + ' caracteres';
+            label.style.color = 'var(--error)';
+            pwEl.classList.add('invalid'); pwEl.classList.remove('valid');
+            return false;
         }
-        status.textContent = "Localizando...";
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                document.getElementById('lat').value = position.coords.latitude;
-                document.getElementById('lng').value = position.coords.longitude;
-                status.style.color = "var(--success)";
-                status.textContent = `📍 Localizado com sucesso! (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`;
-            },
-            () => {
-                status.style.color = "var(--error)";
-                status.textContent = "Erro: Permissão de localização negada.";
-            }
-        );
+        if (score <= 2)      { fill.classList.add('weak');   label.textContent = 'Fraca';        label.style.color = 'var(--error)'; }
+        else if (score <= 3) { fill.classList.add('medium'); label.textContent = 'Razoável';     label.style.color = 'var(--warning)'; }
+        else                 { fill.classList.add('strong'); label.textContent = 'Forte 💪';     label.style.color = 'var(--success)'; }
+
+        pwEl.classList.add('valid'); pwEl.classList.remove('invalid');
+        return true;
     }
 
-    function setFieldError(inputEl, errorEl, show) {
-        inputEl.classList.toggle('invalid', show);
-        errorEl.classList.toggle('show', show);
+    function checkPwMatch() {
+        const ok = pwEl.value.length >= MIN_PW && pwConf.value === pwEl.value;
+        const hint = document.getElementById('pw-confirm-hint');
+        pwConf.classList.toggle('valid', ok);
+        pwConf.classList.toggle('invalid', pwConf.value.length > 0 && !ok);
+        hint.textContent = pwConf.value ? (ok ? 'Coincidem ✓' : 'Não coincidem.') : '';
+        hint.className = 'hint' + (ok ? ' ok' : ' err');
+        return ok;
     }
 
-    function setStatus(message, type) {
+    function checkEmail() {
+        const ok = EMAIL_REGEX.test(emailEl.value.trim());
+        const hint = document.getElementById('email-hint');
+        emailEl.classList.toggle('valid', ok);
+        emailEl.classList.toggle('invalid', emailEl.value.length > 0 && !ok);
+        hint.textContent = emailEl.value && !ok ? 'E-mail inválido.' : '';
+        hint.className = 'hint' + (emailEl.value && !ok ? ' err' : '');
+        return ok;
+    }
+
+    function validateAll() {
+        const ok = nomeEl.value.trim().length >= 2
+                && checkEmail()
+                && pwEl.value.length >= MIN_PW
+                && pwConf.value === pwEl.value;
+        btn.disabled = !ok;
+        return ok;
+    }
+
+    [nomeEl, emailEl, pwEl, pwConf].forEach(el => {
+        el.addEventListener('input', () => {
+            if (el === emailEl) checkEmail();
+            if (el === pwEl)    { checkPw(); checkPwMatch(); }
+            if (el === pwConf)  checkPwMatch();
+            validateAll();
+        });
+    });
+
+    fotoEl.addEventListener('change', () => {
+        const box = document.getElementById('avatar-preview');
+        if (fotoEl.files[0]) {
+            const r = new FileReader();
+            r.onload = e => box.innerHTML = `<img src="${e.target.result}">`;
+            r.readAsDataURL(fotoEl.files[0]);
+        } else {
+            box.textContent = '📷';
+        }
+    });
+
+    function setStatus(msg, type) {
         const box = document.getElementById('submit-status');
-        box.textContent = message;
-        box.className = 'show ' + type; // 'info' | 'success' | 'error'
+        box.innerHTML = msg;
+        box.className = 'show ' + type;
+    }
+    function setLoading(on) {
+        btn.disabled = on;
+        btn.textContent = on ? 'A criar conta...' : 'Criar Conta';
     }
 
-    function setLoading(isLoading) {
-        const btn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('submitBtnText');
-        btn.classList.toggle('loading', isLoading);
-        btn.disabled = isLoading;
-        btnText.textContent = isLoading ? 'A processar...' : 'Finalizar Cadastro';
-    }
-
-    document.getElementById('mainForm').addEventListener('submit', async function (e) {
+    // ── Submissão ──
+    document.getElementById('mainForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!validateAll()) return;
 
-        const emailEl = document.getElementById('email');
-        const pinEl = document.getElementById('pin');
-        const pinConfirmEl = document.getElementById('pin_confirm');
-
-        const email = emailEl.value.trim();
-        const pin = pinEl.value;
-        const pinConfirm = pinConfirmEl.value;
-
-        // reset previous error states
-        setFieldError(emailEl, document.getElementById('email-error'), false);
-        setFieldError(pinEl, document.getElementById('pin-error'), false);
-        setFieldError(pinConfirmEl, document.getElementById('pin-confirm-error'), false);
-        document.getElementById('submit-status').className = '';
-
-        let hasError = false;
-
-        // Validar e-mail
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setFieldError(emailEl, document.getElementById('email-error'), true);
-            hasError = true;
-        }
-
-        // Validar formato do PIN (8 caracteres, números + pelo menos 1 símbolo)
-        if (!PIN_REGEX.test(pin)) {
-            setFieldError(pinEl, document.getElementById('pin-error'), true);
-            hasError = true;
-        }
-
-        // Validar se os PINs coincidem
-        if (pin !== pinConfirm) {
-            setFieldError(pinConfirmEl, document.getElementById('pin-confirm-error'), true);
-            hasError = true;
-        }
-
-        if (hasError) {
-            setStatus('Corrija os campos assinalados a vermelho antes de continuar.', 'error');
-            return;
-        }
-
-        // Recolher restantes dados do formulário
-        const perfilType = document.querySelector('input[name="perfilType"]:checked').value;
-        const nome = perfilType === 'singular'
-            ? document.getElementById('nome_completo').value
-            : document.getElementById('denominacao_social').value;
-        const celular = document.getElementById('celular').value;
-        const lat = document.getElementById('lat').value;
-        const lng = document.getElementById('lng').value;
-        const sector = document.getElementById('sector').value;
-        const visibilidade = document.getElementById('visibilidade').value;
+        const tipo    = document.querySelector('input[name="perfilType"]:checked').value;
+        const nome    = nomeEl.value.trim();
+        const email   = emailEl.value.trim();
+        const celular = celEl.value.trim();
 
         setLoading(true);
-        setStatus('A processar o seu cadastro, aguarde...', 'info');
+        setStatus('A criar a tua conta...', 'info');
 
         try {
-            // 1. Criar o utilizador na autenticação do Supabase
-            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-                email: email,
-                password: pin
+            // 1. Criar utilizador no Supabase Auth
+            const { data: authData, error: authError } = await client.auth.signUp({
+                email,
+                password: pwEl.value,
+                options: { data: { full_name: nome, type: tipo } }
             });
-
             if (authError) throw authError;
-            if (!authData.user) throw new Error('Não foi possível criar o utilizador. Tente novamente.');
+            if (!authData.user) throw new Error('Não foi possível criar a conta. Tenta novamente.');
 
-            // 2. Guardar os dados adicionais na tabela 'profiles'
-            const { error: profileError } = await supabaseClient
-                .from('profiles')
-                .insert([
-                    {
-                        id: authData.user.id,
-                        email: email,
-                        full_name: nome,
-                        phone: celular,
-                        type: perfilType,
-                        sector: sector,
-                        visibility: visibilidade,
-                        latitude: lat || null,
-                        longitude: lng || null
-                    }
-                ]);
+            // 2. Upload do avatar (opcional) para o bucket 'avatars'
+            let avatarUrl = null;
+            if (fotoEl.files[0]) {
+                const file = fotoEl.files[0];
+                const path = `${authData.user.id}/avatar.${file.name.split('.').pop()}`;
+                const { error: upErr } = await client.storage.from('avatars').upload(path, file, { upsert: true });
+                if (!upErr) {
+                    avatarUrl = client.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+                }
+            }
 
-            if (profileError) throw profileError;
+            // 3. Guardar perfil na tabela 'profiles'
+            const { error: profileError } = await client.from('profiles').insert([{
+                id: authData.user.id,
+                email,
+                full_name: nome,
+                phone: celular || null,
+                type: tipo,
+                avatar_url: avatarUrl
+            }]);
+            if (profileError) console.warn('Perfil não gravado (verifica as políticas RLS):', profileError.message);
 
-            setStatus('✅ Cadastro realizado com sucesso! Verifique o seu e-mail para confirmar a conta. A redirecionar...', 'success');
+            // 4. Sincronizar com perfil.html / index.html (usam localStorage fc_*)
+            localStorage.setItem('fc_name', nome);
+            if (avatarUrl) localStorage.setItem('fc_avatar', avatarUrl);
+            localStorage.setItem('fc_profile', JSON.stringify({ name: nome, phone: celular, email }));
 
-            setTimeout(() => {
-                window.location.href = 'Portal.html';
-            }, 3000);
+            setStatus('✅ Conta criada com sucesso! A entrar...', 'success');
+            setTimeout(() => window.location.href = 'index.html', 1200);
 
         } catch (err) {
-            console.error('Erro no cadastro:', err);
-            setStatus('❌ Erro ao submeter o cadastro: ' + (err.message || 'Tente novamente mais tarde.'), 'error');
+            console.error(err);
+            const msg = err.message || 'Erro inesperado. Tenta novamente.';
+            if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+                setStatus('Este e-mail já tem conta. <a href="login.html" style="color:var(--primary)">Entrar</a>', 'error');
+            } else if (msg.toLowerCase().includes('password')) {
+                setStatus('❌ Palavra-passe demasiado curta para o servidor (ajusta em Supabase → Auth → Settings → Minimum password length).', 'error');
+            } else {
+                setStatus('❌ ' + msg, 'error');
+            }
             setLoading(false);
         }
     });
 
+    toggleType();
 </script>
 
 </body>
