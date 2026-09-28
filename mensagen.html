@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Chat App</title>
 <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-    
+
 <style>
 :root {
     --green: #00a884;
@@ -135,14 +135,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .date-sep { text-align: center; margin: 12px 0 8px; }
 .date-sep span { background: var(--bg-header); color: var(--text-secondary); font-size: 12px; padding: 5px 12px; border-radius: 8px; }
 
-/* ── BUBBLES ──
-   "sent" = mensagens enviadas por MIM  → lado ESQUERDO
-   "received" = mensagens recebidas     → lado DIREITO
-*/
+/* ── BUBBLES ── */
 .bubble-wrap { display: flex; flex-direction: column; max-width: 72%; }
-/* EMISSOR (eu) → ESQUERDA */
 .bubble-wrap.sent     { align-self: flex-start; align-items: flex-start; }
-/* RECEPTOR (amigo) → DIREITA */
 .bubble-wrap.received { align-self: flex-end;   align-items: flex-end; }
 
 .bubble {
@@ -151,9 +146,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     line-height: 1.4; color: var(--text-bubble); cursor: pointer; transition: filter 0.15s;
 }
 .bubble:active { filter: brightness(0.92); }
-/* Emissor → cor verde, canto superior esquerdo recto */
 .bubble.sent     { background: var(--bg-bubble-out); border-top-left-radius: 0; }
-/* Receptor → cor cinza, canto superior direito recto */
 .bubble.received { background: var(--bg-bubble-in);  border-top-right-radius: 0; }
 .bubble.deleted { opacity: 0.5; font-style: italic; color: var(--text-secondary); }
 
@@ -229,9 +222,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 /* Footer */
 .chat-footer { padding: 8px 12px; background: var(--bg-input); display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; z-index: 10; position: relative; }
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-    .chat-footer {
-        padding-bottom: calc(8px + env(safe-area-inset-bottom));
-    }
+    .chat-footer { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
 }
 
 /* Reply bar above footer */
@@ -259,8 +250,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .send-btn:hover { background: var(--green-dark); }
 .send-btn:active { transform: scale(0.92); }
 
-    /* User switcher removido */
-    .user-switch-bar { display: none !important; }
+.user-switch-bar { display: none !important; }
 
 /* Blocked banner */
 .blocked-banner { display: none; background: rgba(234,0,56,0.1); border-top: 1px solid rgba(234,0,56,0.3); padding: 14px 20px; text-align: center; color: var(--danger); font-size: 14px; gap: 10px; align-items: center; justify-content: center; }
@@ -312,29 +302,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .profile-btn:hover { opacity: 0.88; }
 
 /* Mobile */
-
 @media (max-width: 768px) {
-    .sidebar { 
-        width: 100%;
-        max-width: 100%;
-        position: relative;
-    }
-    .main-chat {
-        display: none; /* Esconde o chat inicialmente no mobile */
-        width: 100%;
-    }
+    .sidebar { width: 100%; max-width: 100%; position: relative; }
+    .main-chat { display: none; width: 100%; }
     .back-btn { display: flex !important; }
     .user-switch-bar { display: none; }
-    .emoji-picker { 
-        left: 0; 
-        right: 0; 
-        width: 100%; 
-        bottom: 60px; 
-    }
+    .emoji-picker { left: 0; right: 0; width: 100%; bottom: 60px; }
 }
-
-
-     
 </style>
 <base target="_blank">
 </head>
@@ -395,14 +369,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-header-left">
-                <div class="my-avatar" onclick="openMyProfile()">
+                <div class="my-avatar" onclick="openMyProfile()" id="myAvatarBtn">
                     <i class="fas fa-user"></i>
                 </div>
-                <span class="sidebar-title">Mensagens</span>
+                <span class="sidebar-title" id="myNameLabel">Mensagens</span>
             </div>
             <div class="header-icons">
                 <a href="index.html"><i class="fa-solid fa-home icon-btn" style="color: #ff3344;"></i></a>
-
                 <button class="icon-btn" onclick="toggleTheme()" title="Tema"><i class="fas fa-moon" id="theme-icon"></i></button>
                 <button class="icon-btn" onclick="addNewContact()" title="Nova conversa"><i class="fas fa-pen-to-square"></i></button>
             </div>
@@ -469,7 +442,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
             </div>
 
             <div class="chat-footer" id="chatFooter">
-                <!-- User switcher removido -->
                 <div class="msg-input-wrap">
                     <label class="attach-btn" title="Anexar">
                         <i class="fas fa-paperclip"></i>
@@ -510,18 +482,18 @@ const storage = (() => {
     }
 })();
 
-// ─── STATE ───────────────────────────────────────────────
-const ME   = { id: 'me',   name: 'Eu',   color: '#00a884' };
+// ─── ESTADO ──────────────────────────────────────────────
+const ME   = { id: 'me',   name: storage.getItem('fc_name') || 'Eu',   color: '#00a884' };
 const PEER = { id: 'peer', name: 'Amigo', color: '#53bdeb' };
 
 let contacts = [];
 try {
     const savedContacts = storage.getItem('ca_contacts');
     contacts = savedContacts ? JSON.parse(savedContacts) : [
-        { id: 1, name: 'Feira Comercial',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
+        { id: 1, name: 'Feira Comercial', avatar: null, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
     ];
 } catch (e) {
-    contacts = [{ id: 1, name: 'Feira Comercial',  status: 'online',  blocked: false, lastSeen: 'online',     unread: 0, preview: 'Olá! Envia-me uma mensagem.' }];
+    contacts = [{ id: 1, name: 'Feira Comercial', avatar: null, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: 'Olá! Envia-me uma mensagem.' }];
 }
 
 let messages = {};
@@ -536,6 +508,24 @@ let currentSender = 'me';
 let replyTarget = null;
 let ctxTarget   = null;
 
+// ─── IDENTIDADE DO UTILIZADOR (foto + nome do perfil) ────
+function avatarHtml(avatar, iconClass = 'fas fa-user') {
+    return avatar ? `<img src="${avatar}" alt="">` : `<i class="${iconClass}"></i>`;
+}
+
+function applyMyIdentity() {
+    const avatar = storage.getItem('fc_avatar');
+    const name = storage.getItem('fc_name');
+    if (name) {
+        ME.name = name;
+        const lbl = document.getElementById('myNameLabel');
+        if (lbl) lbl.textContent = name;
+        document.title = 'Chat App — ' + name;
+    }
+    const myBtn = document.getElementById('myAvatarBtn');
+    if (myBtn) myBtn.innerHTML = avatarHtml(avatar);
+}
+
 // ─── EMOJI DATA ───────────────────────────────────────────
 const EMOJI_CATS = [
     { icon: '😀', label: 'Carinhas', emojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'] },
@@ -549,7 +539,7 @@ const EMOJI_CATS = [
 ];
 
 // ─── INIT ────────────────────────────────────────────────
-window.onload = () => { renderContacts(); setupScrollBtn(); buildEmojiPicker(); processarRascunhoResposta(); };
+window.onload = () => { applyMyIdentity(); renderContacts(); setupScrollBtn(); buildEmojiPicker(); processarRascunhoResposta(); };
 
 // ─── EMOJI PICKER ─────────────────────────────────────────
 let currentEmojiCat = 0;
@@ -604,7 +594,6 @@ function toggleEmojiPicker(e) {
     if (emojiPickerOpen) document.getElementById('emojiSearch').focus();
 }
 
-// Close emoji picker on outside click
 window.addEventListener('click', (e) => {
     const picker = document.getElementById('emojiPicker');
     if (emojiPickerOpen && !picker.contains(e.target) && !e.target.closest('.emoji-toggle-btn')) {
@@ -631,7 +620,7 @@ function renderContacts() {
         : filtered.map(c => `
         <div class="contact-item ${c.id === activeContactId ? 'active' : ''} ${c.blocked ? 'blocked' : ''}" onclick="openContact(${c.id})">
             <div class="contact-avatar">
-                <i class="fas fa-user"></i>
+                ${avatarHtml(c.avatar)}
                 ${c.status === 'online' && !c.blocked ? '<div class="online-dot"></div>' : ''}
             </div>
             <div class="contact-info">
@@ -670,6 +659,9 @@ function openContact(id) {
         statusEl.className = 'peer-status';
     }
 
+    // foto do contacto no cabeçalho do chat
+    document.getElementById('peer-avatar').innerHTML = avatarHtml(c.avatar);
+
     const banner = document.getElementById('blockedBanner');
     const footer = document.getElementById('chatFooter');
     const replyBar = document.getElementById('replyBar');
@@ -685,10 +677,6 @@ function openContact(id) {
     renderMessages(id);
     scrollToBottom();
     cancelReply();
-
-    // Update peer tab label to contact name
-    const peerTab = document.getElementById('tab-peer');
-    if (peerTab) peerTab.textContent = c.name.split(' ')[0];
 
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').style.display = 'none';
@@ -724,8 +712,11 @@ function processarRascunhoResposta() {
     // Procurar ou criar o contacto (autor do post/status)
     let c = contacts.find(x => x.name === draft.userName);
     if (!c) {
-        c = { id: Date.now(), name: draft.userName, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: '' };
+        c = { id: Date.now(), name: draft.userName, avatar: draft.avatar || null, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: '' };
         contacts.push(c);
+        saveContacts();
+    } else if (!c.avatar && draft.avatar) {
+        c.avatar = draft.avatar;
         saveContacts();
     }
 
@@ -770,7 +761,6 @@ function renderMessages(contactId) {
 
 function buildBubble(msg) {
     const wrap = document.createElement('div');
-    // "sent" = eu (emissor) → ESQUERDA | "received" = amigo (receptor) → DIREITA
     wrap.className = `bubble-wrap ${msg.sender === 'me' ? 'sent' : 'received'}`;
     wrap.id = `msg-${msg.id}`;
 
@@ -800,7 +790,6 @@ function buildBubble(msg) {
     inner += `<div class="bubble-meta"><span class="bubble-time">${msg.time}</span>${ticks}</div>`;
 
     const bubble = document.createElement('div');
-    // Emissor (me) → classe "sent" (verde, esq) | Receptor (peer) → classe "received" (cinza, dir)
     bubble.className = `bubble ${msg.sender === 'me' ? 'sent' : 'received'} ${msg.deleted ? 'deleted' : ''}`;
     bubble.innerHTML = inner;
 
@@ -939,7 +928,6 @@ function showCtxMenu(e, msg, bubble) {
     const y = Math.min(e.clientY, window.innerHeight - 200);
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
-    // Ajuste dinâmico baseado na existência dos itens
     const items = menu.querySelectorAll('.ctx-item');
     if (items.length > 1) items[1].style.display = (msg.text && !msg.deleted) ? 'flex' : 'none';
     if (items.length > 3) items[3].style.display = msg.deleted ? 'none' : 'flex';
@@ -1045,6 +1033,7 @@ function openPeerProfile() {
     if (!activeContactId) return;
     const c = contacts.find(x => x.id === activeContactId);
     if (!c) return;
+    document.getElementById('pm-avatar').innerHTML = avatarHtml(c.avatar);
     document.getElementById('pm-name').textContent = c.name;
     document.getElementById('pm-status').textContent = c.blocked ? 'Bloqueado' : (c.status === 'online' ? '🟢 online' : '⚪ ' + c.lastSeen);
     const btn = document.getElementById('pm-block-btn');
@@ -1054,10 +1043,8 @@ function openPeerProfile() {
     document.getElementById('profileModal').classList.add('show');
 }
 
-function openMyProfile() { showToast('Perfil: Eu'); }
+function openMyProfile() { window.location.href = 'perfil.html'; }
 function closeProfile() { document.getElementById('profileModal').classList.remove('show'); }
-
-// ─── USER SWITCHER REMOVIDO ───
 
 // ─── ADD CONTACT → abre conversa automaticamente ─────────
 function addNewContact() {
@@ -1066,6 +1053,7 @@ function addNewContact() {
     const newC = {
         id: Date.now(),
         name: name.trim(),
+        avatar: null,
         status: 'online',
         blocked: false,
         lastSeen: 'online',
@@ -1076,7 +1064,6 @@ function addNewContact() {
     saveContacts();
     renderContacts();
     showToast(`${name.trim()} adicionado!`);
-    // Abre a conversa com o novo contacto automaticamente
     openContact(newC.id);
 }
 
@@ -1099,49 +1086,12 @@ function showToast(msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ─── SUPABASE INTEGRATION ────────────────────────────────────────────────
-// Initialize Supabase client (make sure supabase-config.js exists with proper configuration)
-let supabaseClient = null;
-
+// ─── SUPABASE INTEGRATION ─────────────────────────────────
 function initSupabase() {
-    if (typeof window.supabaseClient !== 'undefined') {
-        supabaseClient = window.supabaseClient;
+    if (typeof supabaseClient !== 'undefined' || typeof window.supabaseClient !== 'undefined') {
         console.log('✅ Supabase initialized successfully');
-        // Optional: Load messages from Supabase on startup
-        // loadMessagesFromSupabase();
     } else {
         console.warn('⚠️ Supabase config not loaded. Using localStorage only.');
-    }
-}
-
-// Load messages from Supabase (optional - for real-time chat)
-async function loadMessagesFromSupabase() {
-    if (!supabaseClient) return;
-    try {
-        // Example: fetch messages from Supabase
-        // const { data, error } = await supabaseClient.from('messages').select('*');
-        // if (error) throw error;
-        // Process data and update messages object...
-        console.log('Messages loaded from Supabase');
-    } catch (err) {
-        console.error('Erro ao carregar mensagens:', err);
-    }
-}
-
-// Save message to Supabase (optional - for persistence)
-async function saveMessageToSupabase(msg, contactId) {
-    if (!supabaseClient) return;
-    try {
-        // Example: insert message into Supabase
-        // const { error } = await supabaseClient.from('messages').insert([{ 
-        //     ...msg, 
-        //     contact_id: contactId,
-        //     created_at: new Date()
-        // }]);
-        // if (error) throw error;
-        console.log('Message saved to Supabase');
-    } catch (err) {
-        console.error('Erro ao guardar mensagem:', err);
     }
 }
 
