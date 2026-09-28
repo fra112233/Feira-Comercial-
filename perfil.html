@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Feira Comercial">
     <title>Perfil | Feira Comercial </title>
-    
+
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -25,21 +25,21 @@
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            
+
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
             --bg-tertiary: #334155;
             --bg-hover: #475569;
-            
+
             --text-primary: #f1f5f9;
             --text-secondary: #cbd5e1;
             --text-tertiary: #94a3b8;
-            
+
             --border-color: #334155;
             --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
             --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
             --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-            
+
             --radius-sm: 6px;
             --radius-md: 10px;
             --radius-lg: 14px;
@@ -1291,7 +1291,7 @@
                 <h1 class="profile-name" id="userName">Utilizador Pro</h1>
                 <div class="profile-handle" id="profileHandle">@utilizadorpro</div>
                 <p class="profile-bio" id="dispBio">Criador de conteúdo | Empreendedor | Apaixonado por tecnologia e inovação 🚀</p>
-                
+
                 <div class="profile-meta">
                     <div class="profile-meta-item">
                         <i class="fas fa-map-marker-alt"></i>
@@ -1657,7 +1657,7 @@
             <div style="padding: 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'" onclick="toggleTheme()">
                 <i class="fas fa-moon" id="themeMenuIcon"></i> Modo Escuro
             </div>
-            <div style="padding: 16px; cursor: pointer; transition: all 0.3s ease; color: var(--danger);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'" onclick="alert('Logout simulado'); closeModals();">
+            <div style="padding: 16px; cursor: pointer; transition: all 0.3s ease; color: var(--danger);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'" onclick="if(window.FC&&FC.signOut){FC.signOut();}else{alert('Logout simulado');closeModals();}">
                 <i class="fas fa-sign-out-alt"></i> Sair
             </div>
         </div>
@@ -1667,24 +1667,47 @@
 <!-- ==================== SCRIPTS ==================== -->
 <script>
 
+    // ═══ Helper: cliente Supabase (usa o supabase-config.js) ═══
+    function getSB() {
+        if (typeof window.supabaseClient !== 'undefined') return window.supabaseClient;
+        if (typeof supabaseClient !== 'undefined') return supabaseClient;
+        if (typeof supabase !== 'undefined') {
+            const url = (typeof SUPABASE_URL !== 'undefined') ? SUPABASE_URL : 'https://bljnkwrhqnpawclybqrw.supabase.co';
+            const key = (typeof SUPABASE_ANON_KEY !== 'undefined') ? SUPABASE_ANON_KEY : 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
+            return supabase.createClient(url, key);
+        }
+        return null;
+    }
 
-     // ═══ SESSÃO + DADOS DO SUPABASE (corrigido — sem duplicar variáveis do supabase-config.js) ═══
+    // ═══ SESSÃO + DADOS DO SUPABASE (tabela "perfis", com cache local) ═══
     (async function initPerfil() {
         try {
-            const client = (typeof window.supabaseClient !== 'undefined') ? window.supabaseClient
-                : (typeof supabase !== 'undefined'
-                    ? supabase.createClient('https://bljnkwrhqnpawclybqrw.supabase.co', 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0')
-                    : null);
+            const client = getSB();
             if (!client) return;
             const { data: { session } } = await client.auth.getSession();
             if (!session) { window.location.href = 'Portal.html'; return; }
-            const { data: profile } = await client.from('profiles').select('*').eq('id', session.user.id).single();
+
+            let { data: profile } = await client.from('perfis').select('*').eq('id', session.user.id).maybeSingle();
+            if (!profile) {
+                // compatibilidade com tabela antiga "profiles"
+                const alt = await client.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+                profile = alt.data;
+            }
+
             if (profile) {
                 if (profile.full_name) definirNome(profile.full_name);
+                if (profile.avatar_url) {
+                    localStorage.setItem('fc_avatar', profile.avatar_url);
+                    definirAvatar(profile.avatar_url);
+                }
                 if (profile.phone) { setTxt('sidebarPhone', profile.phone); setTxt('infoPhone', profile.phone); }
                 if (profile.email) { setTxt('sidebarEmail', profile.email); setTxt('infoEmail', profile.email); }
-                guardarPerfilLocal();
+                // campos extra (se existirem na tabela)
+                const extraMap = { dispBio:'bio', dispMorada:'morada', sidebarProfession:'profession', sidebarEducation:'education', sidebarCompany:'company', sidebarPosition:'position', sidebarWebsite:'website', sidebarLinkedin:'linkedin' };
+                Object.entries(extraMap).forEach(([id, key]) => { if (profile[key]) setTxt(id, profile[key]); });
+                sincronizarParesInfo();
             }
+            guardarPerfilLocal();
         } catch (err) {
             console.warn('Supabase indisponível — a usar dados locais.', err);
         }
@@ -1694,7 +1717,22 @@
 
     function setTxt(id, valor) { const el = document.getElementById(id); if (el) el.textContent = valor; }
 
+    // Sincroniza os campos duplicados (sidebar* ↔ info*)
+    function sincronizarParesInfo() {
+        const pares = [
+            ['sidebarPhone','infoPhone'], ['sidebarEmail','infoEmail'],
+            ['sidebarProfession','infoProfession'], ['sidebarEducation','infoEducation'],
+            ['sidebarCompany','infoCompany'], ['sidebarPosition','infoPosition'],
+            ['sidebarWebsite','infoWebsite'], ['sidebarLinkedin','infoLinkedin']
+        ];
+        pares.forEach(([a, b]) => {
+            const va = document.getElementById(a), vb = document.getElementById(b);
+            if (va && vb) vb.textContent = va.textContent;
+        });
+    }
+
     // ═══ PERFIL LOCAL — guarda e sincroniza com o feed (index.html) ═══
+    // NOTA: usa a chave "fc_perfil_local" para NÃO conflitar com o cache do supabase-config.js (FC.loadMyProfile)
     function definirNome(nome) {
         nome = (nome || '').trim();
         if (!nome) return;
@@ -1705,6 +1743,7 @@
     }
 
     function definirAvatar(src) {
+        if (!src) return;
         ['profileImg', 'headerAvatar'].forEach(id => { const el = document.getElementById(id); if (el) el.src = src; });
         document.querySelectorAll('.avatar-sm').forEach(a => a.src = src);
     }
@@ -1723,13 +1762,13 @@
             website: document.getElementById('sidebarWebsite').innerText,
             linkedin: document.getElementById('sidebarLinkedin').innerText
         };
-        localStorage.setItem('fc_profile', JSON.stringify(p));
+        localStorage.setItem('fc_perfil_local', JSON.stringify(p));
         localStorage.setItem('fc_name', p.name);
     }
 
     function carregarPerfilLocal() {
         try {
-            const p = JSON.parse(localStorage.getItem('fc_profile') || 'null');
+            const p = JSON.parse(localStorage.getItem('fc_perfil_local') || 'null');
             if (p) {
                 const map = {
                     userName: 'name', dispBio: 'bio', dispMorada: 'morada',
@@ -1749,6 +1788,25 @@
         if (avatar) definirAvatar(avatar);
         const nome = localStorage.getItem('fc_name');
         if (nome) definirNome(nome);
+    }
+
+    // ═══ Guardar dados do perfil no Supabase (best-effort) ═══
+    async function guardarPerfilSupabase(dados) {
+        try {
+            const client = getSB();
+            if (!client) return;
+            const { data: { session } } = await client.auth.getSession();
+            if (!session) return;
+            const upd = { updated_at: new Date().toISOString() };
+            if (dados.full_name !== undefined) upd.full_name = dados.full_name;
+            if (dados.phone !== undefined) upd.phone = dados.phone;
+            if (dados.email !== undefined) upd.email = dados.email;
+            if (dados.avatar_url !== undefined) upd.avatar_url = dados.avatar_url;
+            const { error } = await client.from('perfis').update(upd).eq('id', session.user.id);
+            if (error) console.warn('Update perfis:', error.message);
+        } catch (err) {
+            console.warn('Não foi possível guardar no Supabase.', err);
+        }
     }
 
     // ═══ POSTS SINCRONIZADOS COM O FEED (sa_posts, expiração 36h) ═══
@@ -1862,14 +1920,11 @@
             userName: p.userName || localStorage.getItem('fc_name') || 'Você',
             text: p.text ? p.text.substring(0, 200) : '📷 Publicação com mídia',
             thumb: (m && m.type === 'image') ? m.data : null,
+            avatar: localStorage.getItem('fc_avatar') || null,
             time: new Date(p.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
         }));
         window.location.href = 'mensagen.html';
     }
-
-
-
-
 
     let tempMedia = null;
     let tempType = "";
@@ -1937,12 +1992,12 @@
         document.getElementById('lightboxMedia').src = src;
         document.getElementById('lightbox').classList.add('active');
         document.body.style.overflow = 'hidden';
-        
+
         lightboxImages = [];
         document.querySelectorAll('.gallery-thumb, .post-image, .post-video').forEach(img => {
             lightboxImages.push(img.src);
         });
-        
+
         currentLightboxIndex = lightboxImages.indexOf(src);
     }
 
@@ -1975,7 +2030,7 @@
     function switchTab(tab, btn) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
+
         btn.classList.add('active');
         document.getElementById(`tab-${tab}`).classList.add('active');
     }
@@ -1983,6 +2038,7 @@
     // ==================== IMAGE HANDLING ==================== 
     function updateImage(input, target) {
         if (input.files && input.files[0]) {
+            const file = input.files[0];
             const reader = new FileReader();
             reader.onload = (e) => {
                 document.getElementById(target).src = e.target.result;
@@ -1991,9 +2047,40 @@
                     definirAvatar(e.target.result);
                     guardarPerfilLocal();
                     showToast('Foto de perfil atualizada!');
+                    uploadAvatarSupabase(file, e.target.result);
                 }
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Envia a foto para o Supabase (Storage se possível, senão base64 na tabela perfis)
+    async function uploadAvatarSupabase(file, dataUrl) {
+        try {
+            const client = getSB();
+            if (!client) return;
+            const { data: { session } } = await client.auth.getSession();
+            if (!session) return;
+
+            let publicUrl = dataUrl;
+            if (window.FC && typeof FC.uploadImage === 'function') {
+                try {
+                    publicUrl = await FC.uploadImage('avatars', file, session.user.id + '/avatar.jpg');
+                } catch (err) {
+                    console.warn('Storage indisponível — a guardar base64 na base de dados.', err);
+                }
+            }
+
+            const { error } = await client.from('perfis')
+                .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+                .eq('id', session.user.id);
+            if (error) throw error;
+
+            localStorage.setItem('fc_avatar', publicUrl);
+            definirAvatar(publicUrl);
+            console.log('✅ Avatar sincronizado com o Supabase.');
+        } catch (err) {
+            console.warn('Avatar não sincronizado (fica só local):', err);
         }
     }
 
@@ -2046,7 +2133,7 @@
         post.innerHTML = `
             <div class="post-header">
                 <div class="post-author">
-                    <img src="images/perfil.jpg" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
+                    <img src="${localStorage.getItem('fc_avatar') || 'images/perfil.jpg'}" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
                     <div class="post-author-info">
                         <div class="post-author-name">${document.getElementById('userName').innerText}</div>
                         <div class="post-time">${timeStr}</div>
@@ -2076,7 +2163,7 @@
             <div class="comments-section" id="comments-${postId}">
                 <div class="comments-list" id="comments-list-${postId}"></div>
                 <div class="comment-input-area">
-                    <img src="images/perfil.jpg" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
+                    <img src="${localStorage.getItem('fc_avatar') || 'images/perfil.jpg'}" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
                     <div class="comment-input-wrapper">
                         <input type="text" class="comment-input" id="comment-input-${postId}" placeholder="Escreve um comentário..." onkeydown="if(event.key==='Enter') submitComment('${postId}', null)">
                         <button class="comment-send-btn" onclick="submitComment('${postId}', null)" title="Enviar comentário">
@@ -2113,14 +2200,14 @@
             likes: 0,
             comments: []
         });
-        
+
         postCount++;
         document.getElementById('postCount').innerText = postCount;
         emptyState.style.display = 'none';
-        
+
         updateMediaGallery();
         updateRecentPhotos();
-        
+
         closeModals();
     }
 
@@ -2128,7 +2215,7 @@
         btn.classList.toggle('liked');
         btn.querySelector('i').classList.toggle('fas');
         btn.querySelector('i').classList.toggle('far');
-        
+
         const post = allPosts.find(p => p.id === postId);
         if (post) {
             if (btn.classList.contains('liked')) {
@@ -2147,22 +2234,22 @@
     function submitComment(postId, replyToId) {
         const input = document.getElementById(`comment-input-${postId}`);
         const txt = input.value.trim();
-        
+
         if (!txt) return;
 
         const commentsList = document.getElementById(`comments-list-${postId}`);
         const comment = document.createElement('div');
         const commentId = 'comment-' + Date.now();
-        
+
         const isReply = replyToId !== null;
         comment.className = isReply ? 'comment reply' : 'comment';
         comment.id = commentId;
-        
+
         comment.innerHTML = `
-            <img src="images/perfil.jpg" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="comment-avatar" alt="Avatar">
+            <img src="${localStorage.getItem('fc_avatar') || 'images/perfil.jpg'}" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="comment-avatar" alt="Avatar">
             <div>
                 <div class="comment-bubble">
-                    <div class="comment-author">Tu</div>
+                    <div class="comment-author">${localStorage.getItem('fc_name') || 'Tu'}</div>
                     <div class="comment-text">${txt}</div>
                 </div>
                 <div class="comment-actions-bar">
@@ -2192,7 +2279,7 @@
         input.value = "";
         input.placeholder = "Escreve um comentário...";
         delete input.dataset.replyTo;
-        
+
         const post = allPosts.find(p => p.id === postId);
         if (post) {
             post.comments.push({ id: commentId, text: txt, replies: [], likes: 0 });
@@ -2204,7 +2291,7 @@
         btn.classList.toggle('liked');
         btn.querySelector('i').classList.toggle('fas');
         btn.querySelector('i').classList.toggle('far');
-        
+
         const likesSpan = document.getElementById(`likes-${commentId}`);
         if (btn.classList.contains('liked')) {
             likesSpan.style.display = 'inline';
@@ -2225,7 +2312,7 @@
         const profileUrl = window.location.href;
         const post = allPosts.find(p => p.id === postId);
         const shareText = `Confira esta publicação: "${post.text.substring(0, 50)}..." ${profileUrl}`;
-        
+
         navigator.clipboard.writeText(shareText).then(() => {
             showToast('Publicação partilhada! Link copiado para a área de transferência.');
         }).catch(() => {
@@ -2237,7 +2324,7 @@
         const profileUrl = window.location.href;
         const profileName = document.getElementById('userName').innerText;
         const shareText = `Confira o perfil de ${profileName}: ${profileUrl}`;
-        
+
         navigator.clipboard.writeText(shareText).then(() => {
             showToast('Perfil partilhado! Link copiado para a área de transferência.');
         }).catch(() => {
@@ -2248,12 +2335,12 @@
     function updateMediaGallery() {
         const gallery = document.getElementById('mediaGallery');
         const mediaItems = allPosts.filter(p => p.media);
-        
+
         if (mediaItems.length === 0) {
             gallery.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><i class="fas fa-images"></i><p>Nenhuma foto ou vídeo ainda.</p></div>`;
             return;
         }
-        
+
         gallery.innerHTML = mediaItems.map(item => {
             if (item.type.includes('video')) {
                 return `
@@ -2280,7 +2367,7 @@
     function updateRecentPhotos() {
         const recentPhotosGallery = document.getElementById('recentPhotosGallery');
         const photoItems = allPosts.filter(p => p.media && !p.type.includes('video')).slice(0, 6);
-        
+
         if (photoItems.length === 0) {
             recentPhotosGallery.innerHTML = `
                 <img src="https://picsum.photos/id/10/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
@@ -2292,7 +2379,7 @@
             `;
             return;
         }
-        
+
         recentPhotosGallery.innerHTML = photoItems.map(item => {
             return `<img src="${item.media}" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">`;
         }).join('');
@@ -2364,6 +2451,7 @@
         }
 
         guardarPerfilLocal();
+        guardarPerfilSupabase({ full_name: name, phone: phone, email: email });
         closeModals();
         showToast('Perfil atualizado com sucesso!');
     }
