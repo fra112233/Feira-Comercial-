@@ -232,6 +232,14 @@
         /* only one post in group */
         .user-feed-section .post-card:only-child { border-radius: 0 0 14px 14px; }
 
+        .post-hora { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+        .ver-mais-grupo {
+            background: var(--bg-card); box-shadow: var(--shadow); border-top: 1px solid var(--border);
+            border-radius: 0 0 14px 14px; padding: 11px; text-align: center; cursor: pointer;
+            font-size: 14px; font-weight: 600; color: var(--primary);
+        }
+        .ver-mais-grupo:hover { background: var(--hover-bg); }
+        .user-feed-section .ver-mais-grupo ~ .post-card, .user-feed-section .post-card:has(+ .ver-mais-grupo) { border-radius: 0; }
         .post-header-inner { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 
         .btn-delete {
@@ -904,6 +912,10 @@ function abrirPerfil(userId) {
 }
 
 function scrollToPost(postId) {
+    if (!document.getElementById(`post-${postId}`)) {      // pode estar escondida num grupo fechado
+        const p = posts.find(x => x.id === postId);
+        if (p) { gruposAbertos.add(p.userId); renderPosts(); }
+    }
     const el = document.getElementById(`post-${postId}`);
     if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); highlightEl(el); }
 }
@@ -1173,28 +1185,52 @@ function renderPosts() {
     const abertos = new Set([...feed.querySelectorAll('.comment-section')]
         .filter(el => el.style.display === 'block').map(el => el.id));
 
-    feed.innerHTML = posts.map(p => {
-        const isMe = p.userId === currentUser.id;
-        const selo = p.userType === 'empresa'
+    // AGRUPADO POR UTILIZADOR (estilo WhatsApp): cada pessoa/empresa aparece uma vez,
+    // com as suas publicações juntas. Os grupos ordenam-se pela publicação mais recente.
+    const grupos = [];
+    const porUser = {};
+    posts.forEach(p => {
+        if (!porUser[p.userId]) { porUser[p.userId] = { userId: p.userId, posts: [] }; grupos.push(porUser[p.userId]); }
+        porUser[p.userId].posts.push(p);
+    });
+
+    feed.innerHTML = grupos.map(g => {
+        const p0 = g.posts[0];
+        const isMe = g.userId === currentUser.id;
+        const selo = p0.userType === 'empresa'
             ? ' <i class="fas fa-building" title="Empresa" style="color:var(--primary-blue);font-size:12px;"></i>' : '';
+        const n = g.posts.length;
+        const aberto = gruposAbertos.has(g.userId);
+        const visiveis = aberto ? g.posts : g.posts.slice(0, POSTS_POR_GRUPO);
+        const escondidos = n - visiveis.length;
         return `
-        <div class="user-feed-section" id="user-section-${p.id}">
+        <div class="user-feed-section" id="user-section-${g.userId}">
             <div class="user-feed-header">
-                <div class="user-feed-avatar" title="Ver perfil de ${escHtml(p.userName)}" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">
-                    <img src="${p.userAvatar}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="user-feed-avatar" title="Ver perfil de ${escHtml(p0.userName)}" onclick="abrirPerfil('${g.userId}')" style="cursor:pointer;">
+                    <img src="${p0.userAvatar}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <i class="fas fa-user"></i>
                 </div>
-                <div>
-                    <div class="user-feed-name" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">${escHtml(p.userName)}${selo}</div>
-                    <div class="user-feed-count">${timeAgo(p.timestamp)}</div>
+                <div style="flex:1;min-width:0;">
+                    <div class="user-feed-name" onclick="abrirPerfil('${g.userId}')" style="cursor:pointer;">${escHtml(isMe ? 'Você' : p0.userName)}${selo}</div>
+                    <div class="user-feed-count">${n > 1 ? n + ' publicações · ' : ''}${timeAgo(p0.timestamp)}</div>
                 </div>
             </div>
-            ${renderPostCard(p, isMe)}
+            ${visiveis.map(p => renderPostCard(p, isMe, n > 1)).join('')}
+            ${escondidos > 0 ? `<div class="ver-mais-grupo" onclick="abrirGrupo('${g.userId}')"><i class="fas fa-chevron-down"></i> Ver mais ${escondidos} publicaç${escondidos === 1 ? 'ão' : 'ões'}</div>`
+              : (aberto && n > POSTS_POR_GRUPO ? `<div class="ver-mais-grupo" onclick="fecharGrupo('${g.userId}')"><i class="fas fa-chevron-up"></i> Mostrar menos</div>` : '')}
         </div>`;
     }).join('');
 
     abertos.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'block'; });
     observarVideos();
+}
+
+const POSTS_POR_GRUPO = 2;          // publicações mostradas por grupo antes de "Ver mais"
+const gruposAbertos = new Set();
+function abrirGrupo(uid) { gruposAbertos.add(uid); renderPosts(); }
+function fecharGrupo(uid) {
+    gruposAbertos.delete(uid); renderPosts();
+    const el = document.getElementById('user-section-' + uid); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 function timeAgo(ts) {
@@ -1210,7 +1246,7 @@ function timeAgo(ts) {
 
 const emojiMap = { 'Curtir':'👍','Amei':'❤️','Haha':'😂','Triste':'😢','Uau':'😮' };
 
-function renderPostCard(p, isMe) {
+function renderPostCard(p, isMe, mostrarHora) {
     const gridClass = ['','single','double','triple','quad'][Math.min(p.media.length, 4)] || 'single';
     const mediaHtml = p.media.length > 0 ? `
         <div class="gallery-preview">
@@ -1231,6 +1267,7 @@ function renderPostCard(p, isMe) {
     return `
     <div class="post-card" id="post-${p.id}">
         ${isMe ? `<div class="btn-delete" onclick="deletePost(${p.id})" title="Apagar publicação"><i class="fas fa-trash"></i></div>` : ''}
+        ${mostrarHora ? `<div class="post-hora"><i class="far fa-clock"></i> ${timeAgo(p.timestamp)}</div>` : ''}
         ${p.text ? `<p class="post-text">${escHtml(p.text)}</p>` : ''}
         ${mediaHtml}
         <div class="post-actions">
