@@ -178,6 +178,8 @@
         }
         .story-circle img, .story-circle video { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
         .story-circle .story-name { font-size: 11px; margin-top: 4px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .story-circle .story-ring.segmentado { border: none; padding: 3px; }
+        .story-circle .story-ring.segmentado img { border: 2px solid var(--bg-card); background: var(--bg-body); }
         .story-circle.add .story-ring {
             border: 2px dashed var(--border);
             display: flex; align-items: center; justify-content: center;
@@ -952,7 +954,53 @@ async function addStory(event) {
     }
 }
 
+// STORIES AGRUPADOS POR PESSOA (estilo status do WhatsApp):
+// um círculo por pessoa/empresa; ao abrir, vêem-se os stories dela seguidos e depois passa à seguinte.
+let gruposStories = [];        // [{ userId, inicio, fim }] — posições em "stories"
+const CHAVE_VISTOS = 'fc_stories_vistos';
+function storiesVistos() {
+    try { return new Set(JSON.parse(localStorage.getItem(CHAVE_VISTOS) || '[]')); } catch (e) { return new Set(); }
+}
+function marcarVisto(id) {
+    const v = storiesVistos(); if (v.has(id)) return;
+    v.add(id);
+    try { localStorage.setItem(CHAVE_VISTOS, JSON.stringify([...v].slice(-500))); } catch (e) {}
+}
+
+function organizarStories() {
+    const atual = document.getElementById('storyModal').classList.contains('open') && stories[sIdx] ? stories[sIdx].id : null;
+    const porUser = {};
+    stories.forEach(st => (porUser[st.userId] = porUser[st.userId] || []).push(st));
+    const vistos = storiesVistos();
+    const listas = Object.values(porUser).map(l => l.sort((a, b) => a.timestamp - b.timestamp));
+    listas.sort((a, b) => {
+        const am = a[0].userId === currentUser.id, bm = b[0].userId === currentUser.id;
+        if (am !== bm) return am ? -1 : 1;                           // os meus primeiro
+        const av = a.every(x => vistos.has(x.id)), bv = b.every(x => vistos.has(x.id));
+        if (av !== bv) return av ? 1 : -1;                           // por ver antes dos já vistos
+        return b[b.length - 1].timestamp - a[a.length - 1].timestamp; // mais recentes primeiro
+    });
+    stories = []; gruposStories = [];
+    listas.forEach(l => {
+        gruposStories.push({ userId: l[0].userId, inicio: stories.length, fim: stories.length + l.length - 1 });
+        stories.push(...l);
+    });
+    if (atual !== null) { const i = stories.findIndex(x => x.id === atual); if (i >= 0) sIdx = i; }
+}
+function grupoDe(i) { return gruposStories.find(g => i >= g.inicio && i <= g.fim); }
+
+// anel dividido em partes (uma por story), dourado se há por ver, cinzento se já viu tudo
+function anelStories(lista, vistos) {
+    const n = lista.length, gap = n > 1 ? 4 : 0, parte = 360 / n;
+    const partes = lista.map((st, k) => {
+        const cor = vistos.has(st.id) ? '#9ca3af' : 'var(--primary)';
+        return `${cor} ${k * parte + gap / 2}deg ${(k + 1) * parte - gap / 2}deg, transparent ${(k + 1) * parte - gap / 2}deg ${(k + 1) * parte + gap / 2}deg`;
+    });
+    return `conic-gradient(${partes.join(', ')})`;
+}
+
 function renderStories() {
+    organizarStories();
     const list = document.getElementById('stories-list');
     list.innerHTML = `
         <div class="story-circle add" onclick="document.getElementById('up-story-input').click()">
@@ -960,15 +1008,19 @@ function renderStories() {
             <div class="story-name">Adicionar</div>
             <input type="file" id="up-story-input" hidden accept="image/*,video/*" onchange="addStory(event)">
         </div>`;
-    stories.forEach((s, i) => {
+    const vistos = storiesVistos();
+    gruposStories.forEach(g => {
+        const lista = stories.slice(g.inicio, g.fim + 1);
+        const primeiroPorVer = lista.findIndex(x => !vistos.has(x.id));
+        const st = lista[lista.length - 1];
         const div = document.createElement('div');
         div.className = 'story-circle';
-        div.onclick = () => openStory(i);
+        div.onclick = () => openStory(g.inicio + (primeiroPorVer >= 0 ? primeiroPorVer : 0));
         div.innerHTML = `
-            <div class="story-ring">
-                ${s.type === 'video' ? `<video src="${s.url}#t=0.1" preload="metadata" muted></video>` : `<img src="${s.url}" loading="lazy">`}
+            <div class="story-ring segmentado" style="background:${anelStories(lista, vistos)}">
+                <img src="${st.userAvatar}" loading="lazy" alt="">
             </div>
-            <div class="story-name">${escHtml(s.userId === currentUser.id ? 'Você' : s.userName)}</div>`;
+            <div class="story-name">${escHtml(g.userId === currentUser.id ? 'Você' : st.userName)}</div>`;
         list.appendChild(div);
     });
 }
@@ -980,11 +1032,13 @@ function openStory(i) {
     sPaused = false;
 
     const s = stories[sIdx];
+    const g = grupoDe(sIdx) || { inicio: 0, fim: stories.length - 1 };
     document.getElementById('storyModal').classList.add('open');
+    marcarVisto(s.id);
 
     buildStoryBars();
     updateStoryBars();
-    document.getElementById('story-counter').textContent = (sIdx + 1) + '/' + stories.length;
+    document.getElementById('story-counter').textContent = (sIdx - g.inicio + 1) + '/' + (g.fim - g.inicio + 1) + ' · ' + timeAgo(s.timestamp);
     document.getElementById('story-username').textContent = s.userId === currentUser.id ? 'Você' : s.userName;
 
     // só o dono pode apagar o seu story
@@ -1014,14 +1068,19 @@ function openStory(i) {
     startStoryTimer();
 }
 
+// barras só dos stories da pessoa que está a ser vista
 function buildStoryBars() {
-    document.getElementById('storyBars').innerHTML = stories.map((st, i) =>
-        `<div class="story-seg"><span class="seg-num">${i + 1}</span><div class="story-seg-fill" id="seg-${i}"></div></div>`
-    ).join('');
+    const g = grupoDe(sIdx) || { inicio: 0, fim: stories.length - 1 };
+    let html = '';
+    for (let i = g.inicio; i <= g.fim; i++)
+        html += `<div class="story-seg"><span class="seg-num">${i - g.inicio + 1}</span><div class="story-seg-fill" id="seg-${i}"></div></div>`;
+    document.getElementById('storyBars').innerHTML = html;
 }
 
 function updateStoryBars() {
-    stories.forEach((st, i) => {
+    const g = grupoDe(sIdx) || { inicio: 0, fim: stories.length - 1 };
+    stories.slice(g.inicio, g.fim + 1).forEach((st, k) => {
+        const i = g.inicio + k;
         const f = document.getElementById('seg-' + i);
         if (!f) return;
         if (i < sIdx) f.style.width = '100%';
@@ -1068,11 +1127,14 @@ async function deleteCurrentStory() {
     if (!confirm('Apagar este story?')) return;
     const { error } = await supabaseClient.from('stories').delete().eq('id', s.id);
     if (error) { alert('Não foi possível apagar: ' + error.message); return; }
+    const g = grupoDe(sIdx);
+    const aindaTenho = g && g.fim > g.inicio;
     stories.splice(sIdx, 1);
+    document.getElementById('storyModal').classList.remove('open');
     renderStories();
     guardarCache();
-    if (stories.length === 0) closeStory();
-    else openStory(Math.min(sIdx, stories.length - 1));
+    if (!aindaTenho || stories.length === 0) closeStory();
+    else openStory(Math.min(sIdx, (grupoDe(sIdx) || { fim: stories.length - 1 }).fim));
 }
 
 // Responder ao status — envia para a página de chat (mensagen.html)
@@ -1112,6 +1174,7 @@ function closeStory() {
     clearInterval(sTimer);
     const vid = document.getElementById('story-video');
     if (vid) vid.pause();
+    renderStories();          // atualiza os anéis (vistos ficam cinzentos)
 }
 
 // ─────────────────────────────────────
