@@ -1687,6 +1687,7 @@
             if (!client) return;
             const { data: { session } } = await client.auth.getSession();
             if (!session) { window.location.href = 'Portal.html'; return; }
+            meuId = session.user.id;
 
             let { data: profile } = await client.from('perfis').select('*').eq('id', session.user.id).maybeSingle();
             if (!profile) {
@@ -1714,6 +1715,7 @@
         }
         carregarPerfilLocal();
         renderizarPostsDoFeed();
+        carregarMeusPosts();
     })();
 
     function setTxt(id, valor) { const el = document.getElementById(id); if (el) el.textContent = valor; }
@@ -1810,19 +1812,34 @@
         }
     }
 
-    // ═══ POSTS SINCRONIZADOS COM O FEED (sa_posts, expiração 36h) ═══
+    // ═══ AS MINHAS PUBLICAÇÕES — vêm da base de dados (tabela posts, últimas 36h) ═══
     const TEMPO_VIDA = 36 * 60 * 60 * 1000;
+    let meuId = null;
+    let meusPosts = [];
 
-    function obterPostsFeed() {
-        try {
-            return (JSON.parse(localStorage.getItem('sa_posts') || '[]'))
-                .filter(p => Date.now() - (p.timestamp || 0) < TEMPO_VIDA)
-                .sort((a, b) => b.timestamp - a.timestamp);
-        } catch (e) { return []; }
-    }
+    function obterPostsFeed() { return meusPosts; }
 
-    function guardarPostsFeed(lista) {
-        try { localStorage.setItem('sa_posts', JSON.stringify(lista)); } catch (e) {}
+    async function carregarMeusPosts() {
+        if (!meuId) return;
+        const { data, error } = await getSB().from('posts')
+            .select('id, content, media, image_url, created_at, likes(user_id), comments(id)')
+            .eq('user_id', meuId)
+            .gte('created_at', new Date(Date.now() - TEMPO_VIDA).toISOString())
+            .order('created_at', { ascending: false });
+        if (error) { console.warn('Erro ao carregar publicações:', error.message); return; }
+        meusPosts = (data || []).map(r => {
+            let media = Array.isArray(r.media) ? r.media : [];
+            if (!media.length && r.image_url) media = [{ url: r.image_url, type: 'image' }];
+            return {
+                id: r.id,
+                text: r.content || '',
+                media: media.map(m => ({ data: m.url, url: m.url, type: m.type })),
+                timestamp: new Date(r.created_at).getTime(),
+                reactCount: (r.likes || []).length,
+                comments: (r.comments || []).map(c => ({ id: c.id }))
+            };
+        });
+        renderizarPostsDoFeed();
     }
 
     function renderizarPostsDoFeed() {
@@ -1904,9 +1921,11 @@
             </div>`;
     }
 
-    function deletePostFeed(refId) {
+    async function deletePostFeed(refId) {
         if (!confirm('Apagar esta publicação?')) return;
-        guardarPostsFeed(obterPostsFeed().filter(p => p.id !== refId));
+        const { error } = await getSB().from('posts').delete().eq('id', refId);
+        if (error) { alert('Não foi possível apagar: ' + error.message); return; }
+        meusPosts = meusPosts.filter(p => p.id !== refId);
         renderizarPostsDoFeed();
         showToast('Publicação apagada.');
     }
@@ -1918,6 +1937,7 @@
         const m = (p.media || [])[0];
         localStorage.setItem('fc_reply_draft', JSON.stringify({
             refId: 'post-' + p.id,
+            userId: meuId,
             userName: p.userName || localStorage.getItem('fc_name') || 'Você',
             text: p.text ? p.text.substring(0, 200) : '📷 Publicação com mídia',
             thumb: (m && m.type === 'image') ? m.data : null,
@@ -1929,6 +1949,7 @@
 
     let tempMedia = null;
     let tempType = "";
+    let tempFile = null;
     let postCount = 0;
     let allPosts = [];
     let recentPhotos = [];
@@ -1977,6 +1998,7 @@
         document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
         document.body.style.overflow = '';
         tempMedia = null;
+        tempFile = null;
         document.getElementById('preView').innerHTML = "";
         document.getElementById('postTxt').value = "";
     }
@@ -2066,9 +2088,10 @@
             let publicUrl = dataUrl;
             if (window.FC && typeof FC.uploadImage === 'function') {
                 try {
-                    publicUrl = await FC.uploadImage('avatars', file, session.user.id + '/avatar.jpg');
+                    publicUrl = await FC.uploadImage('avatars', file, session.user.id + '/avatar-' + Date.now() + '.jpg');
                 } catch (err) {
-                    console.warn('Storage indisponível — a guardar base64 na base de dados.', err);
+                    console.warn('Não foi possível enviar a foto de perfil:', err);
+                    return; // não gravar a imagem em base64 na base de dados (fica pesada e lenta)
                 }
             }
 
@@ -2090,6 +2113,7 @@
             const reader = new FileReader();
             const file = input.files[0];
             tempType = file.type;
+            tempFile = file;
             reader.onload = (e) => {
                 tempMedia = e.target.result;
                 const previewDiv = document.getElementById('preView');
@@ -2104,112 +2128,41 @@
     }
 
     // ==================== POSTS ==================== 
-    function submitPost() {
+    async function submitPost() {
         const txt = document.getElementById('postTxt').value.trim();
-        if (!txt && !tempMedia) {
+        if (!txt && !tempFile) {
             alert('Escreve algo ou adiciona uma foto/vídeo!');
             return;
         }
+        if (!meuId) { alert('Sessão expirada. Entra novamente.'); return; }
 
-        const feed = document.getElementById('feedList');
-        const emptyState = document.getElementById('emptyState');
-
-        const post = document.createElement('div');
-        post.className = 'post';
-
-        let mediaTag = "";
-        if (tempMedia) {
-            if (tempType.includes('video')) {
-                mediaTag = `<div class="post-media-container"><video src="${tempMedia}" controls class="post-video"></video></div>`;
-            } else {
-                mediaTag = `<div class="post-media-container"><img src="${tempMedia}" class="post-image" alt="Publicação" onclick="openLightbox(this)"></div>`;
-            }
-        }
-
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-
-        const postId = 'post-' + Date.now();
-
-        post.innerHTML = `
-            <div class="post-header">
-                <div class="post-author">
-                    <img src="${localStorage.getItem('fc_avatar') || 'images/perfil.jpg'}" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
-                    <div class="post-author-info">
-                        <div class="post-author-name">${document.getElementById('userName').innerText}</div>
-                        <div class="post-time">${timeStr}</div>
-                    </div>
-                </div>
-                <button class="post-menu">
-                    <i class="fas fa-ellipsis-h"></i>
-                </button>
-            </div>
-            <div class="post-content">${txt}</div>
-            ${mediaTag}
-            <div class="post-stats">
-                <span><i class="fas fa-heart"></i> <span class="like-count-${postId}">0</span> Gostos</span>
-                <span><span class="comment-count-${postId}">0</span> Comentários</span>
-            </div>
-            <div class="post-actions">
-                <button class="post-action" onclick="toggleLike(this, '${postId}')">
-                    <i class="far fa-heart"></i> Gosto
-                </button>
-                <button class="post-action" onclick="focusComment('${postId}')">
-                    <i class="far fa-comment"></i> Comentar
-                </button>
-                <button class="post-action" onclick="sharePost('${postId}')">
-                    <i class="far fa-share"></i> Partilhar
-                </button>
-            </div>
-            <div class="comments-section" id="comments-${postId}">
-                <div class="comments-list" id="comments-list-${postId}"></div>
-                <div class="comment-input-area">
-                    <img src="${localStorage.getItem('fc_avatar') || 'images/perfil.jpg'}" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
-                    <div class="comment-input-wrapper">
-                        <input type="text" class="comment-input" id="comment-input-${postId}" placeholder="Escreve um comentário..." onkeydown="if(event.key==='Enter') submitComment('${postId}', null)">
-                        <button class="comment-send-btn" onclick="submitComment('${postId}', null)" title="Enviar comentário">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        post.id = postId;
-        feed.prepend(post);
-
-        // Sincronizar com o feed (index.html) — a publicação aparece também na página inicial
+        const botao = document.querySelector('[onclick="submitPost()"]');
+        if (botao) { botao.disabled = true; botao.textContent = 'A publicar...'; }
         try {
-            const todos = JSON.parse(localStorage.getItem('sa_posts') || '[]');
-            todos.unshift({
-                id: Date.now(), userId: 1,
-                userName: localStorage.getItem('fc_name') || document.getElementById('userName').innerText,
-                text: txt,
-                media: tempMedia ? [{ data: tempMedia, type: tempType.startsWith('video') ? 'video' : 'image' }] : [],
-                userAvatar: localStorage.getItem('fc_avatar') || 'images/perfil.jpg',
-                reactType: 'Curtir', reactCount: 0, reactEmoji: '', comments: [],
-                timestamp: Date.now()
+            const media = [];
+            if (tempFile) {
+                const tipo = tempFile.type.startsWith('video') ? 'video' : 'image';
+                const ext = (tempFile.name.split('.').pop() || (tipo === 'video' ? 'mp4' : 'jpg')).toLowerCase();
+                const caminho = `${meuId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                const { error: upErr } = await getSB().storage.from('media').upload(caminho, tempFile, { contentType: tempFile.type });
+                if (upErr) throw upErr;
+                media.push({ url: getSB().storage.from('media').getPublicUrl(caminho).data.publicUrl, type: tipo });
+            }
+            const foto = media.find(m => m.type === 'image');
+            const { error } = await getSB().from('posts').insert({
+                user_id: meuId, content: txt || null, media, image_url: foto ? foto.url : null
             });
-            localStorage.setItem('sa_posts', JSON.stringify(todos));
-        } catch (err) {}
+            if (error) throw error;
 
-        allPosts.push({
-            id: postId,
-            text: txt,
-            media: tempMedia,
-            type: tempType,
-            likes: 0,
-            comments: []
-        });
-
-        postCount++;
-        document.getElementById('postCount').innerText = postCount;
-        emptyState.style.display = 'none';
-
-        updateMediaGallery();
-        updateRecentPhotos();
-
-        closeModals();
+            try { sessionStorage.removeItem('fc_feed_cache_v1'); } catch (e) {}
+            closeModals();
+            await carregarMeusPosts();
+            showToast('Publicado! Também aparece na página inicial.');
+        } catch (err) {
+            alert('Não foi possível publicar: ' + err.message);
+        } finally {
+            if (botao) { botao.disabled = false; botao.textContent = 'Publicar'; }
+        }
     }
 
     function toggleLike(btn, postId) {
