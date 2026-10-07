@@ -39,30 +39,24 @@ begin
 end;
 $$;
 
+-- a função só deve ser chamada pelo trigger, nunca diretamente pelo site
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
 -- 3) Criar perfis para contas que já existem e ainda não têm
-insert into public.perfis (id, username, full_name, email)
+insert into public.perfis (id, username, full_name, email, type)
 select u.id,
        split_part(u.email, '@', 1) || '_' || substr(u.id::text, 1, 6),
        coalesce(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
-       u.email
+       u.email,
+       u.raw_user_meta_data->>'type'
 from auth.users u
 left join public.perfis p on p.id = u.id
 where p.id is null;
 
--- 4) Segurança (RLS): qualquer utilizador com sessão vê perfis;
---    cada um só altera o seu.
-alter table public.perfis enable row level security;
-
-drop policy if exists "perfis_ver_autenticados" on public.perfis;
-create policy "perfis_ver_autenticados" on public.perfis
-  for select to authenticated using (true);
-
-drop policy if exists "perfis_editar_o_meu" on public.perfis;
-create policy "perfis_editar_o_meu" on public.perfis
-  for update to authenticated
-  using (auth.uid() = id) with check (auth.uid() = id);
+-- 4) Segurança: as políticas RLS de "perfis" já existem no projeto
+--    (todos veem perfis; cada um só edita o seu), por isso não são recriadas.
