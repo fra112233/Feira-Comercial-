@@ -203,16 +203,13 @@
 
         <div id="submit-status"></div>
 
-        <p class="login-link">Já tens conta? <a href="login.html">Entrar</a></p>
+        <p class="login-link">Já tens conta? <a href="Portal.html">Entrar</a></p>
     </form>
 </div>
 
 <script>
     // ═══ Cliente Supabase (usa o supabase-config.js se existir) ═══
-    const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
-    const client = (typeof window.supabaseClient !== 'undefined') ? window.supabaseClient
-                 : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const client = supabaseClient; // definido em supabase-config.js
 
     // Regra LEVE: mínimo 8 caracteres (ajusta no Supabase: Auth → Settings → Minimum password length)
     const MIN_PW = 8;
@@ -384,16 +381,16 @@
                 }
             }
 
-            // 3. Guardar perfil na tabela 'profiles'
-            const { error: profileError } = await client.from('profiles').insert([{
-                id: authData.user.id,
-                email,
-                full_name: nome,
-                phone: celular || null,
-                type: tipo,
-                avatar_url: avatarUrl
-            }]);
-            if (profileError) console.warn('Perfil não gravado (verifica as políticas RLS):', profileError.message);
+            // 3. O perfil (tabela 'perfis') é criado automaticamente pela base de dados
+            //    (trigger handle_new_user em supabase/migrations/001_perfis.sql).
+            //    Aqui só completamos telefone e foto, se já houver sessão.
+            if (authData.session) {
+                const { error: profileError } = await client.from('perfis').update({
+                    phone: celular || null,
+                    avatar_url: avatarUrl
+                }).eq('id', authData.user.id);
+                if (profileError) console.warn('Perfil não atualizado:', profileError.message);
+            }
 
             // 4. Sincronizar com perfil.html / index.html (usam localStorage fc_*)
             localStorage.setItem('fc_name', nome);
@@ -407,7 +404,7 @@
             console.error(err);
             const msg = err.message || 'Erro inesperado. Tenta novamente.';
             if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
-                setStatus('Este e-mail já tem conta. <a href="login.html" style="color:var(--primary)">Entrar</a>', 'error');
+                setStatus('Este e-mail já tem conta. <a href="Portal.html" style="color:var(--primary)">Entrar</a>', 'error');
             } else if (msg.toLowerCase().includes('password')) {
                 setStatus('❌ Palavra-passe demasiado curta para o servidor (ajusta em Supabase → Auth → Settings → Minimum password length).', 'error');
             } else {

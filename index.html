@@ -8,31 +8,13 @@
    
 
 
-<!-- Importa o Supabase -->
-<script src="https://jsdelivr.net"></script>
+<!-- Importa o Supabase + configuração partilhada -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 
 <script>
-    // Configuração com os dados corretos (com o número 1 na URL)
-    const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // SEGURANÇA ESTILO FACEBOOK: Verifica se o utilizador está logado
-    async function verificarSessao() {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        // Se NÃO estiver logado, expulsa a pessoa para a página de login
-        if (!session) {
-            window.location.href = 'login.html'; // Coloque aqui o nome correto da sua página de login
-        } else {
-            console.log("Utilizador autorizado! ID:", session.user.id);
-            // Aqui pode chamar a função para carregar os posts ou dados da feira
-            carregarConteudoDaFeira(); 
-        }
-    }
-
-    // Executa a verificação assim que a página abre
-    verificarSessao();
+    // Só entra quem tem sessão iniciada; os outros vão para o login (Portal.html)
+    FC.boot();
 </script>
 
     <style>
