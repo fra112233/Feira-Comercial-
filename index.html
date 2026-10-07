@@ -891,10 +891,11 @@ function initSearch() {
     results.addEventListener('click', e => e.stopPropagation());
 }
 
-function scrollToUser(userId) {
-    const p = posts.find(x => x.userId === userId);
-    if (p) scrollToPost(p.id);
-    else window.location.href = 'amigos.html';
+function scrollToUser(userId) { abrirPerfil(userId); }
+
+function abrirPerfil(userId) {
+    if (!userId) return;
+    window.location.href = userId === currentUser.id ? 'perfil.html' : 'perfil.html?id=' + encodeURIComponent(userId);
 }
 
 function scrollToPost(postId) {
@@ -1174,12 +1175,12 @@ function renderPosts() {
         return `
         <div class="user-feed-section" id="user-section-${p.id}">
             <div class="user-feed-header">
-                <div class="user-feed-avatar" title="Enviar mensagem a ${escHtml(p.userName)}" onclick="responderNoChat(${p.id})">
+                <div class="user-feed-avatar" title="Ver perfil de ${escHtml(p.userName)}" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">
                     <img src="${p.userAvatar}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <i class="fas fa-user"></i>
                 </div>
                 <div>
-                    <div class="user-feed-name">${escHtml(p.userName)}${selo}</div>
+                    <div class="user-feed-name" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">${escHtml(p.userName)}${selo}</div>
                     <div class="user-feed-count">${timeAgo(p.timestamp)}</div>
                 </div>
             </div>
