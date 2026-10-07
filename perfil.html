@@ -1217,7 +1217,8 @@
                 margin-left: 20px;
             }
         }
-    </style>
+    .fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:sans-serif;pointer-events:none}
+</style>
 
 <base target="_self">
 </head>
@@ -1228,7 +1229,7 @@
     <input type="text" class="search-bar" placeholder="Pesquisar pessoas, hashtags...">
     <div class="header-actions">
         <a href="index.html" title="Início"><i class="fas fa-home icon-btn" style="color:#ff3344;"></i></a>
-        <a href="mensagen.html" title="Mensagens"><i class="fas fa-comment-dots icon-btn"></i></a>
+        <a href="mensagen.html" title="Mensagens" style="position:relative;display:inline-block;"><i class="fas fa-comment-dots icon-btn"></i><span data-fc-msgs class="fc-msg-badge" style="display:none"></span></a>
         <button class="icon-btn" onclick="toggleTheme()" title="Alternar Tema">
             <i class="fas fa-moon" id="themeIcon"></i>
         </button>
@@ -1584,6 +1585,7 @@
         renderizarPostsDoFeed();
         carregarMeusPosts();
         contarSeguidores();
+        if (window.FC && FC.badgeMensagens) FC.badgeMensagens();
     })();
 
     function setTxt(id, valor) { const el = document.getElementById(id); if (el) el.textContent = valor; }

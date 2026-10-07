@@ -137,8 +137,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
 /* ── BUBBLES ── */
 .bubble-wrap { display: flex; flex-direction: column; max-width: 72%; }
-.bubble-wrap.sent     { align-self: flex-start; align-items: flex-start; }
-.bubble-wrap.received { align-self: flex-end;   align-items: flex-end; }
+.bubble-wrap.sent     { align-self: flex-end;   align-items: flex-end; }
+.bubble-wrap.received { align-self: flex-start; align-items: flex-start; }
 
 .bubble {
     padding: 7px 12px 8px; border-radius: 8px; font-size: 14.5px; position: relative;
@@ -146,8 +146,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     line-height: 1.4; color: var(--text-bubble); cursor: pointer; transition: filter 0.15s;
 }
 .bubble:active { filter: brightness(0.92); }
-.bubble.sent     { background: var(--bg-bubble-out); border-top-left-radius: 0; }
-.bubble.received { background: var(--bg-bubble-in);  border-top-right-radius: 0; }
+.bubble.sent     { background: var(--bg-bubble-out); border-top-right-radius: 0; }
+.bubble.received { background: var(--bg-bubble-in);  border-top-left-radius: 0; }
 .bubble.deleted { opacity: 0.5; font-style: italic; color: var(--text-secondary); }
 
 .bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; float: right; margin-left: 12px; }
@@ -464,69 +464,61 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 </div>
 
 <script>
-// ─── SAFE STORAGE FALLBACK ────────────────────────────────
-const storage = (() => {
-    try {
-        const test = '__storage_test__';
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        return localStorage;
-    } catch (e) {
-        console.warn('⚠️ localStorage bloqueado ou indisponível. Usando memória temporária.');
-        const memoryStorage = {};
-        return {
-            getItem: (key) => memoryStorage[key] || null,
-            setItem: (key, value) => { memoryStorage[key] = String(value); },
-            removeItem: (key) => { delete memoryStorage[key]; },
-            clear: () => { for (let key in memoryStorage) delete memoryStorage[key]; }
-        };
-    }
-})();
+// ─────────────────────────────────────────────────────────
+//  MENSAGENS EM TEMPO REAL — tabela "messages" no Supabase
+//  (conversas entre pessoas/empresas reais, ficheiros no bucket "chat-media")
+// ─────────────────────────────────────────────────────────
+const ME = { id: null, name: localStorage.getItem('fc_name') || 'Eu', avatar: null };
 
-// ─── ESTADO ──────────────────────────────────────────────
-const ME   = { id: 'me',   name: storage.getItem('fc_name') || 'Eu',   color: '#00a884' };
-const PEER = { id: 'peer', name: 'Amigo', color: '#53bdeb' };
+let conversas = new Map();     // outroId → { id, name, avatar, type, last, unread }
+let perfisCache = {};          // id → perfil
+let mensagens = [];            // mensagens da conversa aberta (ordem cronológica)
+let activeContactId = null;    // id (uuid) da pessoa/empresa da conversa aberta
+let bloqueei = new Set();      // quem eu bloqueei
+let bloquearamMe = new Set();  // quem me bloqueou
+let online = new Set();        // ids online agora
+let replyTarget = null;        // { msgId, sender, text }
+let refPendente = null;        // publicação/status citado na próxima mensagem
+let ctxTarget = null;
 
-let contacts = [];
-try {
-    const savedContacts = storage.getItem('ca_contacts');
-    contacts = savedContacts ? JSON.parse(savedContacts) : [
-        { id: 1, name: 'Feira Comercial', avatar: null, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: 'Olá! Envia-me uma mensagem.' },
-    ];
-} catch (e) {
-    contacts = [{ id: 1, name: 'Feira Comercial', avatar: null, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: 'Olá! Envia-me uma mensagem.' }];
+const CAMPOS_MSG = 'id, created_at, content, sender_id, receiver_id, file_url, media_type, file_name, file_size, reply_to, ref, reaction, deleted, read_at, cleared_by_sender, cleared_by_receiver';
+
+function avatarDe(p) {
+    if (!p) return null;
+    return p.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.full_name || 'U') + '&background=random&color=fff&size=128');
 }
-
-let messages = {};
-try {
-    const savedMessages = storage.getItem('ca_messages');
-    messages = savedMessages ? JSON.parse(savedMessages) : {};
-} catch (e) {
-    messages = {};
-}
-let activeContactId = null;
-let currentSender = 'me';
-let replyTarget = null;
-let ctxTarget   = null;
-
-// ─── IDENTIDADE DO UTILIZADOR (foto + nome do perfil) ────
 function avatarHtml(avatar, iconClass = 'fas fa-user') {
-    return avatar ? `<img src="${avatar}" alt="">` : `<i class="${iconClass}"></i>`;
+    return avatar ? `<img src="${escAttr(avatar)}" alt="">` : `<i class="${iconClass}"></i>`;
+}
+function escAttr(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+function hora(ts) { return new Date(ts).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); }
+function quando(ts) {
+    const d = new Date(ts), hoje = new Date();
+    if (d.toDateString() === hoje.toDateString()) return hora(ts);
+    const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
+    if (d.toDateString() === ontem.toDateString()) return 'Ontem';
+    return d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+}
+function oculta(m) {
+    return (m.sender_id === ME.id && m.cleared_by_sender) || (m.receiver_id === ME.id && m.cleared_by_receiver);
+}
+function previewDe(m) {
+    if (m.deleted) return '🚫 Mensagem apagada';
+    const p = m.media_type === 'image' ? '📷 Foto' : m.media_type === 'video' ? '🎥 Vídeo' : m.media_type === 'doc' ? '📎 ' + (m.file_name || 'Ficheiro') : (m.content || '');
+    return (m.sender_id === ME.id ? 'Tu: ' : '') + p;
 }
 
+// ─── IDENTIDADE ───
 function applyMyIdentity() {
-    const avatar = storage.getItem('fc_avatar');
-    const name = storage.getItem('fc_name');
-    if (name) {
-        ME.name = name;
-        const lbl = document.getElementById('myNameLabel');
-        if (lbl) lbl.textContent = name;
-        document.title = 'Chat App — ' + name;
-    }
+    const lbl = document.getElementById('myNameLabel');
+    if (lbl) lbl.textContent = ME.name;
+    document.title = 'Mensagens — ' + ME.name;
     const myBtn = document.getElementById('myAvatarBtn');
-    if (myBtn) myBtn.innerHTML = avatarHtml(avatar);
+    if (myBtn) myBtn.innerHTML = avatarHtml(ME.avatar);
 }
-
 // ─── EMOJI DATA ───────────────────────────────────────────
 const EMOJI_CATS = [
     { icon: '😀', label: 'Carinhas', emojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'] },
@@ -539,8 +531,6 @@ const EMOJI_CATS = [
     { icon: '❤️', label: 'Símbolos', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','💝','💘','💟','☮️','✝️','☪️','🕉️','☸️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅'] },
 ];
 
-// ─── INIT ────────────────────────────────────────────────
-window.onload = () => { applyMyIdentity(); renderContacts(); setupScrollBtn(); buildEmojiPicker(); processarRascunhoResposta(); };
 
 // ─── EMOJI PICKER ─────────────────────────────────────────
 let currentEmojiCat = 0;
@@ -611,77 +601,218 @@ function toggleTheme() {
     document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
 }
 
-// ─── CONTACTS ────────────────────────────────────────────
+// ─── INIT ────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+    buildEmojiPicker();
+    setupScrollBtn();
+    renderContacts();
+
+    const perfil = await FC.boot();
+    if (!perfil) return;
+    ME.id = perfil.id;
+    ME.name = perfil.full_name || 'Eu';
+    ME.avatar = avatarDe(perfil);
+    applyMyIdentity();
+
+    await Promise.all([carregarConversas(), carregarBloqueios()]);
+    ligarTempoReal();
+    ligarPresenca();
+
+    // vindo de "Mensagem" (amigos/perfil) ou de "Responder" (feed/perfil)
+    const para = new URLSearchParams(location.search).get('para');
+    let draft = null;
+    try { draft = JSON.parse(localStorage.getItem('fc_reply_draft') || 'null'); } catch (e) {}
+    localStorage.removeItem('fc_reply_draft');
+
+    if (draft && draft.userId && draft.userId !== ME.id) {
+        refPendente = { userName: draft.userName, text: draft.text, thumb: draft.thumb || null };
+        await openContact(draft.userId);
+        mostrarRefPendente();
+    } else if (para && para !== ME.id) {
+        await openContact(para);
+    }
+    if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => Notification.requestPermission().catch(() => {}), 4000);
+    }
+});
+
+// ─── CONVERSAS ───────────────────────────────────────────
+async function carregarPerfis(ids) {
+    const faltam = [...new Set(ids)].filter(id => id && !perfisCache[id]);
+    if (!faltam.length) return;
+    const { data } = await supabaseClient.from('perfis')
+        .select('id, full_name, avatar_url, type, sector, city, province').in('id', faltam);
+    (data || []).forEach(p => { perfisCache[p.id] = p; });
+}
+
+async function carregarConversas() {
+    const { data, error } = await supabaseClient.from('messages')
+        .select(CAMPOS_MSG)
+        .or(`sender_id.eq.${ME.id},receiver_id.eq.${ME.id}`)
+        .order('created_at', { ascending: false })
+        .limit(500);
+    if (error) { console.error(error.message); showToast('Erro ao carregar conversas'); return; }
+
+    const mapa = new Map();
+    (data || []).forEach(m => {
+        const outro = m.sender_id === ME.id ? m.receiver_id : m.sender_id;
+        if (!outro) return;
+        if (!mapa.has(outro)) mapa.set(outro, { id: outro, last: null, unread: 0 });
+        const c = mapa.get(outro);
+        if (!oculta(m) && !c.last) c.last = m;
+        if (m.receiver_id === ME.id && !m.read_at && !m.deleted && !oculta(m)) c.unread++;
+    });
+    // manter conversas novas (ainda sem mensagens) que estejam abertas
+    conversas.forEach((c, id) => { if (!mapa.has(id) && id === activeContactId) mapa.set(id, c); });
+
+    await carregarPerfis([...mapa.keys()]);
+    mapa.forEach((c, id) => {
+        const p = perfisCache[id] || {};
+        c.name = p.full_name || 'Utilizador';
+        c.avatar = avatarDe(p);
+        c.type = p.type;
+    });
+    conversas = mapa;
+    renderContacts();
+    atualizarTitulo();
+}
+
+async function carregarBloqueios() {
+    const { data } = await supabaseClient.from('bloqueios').select('blocker_id, blocked_id');
+    bloqueei = new Set((data || []).filter(b => b.blocker_id === ME.id).map(b => b.blocked_id));
+    bloquearamMe = new Set((data || []).filter(b => b.blocked_id === ME.id).map(b => b.blocker_id));
+}
+
+function atualizarTitulo() {
+    const n = [...conversas.values()].reduce((s, c) => s + (c.unread || 0), 0);
+    document.title = (n ? `(${n}) ` : '') + 'Mensagens — ' + ME.name;
+}
+
+let pesquisaPerfis = [];
+let _tPesq;
+function filterContacts() {
+    renderContacts();
+    clearTimeout(_tPesq);
+    _tPesq = setTimeout(async () => {
+        const q = document.getElementById('contact-search').value.replace(/[%,()]/g, ' ').trim();
+        if (q.length < 2 || !ME.id) { pesquisaPerfis = []; renderContacts(); return; }
+        const { data } = await supabaseClient.from('perfis')
+            .select('id, full_name, avatar_url, type, sector, city')
+            .ilike('full_name', `%${q}%`).neq('id', ME.id).limit(10);
+        pesquisaPerfis = (data || []).filter(p => !conversas.has(p.id));
+        pesquisaPerfis.forEach(p => { perfisCache[p.id] = Object.assign(perfisCache[p.id] || {}, p); });
+        renderContacts();
+    }, 300);
+}
+
 function renderContacts() {
     const q = (document.getElementById('contact-search').value || '').toLowerCase();
     const list = document.getElementById('contacts-list');
-    const filtered = contacts.filter(c => c.name.toLowerCase().includes(q));
-    list.innerHTML = filtered.length === 0
-        ? `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">Sem resultados</div>`
-        : filtered.map(c => `
-        <div class="contact-item ${c.id === activeContactId ? 'active' : ''} ${c.blocked ? 'blocked' : ''}" onclick="openContact(${c.id})">
+    const lista = [...conversas.values()]
+        .filter(c => (c.name || '').toLowerCase().includes(q))
+        .sort((a, b) => new Date(b.last ? b.last.created_at : 0) - new Date(a.last ? a.last.created_at : 0));
+
+    let html = '';
+    if (!ME.id) {
+        html = `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">A carregar...</div>`;
+    } else if (!lista.length && !pesquisaPerfis.length) {
+        html = `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">
+                  ${q ? 'Sem resultados' : 'Ainda não tens conversas.<br>Escreve um nome acima, ou vai a <a href="amigos.html" style="color:var(--green)">Amigos</a> e carrega em "Mensagem".'}</div>`;
+    }
+    html += lista.map(c => {
+        const bloq = bloqueei.has(c.id);
+        return `
+        <div class="contact-item ${c.id === activeContactId ? 'active' : ''} ${bloq ? 'blocked' : ''}" onclick="openContact('${c.id}')">
             <div class="contact-avatar">
                 ${avatarHtml(c.avatar)}
-                ${c.status === 'online' && !c.blocked ? '<div class="online-dot"></div>' : ''}
+                ${online.has(c.id) && !bloq ? '<div class="online-dot"></div>' : ''}
             </div>
             <div class="contact-info">
-                <div class="contact-name">${c.name} ${c.blocked ? '<span style="font-size:10px;color:var(--danger);">🚫</span>' : ''}</div>
-                <div class="contact-preview">${c.preview || ''}</div>
+                <div class="contact-name">${escHtml(c.name)} ${c.type === 'empresa' ? '<i class="fas fa-building" style="font-size:11px;opacity:.6"></i>' : ''} ${bloq ? '<span style="font-size:10px;color:var(--danger);">🚫</span>' : ''}</div>
+                <div class="contact-preview">${escHtml(c.last ? previewDe(c.last) : 'Diz olá! 👋')}</div>
             </div>
             <div class="contact-meta">
-                <div class="contact-time">${c.lastSeen || ''}</div>
+                <div class="contact-time">${c.last ? quando(c.last.created_at) : ''}</div>
                 ${c.unread > 0 ? `<div class="unread-badge">${c.unread}</div>` : ''}
-                ${c.blocked ? `<div class="blocked-tag">Bloqueado</div>` : ''}
+                ${bloq ? `<div class="blocked-tag">Bloqueado</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+
+    if (pesquisaPerfis.length) {
+        html += `<div style="padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--text-secondary);">COMEÇAR CONVERSA</div>`;
+        html += pesquisaPerfis.map(p => `
+        <div class="contact-item" onclick="openContact('${p.id}')">
+            <div class="contact-avatar">${avatarHtml(avatarDe(p))}</div>
+            <div class="contact-info">
+                <div class="contact-name">${escHtml(p.full_name)} ${p.type === 'empresa' ? '<i class="fas fa-building" style="font-size:11px;opacity:.6"></i>' : ''}</div>
+                <div class="contact-preview">${escHtml([p.sector, p.city].filter(Boolean).join(' · ') || 'Enviar mensagem')}</div>
             </div>
         </div>`).join('');
+    }
+    list.innerHTML = html;
 }
 
-function filterContacts() { renderContacts(); }
-
-function openContact(id) {
+async function openContact(id) {
+    if (!id || id === ME.id) return;
     activeContactId = id;
-    const c = contacts.find(x => x.id === id);
-    if (!c) return;
+    await carregarPerfis([id]);
+    const p = perfisCache[id];
+    if (!p) { showToast('Esta conta não existe.'); activeContactId = null; return; }
+    if (!conversas.has(id)) conversas.set(id, { id, name: p.full_name, avatar: avatarDe(p), type: p.type, last: null, unread: 0 });
+    const c = conversas.get(id);
     c.unread = 0;
-    saveContacts();
+    document.getElementById('contact-search').value = '';
+    pesquisaPerfis = [];
     renderContacts();
+    atualizarTitulo();
 
     document.getElementById('emptyState').style.display = 'none';
-    const ac = document.getElementById('activeChat');
-    ac.style.display = 'flex';
-
+    document.getElementById('activeChat').style.display = 'flex';
     document.getElementById('peer-name').textContent = c.name;
-    const statusEl = document.getElementById('peer-status');
-    if (c.blocked) {
-        statusEl.textContent = 'Bloqueado';
-        statusEl.className = 'peer-status blocked-status';
-    } else {
-        statusEl.textContent = c.status === 'online' ? 'online' : c.lastSeen;
-        statusEl.className = 'peer-status';
-    }
-
-    // foto do contacto no cabeçalho do chat
     document.getElementById('peer-avatar').innerHTML = avatarHtml(c.avatar);
-
-    const banner = document.getElementById('blockedBanner');
-    const footer = document.getElementById('chatFooter');
-    const replyBar = document.getElementById('replyBar');
-    if (c.blocked) {
-        banner.classList.add('show');
-        footer.style.display = 'none';
-        replyBar.classList.remove('show');
-    } else {
-        banner.classList.remove('show');
-        footer.style.display = 'flex';
-    }
-
-    renderMessages(id);
-    scrollToBottom();
+    atualizarEstadoPeer();
     cancelReply();
 
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').style.display = 'none';
         document.querySelector('.main-chat').style.display = 'flex';
+    }
+
+    const win = document.getElementById('chatWindow');
+    win.innerHTML = `<div class="date-sep"><span>A carregar...</span></div>`;
+    const { data, error } = await supabaseClient.from('messages')
+        .select(CAMPOS_MSG)
+        .or(`and(sender_id.eq.${ME.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${ME.id})`)
+        .order('created_at', { ascending: true })
+        .limit(300);
+    if (activeContactId !== id) return;      // mudou de conversa entretanto
+    if (error) { win.innerHTML = ''; showToast('Erro ao carregar mensagens'); return; }
+    mensagens = (data || []).filter(m => !oculta(m));
+    renderMessages();
+    marcarLidas(id);
+}
+
+function atualizarEstadoPeer() {
+    const id = activeContactId;
+    if (!id) return;
+    const statusEl = document.getElementById('peer-status');
+    const banner = document.getElementById('blockedBanner');
+    const footer = document.getElementById('chatFooter');
+    const p = perfisCache[id] || {};
+    if (bloqueei.has(id)) {
+        statusEl.textContent = 'Bloqueado';
+        statusEl.className = 'peer-status blocked-status';
+        banner.classList.add('show');
+        footer.style.display = 'none';
+        document.getElementById('replyBar').classList.remove('show');
+    } else {
+        statusEl.textContent = bloquearamMe.has(id) ? 'Não é possível enviar mensagens'
+            : online.has(id) ? 'online'
+            : (p.type === 'empresa' ? 'Empresa' + (p.sector ? ' · ' + p.sector : '') : 'toca para ver o perfil');
+        statusEl.className = 'peer-status';
+        banner.classList.remove('show');
+        footer.style.display = bloquearamMe.has(id) ? 'none' : 'flex';
     }
 }
 
@@ -689,125 +820,93 @@ function goBackToList() {
     document.getElementById('sidebar').style.display = 'flex';
     document.querySelector('.main-chat').style.display = 'none';
     activeContactId = null;
-}
-
-// ─── MESSAGES ────────────────────────────────────────────
-function getMessages(contactId) { return messages[contactId] || []; }
-
-function saveMessages(contactId, msgs) {
-    messages[contactId] = msgs;
-    try {
-        storage.setItem('ca_messages', JSON.stringify(messages));
-    } catch (e) {
-        console.error('Erro ao salvar mensagens:', e);
-    }
-}
-
-// ─── RESPOSTA A PUBLICAÇÃO/STATUS VINDA DO FEED (estilo WhatsApp) ───
-function processarRascunhoResposta() {
-    let draft = null;
-    try { draft = JSON.parse(storage.getItem('fc_reply_draft') || 'null'); } catch(e) {}
-    if (!draft) return;
-    storage.removeItem('fc_reply_draft');
-
-    // Procurar ou criar o contacto (autor do post/status)
-    let c = contacts.find(x => x.name === draft.userName);
-    if (!c) {
-        c = { id: Date.now(), name: draft.userName, avatar: draft.avatar || null, status: 'online', blocked: false, lastSeen: 'online', unread: 0, preview: '' };
-        contacts.push(c);
-        saveContacts();
-    } else if (!c.avatar && draft.avatar) {
-        c.avatar = draft.avatar;
-        saveContacts();
-    }
-
-    // Criar a mensagem-referência (a publicação/status citado) se ainda não existir
-    const msgs = getMessages(c.id);
-    if (!msgs.some(m => m.id === draft.refId)) {
-        msgs.push({
-            id: draft.refId,
-            sender: 'peer',
-            text: draft.text || '',
-            mediaType: draft.thumb ? 'image' : null,
-            mediaData: draft.thumb || null,
-            time: draft.time || nowTime(),
-            reaction: null,
-            deleted: false,
-            replyTo: null
-        });
-        saveMessages(c.id, msgs);
-        c.preview = draft.text || '📷 Publicação';
-        c.lastSeen = nowTime();
-        saveContacts();
-    }
-
     renderContacts();
-    openContact(c.id);
-
-    // Ativar a barra de resposta citando a publicação
-    replyTarget = { msgId: draft.refId, sender: 'peer', text: draft.text || (draft.thumb ? '📷 Foto' : '') };
-    document.getElementById('reply-bar-name').textContent = c.name;
-    document.getElementById('reply-bar-text').textContent = replyTarget.text;
-    document.getElementById('replyBar').classList.add('show');
-    setTimeout(() => document.getElementById('msgInput').focus(), 300);
 }
 
-function renderMessages(contactId) {
+async function marcarLidas(outroId) {
+    const porLer = mensagens.filter(m => m.sender_id === outroId && !m.read_at).map(m => m.id);
+    if (!porLer.length) return;
+    await supabaseClient.from('messages').update({ read_at: new Date().toISOString() }).in('id', porLer);
+}
+
+// ─── MENSAGENS ───────────────────────────────────────────
+function renderMessages() {
     const win = document.getElementById('chatWindow');
-    const msgs = getMessages(contactId);
-    win.innerHTML = `<div class="date-sep"><span>Hoje</span></div>`;
-    msgs.forEach(m => win.appendChild(buildBubble(m)));
+    win.innerHTML = '';
+    let diaAnterior = '';
+    mensagens.forEach(m => {
+        const dia = new Date(m.created_at).toDateString();
+        if (dia !== diaAnterior) {
+            diaAnterior = dia;
+            const hoje = new Date().toDateString();
+            const txt = dia === hoje ? 'Hoje' : new Date(m.created_at).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
+            const sep = document.createElement('div');
+            sep.className = 'date-sep';
+            sep.innerHTML = `<span>${txt}</span>`;
+            win.appendChild(sep);
+        }
+        win.appendChild(buildBubble(m));
+    });
+    if (!mensagens.length) win.innerHTML = `<div class="date-sep"><span>Diz olá! 👋</span></div>`;
     scrollToBottom();
 }
 
+function nomeDe(id) { return id === ME.id ? 'Tu' : ((perfisCache[id] || {}).full_name || 'Utilizador'); }
+
 function buildBubble(msg) {
+    const minha = msg.sender_id === ME.id;
     const wrap = document.createElement('div');
-    wrap.className = `bubble-wrap ${msg.sender === 'me' ? 'sent' : 'received'}`;
+    wrap.className = `bubble-wrap ${minha ? 'sent' : 'received'}`;
     wrap.id = `msg-${msg.id}`;
 
     let inner = '';
-
-    if (msg.replyTo) {
-        const ref = getMessages(activeContactId).find(m => m.id === msg.replyTo.id);
-        const refText = ref ? (ref.text || (ref.mediaType === 'image' ? '📷 Foto' : ref.mediaType === 'video' ? '🎥 Vídeo' : '📎 Ficheiro')) : 'Mensagem apagada';
-        const refSender = msg.replyTo.sender === 'me' ? ME.name : contacts.find(c => c.id === activeContactId)?.name || PEER.name;
-        inner += `<div class="reply-ref" onclick="scrollToMsg('${msg.replyTo.id}')"><b>${refSender}</b>${refText}</div>`;
+    if (msg.ref && !msg.deleted) {
+        inner += `<div class="reply-ref">${msg.ref.thumb ? `<img src="${escAttr(msg.ref.thumb)}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;float:right;margin-left:8px;">` : ''}
+                  <b>${escHtml(msg.ref.userName || '')}</b>${escHtml(msg.ref.text || '')}</div>`;
+    }
+    if (msg.reply_to && !msg.deleted) {
+        const ref = mensagens.find(m => m.id === msg.reply_to);
+        const refText = ref ? (ref.deleted ? 'Mensagem apagada' : (ref.content || (ref.media_type === 'image' ? '📷 Foto' : ref.media_type === 'video' ? '🎥 Vídeo' : '📎 Ficheiro'))) : 'Mensagem';
+        inner += `<div class="reply-ref" onclick="scrollToMsg('${msg.reply_to}')"><b>${escHtml(ref ? nomeDe(ref.sender_id) : '')}</b>${escHtml(refText)}</div>`;
     }
 
     if (msg.deleted) {
         inner += `<em style="color:var(--text-secondary);font-size:13px;"><i class="fas fa-ban" style="font-size:11px;"></i> Mensagem apagada</em>`;
-    } else if (msg.mediaType === 'image') {
-        inner += `<img src="${msg.mediaData}" class="bubble-img" onclick="openLightbox('${msg.mediaData}')">`;
-        if (msg.text) inner += `<br><span style="font-size:14px;">${msg.text}</span>`;
-    } else if (msg.mediaType === 'video') {
-        inner += `<video controls class="bubble-video"><source src="${msg.mediaData}" type="${msg.mediaFile}"></video>`;
-    } else if (msg.mediaType === 'doc') {
-        inner += `<div class="bubble-doc"><i class="fas fa-file-lines"></i><div class="bubble-doc-info"><div class="bubble-doc-name">${msg.fileName}</div><div class="bubble-doc-size">${msg.fileSize}</div></div></div>`;
+    } else if (msg.media_type === 'image') {
+        inner += `<img src="${escAttr(msg.file_url)}" class="bubble-img" loading="lazy" onclick="openLightbox('${escAttr(msg.file_url)}')">`;
+        if (msg.content) inner += `<br><span style="font-size:14px;">${escHtml(msg.content)}</span>`;
+    } else if (msg.media_type === 'video') {
+        inner += `<video controls preload="metadata" class="bubble-video" src="${escAttr(msg.file_url)}"></video>`;
+    } else if (msg.media_type === 'doc') {
+        inner += `<a href="${escAttr(msg.file_url)}" target="_blank" rel="noopener" class="bubble-doc" style="color:inherit;text-decoration:none;">
+                    <i class="fas fa-file-lines"></i><div class="bubble-doc-info"><div class="bubble-doc-name">${escHtml(msg.file_name || 'Ficheiro')}</div><div class="bubble-doc-size">${escHtml(msg.file_size || '')}</div></div></a>`;
     } else {
-        inner += `<span>${escHtml(msg.text)}</span>`;
+        inner += `<span>${escHtml(msg.content)}</span>`;
     }
 
-    const ticks = msg.sender === 'me' ? `<span class="bubble-ticks read"><i class="fas fa-check-double"></i></span>` : '';
-    inner += `<div class="bubble-meta"><span class="bubble-time">${msg.time}</span>${ticks}</div>`;
+    const ticks = minha
+        ? (msg._aEnviar ? `<span class="bubble-ticks"><i class="far fa-clock"></i></span>`
+           : msg.read_at ? `<span class="bubble-ticks read" title="Lida"><i class="fas fa-check-double"></i></span>`
+           : `<span class="bubble-ticks" title="Enviada"><i class="fas fa-check"></i></span>`)
+        : '';
+    inner += `<div class="bubble-meta"><span class="bubble-time">${hora(msg.created_at)}</span>${ticks}</div>`;
 
     const bubble = document.createElement('div');
-    bubble.className = `bubble ${msg.sender === 'me' ? 'sent' : 'received'} ${msg.deleted ? 'deleted' : ''}`;
+    bubble.className = `bubble ${minha ? 'sent' : 'received'} ${msg.deleted ? 'deleted' : ''}`;
     bubble.innerHTML = inner;
-
     bubble.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(e, msg, bubble); });
     bubble.addEventListener('touchstart', longPressStart(msg, bubble), { passive: true });
     bubble.addEventListener('touchend', longPressEnd);
-
     wrap.appendChild(bubble);
 
-    if (msg.reaction) {
+    if (msg.reaction && !msg.deleted) {
         const reac = document.createElement('div');
         reac.className = 'bubble-reaction';
         reac.textContent = msg.reaction;
-        reac.onclick = () => { removeReaction(msg.id); };
+        reac.title = 'Tocar para remover';
+        reac.onclick = () => removeReaction(msg.id);
         wrap.appendChild(reac);
     }
-
     return wrap;
 }
 
@@ -821,10 +920,6 @@ function longPressStart(msg, bubble) {
     };
 }
 function longPressEnd() { clearTimeout(lpTimer); }
-
-function escHtml(s) {
-    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-}
 
 function scrollToBottom() {
     const cw = document.getElementById('chatWindow');
@@ -849,47 +944,65 @@ function setupScrollBtn() {
     });
 }
 
-// ─── SEND ────────────────────────────────────────────────
-function nowTime() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+// junta/atualiza uma mensagem na conversa aberta e na lista
+function aplicarMensagem(m) {
+    const outro = m.sender_id === ME.id ? m.receiver_id : m.sender_id;
+    if (outro === activeContactId) {
+        const i = mensagens.findIndex(x => x.id === m.id);
+        if (oculta(m)) { if (i >= 0) mensagens.splice(i, 1); }
+        else if (i >= 0) mensagens[i] = m;
+        else {
+            // substituir a versão provisória (a enviar) se existir
+            const j = mensagens.findIndex(x => x._aEnviar && x.sender_id === m.sender_id && x.content === m.content && x.file_url === m.file_url);
+            if (j >= 0) mensagens[j] = m; else mensagens.push(m);
+        }
+        const cw = document.getElementById('chatWindow');
+        const noFundo = cw.scrollHeight - cw.scrollTop - cw.clientHeight < 120;
+        renderMessages();
+        if (!noFundo) cw.scrollTop = cw.scrollHeight - cw.clientHeight - 200;
+    }
+}
 
-function sendMessage(text = null, mediaType = null, mediaData = null, fileName = null, fileSize = null, fileMime = null) {
-    if (!activeContactId) return;
-    const c = contacts.find(x => x.id === activeContactId);
-    if (c && c.blocked) return;
+// ─── ENVIAR ──────────────────────────────────────────────
+async function sendMessage(text = null, mediaType = null, fileUrl = null, fileName = null, fileSize = null) {
+    if (!activeContactId || !ME.id) return;
+    if (bloqueei.has(activeContactId)) return;
 
     const inputEl = document.getElementById('msgInput');
     const msgText = text !== null ? text : inputEl.value.trim();
-    if (!msgText && !mediaData) return;
+    if (!msgText && !fileUrl) return;
 
-    const msg = {
-        id: Date.now(),
-        sender: currentSender,
-        text: msgText || '',
-        mediaType, mediaData, fileName, fileSize, mediaFile: fileMime,
-        time: nowTime(),
-        reaction: null,
-        deleted: false,
-        replyTo: replyTarget ? { id: replyTarget.msgId, sender: replyTarget.sender } : null
+    const nova = {
+        sender_id: ME.id,
+        receiver_id: activeContactId,
+        content: msgText || '',
+        file_url: fileUrl, media_type: mediaType, file_name: fileName, file_size: fileSize,
+        reply_to: replyTarget && typeof replyTarget.msgId === 'number' ? replyTarget.msgId : null,
+        ref: refPendente
     };
 
-    const msgs = getMessages(activeContactId);
-    msgs.push(msg);
-    saveMessages(activeContactId, msgs);
-
-    if (c) {
-        c.preview = mediaType === 'image' ? '📷 Foto' : mediaType === 'video' ? '🎥 Vídeo' : mediaType === 'doc' ? '📎 ' + fileName : msgText;
-        c.lastSeen = nowTime();
-        saveContacts();
-        renderContacts();
-    }
-
-    const cw = document.getElementById('chatWindow');
-    cw.appendChild(buildBubble(msg));
-    scrollToBottom();
-
+    // mostra logo (com relógio) enquanto envia
+    const provisoria = Object.assign({ id: 'tmp-' + Date.now(), created_at: new Date().toISOString(), _aEnviar: true }, nova);
+    mensagens.push(provisoria);
+    renderMessages();
     if (text === null) inputEl.value = '';
     inputEl.style.height = 'auto';
     cancelReply();
+    refPendente = null;
+
+    const { data, error } = await supabaseClient.from('messages').insert(nova).select(CAMPOS_MSG).single();
+    const i = mensagens.indexOf(provisoria);
+    if (error) {
+        if (i >= 0) mensagens.splice(i, 1);
+        renderMessages();
+        showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.' : 'Erro ao enviar: ' + error.message);
+        if (text === null && msgText) inputEl.value = msgText;
+        return;
+    }
+    if (i >= 0) mensagens[i] = data; else if (!mensagens.some(m => m.id === data.id)) mensagens.push(data);
+    renderMessages();
+    const c = conversas.get(activeContactId);
+    if (c) { c.last = data; renderContacts(); }
 }
 
 function handleKey(e) {
@@ -901,27 +1014,30 @@ function autoResize(el) {
     el.style.height = Math.min(el.scrollHeight, 140) + 'px';
 }
 
-// ─── FILE ────────────────────────────────────────────────
-function handleFile(e) {
+// ─── FICHEIROS ───────────────────────────────────────────
+async function handleFile(e) {
     const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        if (file.type.startsWith('image/')) {
-            sendMessage('', 'image', ev.target.result);
-        } else if (file.type.startsWith('video/')) {
-            sendMessage('', 'video', ev.target.result, null, null, file.type);
-        } else {
-            const size = file.size < 1024*1024 ? (file.size/1024).toFixed(1)+' KB' : (file.size/1024/1024).toFixed(1)+' MB';
-            sendMessage('', 'doc', null, file.name, size);
-        }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file || !activeContactId) return;
+    if (file.size > 50 * 1024 * 1024) { showToast('Ficheiro demasiado grande (máximo 50 MB).'); return; }
+    const tipo = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'doc';
+    const size = file.size < 1024 * 1024 ? (file.size / 1024).toFixed(1) + ' KB' : (file.size / 1024 / 1024).toFixed(1) + ' MB';
+    showToast('A enviar ficheiro...');
+    try {
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const caminho = `${ME.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabaseClient.storage.from('chat-media').upload(caminho, file, { contentType: file.type || 'application/octet-stream' });
+        if (error) throw error;
+        const url = supabaseClient.storage.from('chat-media').getPublicUrl(caminho).data.publicUrl;
+        await sendMessage('', tipo, url, tipo === 'doc' ? file.name : null, tipo === 'doc' ? size : null);
+    } catch (err) {
+        showToast('Erro ao enviar ficheiro: ' + err.message);
+    }
 }
 
-// ─── CONTEXT MENU ────────────────────────────────────────
+// ─── MENU (manter premido / botão direito) ───────────────
 function showCtxMenu(e, msg, bubble) {
+    if (msg._aEnviar) return;
     ctxTarget = { msg, bubble };
     const menu = document.getElementById('ctxMenu');
     menu.classList.add('show');
@@ -930,15 +1046,15 @@ function showCtxMenu(e, msg, bubble) {
     menu.style.left = x + 'px';
     menu.style.top  = y + 'px';
     const items = menu.querySelectorAll('.ctx-item');
-    if (items.length > 1) items[1].style.display = (msg.text && !msg.deleted) ? 'flex' : 'none';
-    if (items.length > 3) items[3].style.display = msg.deleted ? 'none' : 'flex';
+    if (items.length > 1) items[1].style.display = (msg.content && !msg.deleted) ? 'flex' : 'none';
+    if (items.length > 3) items[3].style.display = (!msg.deleted && msg.sender_id === ME.id) ? 'flex' : 'none';
 }
 
 function ctxReply() {
     if (!ctxTarget || ctxTarget.msg.deleted) { closeCtx(); return; }
-    replyTarget = { msgId: ctxTarget.msg.id, sender: ctxTarget.msg.sender, text: ctxTarget.msg.text || (ctxTarget.msg.mediaType === 'image' ? '📷 Foto' : '📎 Ficheiro') };
-    const senderName = ctxTarget.msg.sender === 'me' ? ME.name : (contacts.find(c => c.id === activeContactId)?.name || PEER.name);
-    document.getElementById('reply-bar-name').textContent = senderName;
+    const m = ctxTarget.msg;
+    replyTarget = { msgId: m.id, sender: m.sender_id, text: m.content || (m.media_type === 'image' ? '📷 Foto' : '📎 Ficheiro') };
+    document.getElementById('reply-bar-name').textContent = nomeDe(m.sender_id);
     document.getElementById('reply-bar-text').textContent = replyTarget.text;
     document.getElementById('replyBar').classList.add('show');
     document.getElementById('msgInput').focus();
@@ -946,8 +1062,8 @@ function ctxReply() {
 }
 
 function ctxCopy() {
-    if (!ctxTarget || !ctxTarget.msg.text) { closeCtx(); return; }
-    navigator.clipboard.writeText(ctxTarget.msg.text).then(() => showToast('Copiado!')).catch(() => showToast('Erro ao copiar'));
+    if (!ctxTarget || !ctxTarget.msg.content) { closeCtx(); return; }
+    navigator.clipboard.writeText(ctxTarget.msg.content).then(() => showToast('Copiado!')).catch(() => showToast('Erro ao copiar'));
     closeCtx();
 }
 
@@ -955,91 +1071,111 @@ function ctxReact() {
     if (!ctxTarget) { closeCtx(); return; }
     const picker = document.getElementById('reactPicker');
     picker.classList.add('show');
-    const menu = document.getElementById('ctxMenu');
-    const r = menu.getBoundingClientRect();
+    const r = document.getElementById('ctxMenu').getBoundingClientRect();
     picker.style.left = r.left + 'px';
     picker.style.top  = (r.top - 55) + 'px';
     closeCtx(false);
 }
 
-function applyReact(emoji) {
-    if (!ctxTarget) return;
-    const msgs = getMessages(activeContactId);
-    const m = msgs.find(x => x.id === ctxTarget.msg.id);
-    if (m) { m.reaction = emoji; saveMessages(activeContactId, msgs); }
-    document.getElementById('reactPicker').classList.remove('show');
-    renderMessages(activeContactId);
+async function atualizarMensagem(id, campos) {
+    const { data, error } = await supabaseClient.from('messages').update(campos).eq('id', id).select(CAMPOS_MSG).single();
+    if (error) { showToast('Erro: ' + error.message); return; }
+    aplicarMensagem(data);
 }
 
-function removeReaction(msgId) {
-    const msgs = getMessages(activeContactId);
-    const m = msgs.find(x => x.id === msgId);
-    if (m) { m.reaction = null; saveMessages(activeContactId, msgs); renderMessages(activeContactId); }
+function applyReact(emoji) {
+    if (!ctxTarget) return;
+    const id = ctxTarget.msg.id;
+    document.getElementById('reactPicker').classList.remove('show');
+    ctxTarget = null;
+    atualizarMensagem(id, { reaction: emoji });
 }
+
+function removeReaction(msgId) { atualizarMensagem(msgId, { reaction: null }); }
 
 function ctxDelete() {
     if (!ctxTarget) return;
-    const msgs = getMessages(activeContactId);
-    const m = msgs.find(x => x.id === ctxTarget.msg.id);
-    if (m) { m.deleted = true; m.text = ''; m.mediaData = null; saveMessages(activeContactId, msgs); }
+    const m = ctxTarget.msg;
     closeCtx();
-    renderMessages(activeContactId);
+    if (m.sender_id !== ME.id) { showToast('Só podes apagar as tuas mensagens.'); return; }
+    if (!confirm('Apagar esta mensagem para todos?')) return;
+    atualizarMensagem(m.id, { deleted: true });
 }
 
 function closeCtx(hideReact = true) {
     document.getElementById('ctxMenu').classList.remove('show');
-    if (hideReact) document.getElementById('reactPicker').classList.remove('show');
-    ctxTarget = null;
+    if (hideReact) { document.getElementById('reactPicker').classList.remove('show'); ctxTarget = null; }
 }
 
-window.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); cancelReply(); emojiPickerOpen=false; document.getElementById('emojiPicker').classList.remove('show'); } });
+window.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); cancelReply(); emojiPickerOpen = false; document.getElementById('emojiPicker').classList.remove('show'); } });
 
-// ─── REPLY ───────────────────────────────────────────────
+// ─── RESPOSTA ────────────────────────────────────────────
 function cancelReply() {
     replyTarget = null;
     document.getElementById('replyBar').classList.remove('show');
 }
 
-// ─── BLOCK / UNBLOCK ─────────────────────────────────────
-function toggleBlock(contactId) {
-    const c = contacts.find(x => x.id === contactId);
-    if (!c) return;
-    if (c.blocked) {
-        c.blocked = false;
-        showToast(`${c.name} foi desbloqueado.`);
+// barra que mostra a publicação/status a que se está a responder
+function mostrarRefPendente() {
+    if (!refPendente) return;
+    replyTarget = { msgId: null, sender: null, text: refPendente.text };
+    document.getElementById('reply-bar-name').textContent = refPendente.userName || '';
+    document.getElementById('reply-bar-text').textContent = refPendente.text || '📷 Publicação';
+    document.getElementById('replyBar').classList.add('show');
+    setTimeout(() => document.getElementById('msgInput').focus(), 300);
+}
+
+// ─── BLOQUEAR ────────────────────────────────────────────
+async function toggleBlock(contactId) {
+    const c = conversas.get(contactId);
+    const nome = c ? c.name : 'esta conta';
+    if (bloqueei.has(contactId)) {
+        const { error } = await supabaseClient.from('bloqueios').delete().eq('blocker_id', ME.id).eq('blocked_id', contactId);
+        if (error) { showToast('Erro: ' + error.message); return; }
+        bloqueei.delete(contactId);
+        showToast(`${nome} foi desbloqueado.`);
     } else {
-        if (!confirm(`Bloquear ${c.name}? Não receberás mais mensagens deste contacto.`)) return;
-        c.blocked = true;
-        showToast(`${c.name} foi bloqueado.`);
+        if (!confirm(`Bloquear ${nome}? Esta conta deixa de te poder enviar mensagens.`)) return;
+        const { error } = await supabaseClient.from('bloqueios').insert({ blocker_id: ME.id, blocked_id: contactId });
+        if (error) { showToast('Erro: ' + error.message); return; }
+        bloqueei.add(contactId);
+        showToast(`${nome} foi bloqueado.`);
     }
-    saveContacts();
-    if (activeContactId === contactId) openContact(contactId);
+    atualizarEstadoPeer();
     renderContacts();
 }
 
 function unblockContact() { if (activeContactId) toggleBlock(activeContactId); }
 function toggleBlockFromProfile() { closeProfile(); if (activeContactId) toggleBlock(activeContactId); }
 
-// ─── CLEAR ───────────────────────────────────────────────
-function clearChat() {
-    if (!activeContactId) return;
-    if (!confirm('Limpar toda a conversa?')) return;
-    saveMessages(activeContactId, []);
-    renderMessages(activeContactId);
+// ─── LIMPAR (só para mim) ────────────────────────────────
+async function clearChat() {
+    const id = activeContactId;
+    if (!id) return;
+    if (!confirm('Limpar esta conversa? As mensagens desaparecem só para ti.')) return;
+    const r1 = await supabaseClient.from('messages').update({ cleared_by_sender: true }).eq('sender_id', ME.id).eq('receiver_id', id);
+    const r2 = await supabaseClient.from('messages').update({ cleared_by_receiver: true }).eq('sender_id', id).eq('receiver_id', ME.id);
+    if (r1.error || r2.error) { showToast('Erro ao limpar a conversa'); return; }
+    mensagens = [];
+    renderMessages();
+    const c = conversas.get(id); if (c) { c.last = null; c.unread = 0; }
+    renderContacts();
     showToast('Conversa limpa.');
 }
 
-// ─── PROFILE ─────────────────────────────────────────────
+// ─── PERFIL DO CONTACTO ──────────────────────────────────
 function openPeerProfile() {
-    if (!activeContactId) return;
-    const c = contacts.find(x => x.id === activeContactId);
-    if (!c) return;
-    document.getElementById('pm-avatar').innerHTML = avatarHtml(c.avatar);
-    document.getElementById('pm-name').textContent = c.name;
-    document.getElementById('pm-status').textContent = c.blocked ? 'Bloqueado' : (c.status === 'online' ? '🟢 online' : '⚪ ' + c.lastSeen);
+    const id = activeContactId;
+    if (!id) return;
+    const p = perfisCache[id] || {};
+    document.getElementById('pm-avatar').innerHTML = avatarHtml(avatarDe(p));
+    document.getElementById('pm-name').textContent = p.full_name || 'Utilizador';
+    document.getElementById('pm-status').innerHTML =
+        (bloqueei.has(id) ? 'Bloqueado' : (online.has(id) ? '🟢 online' : (p.type === 'empresa' ? '🏢 Empresa' : '👤 Pessoa'))) +
+        `<br><a href="perfil.html?id=${encodeURIComponent(id)}" style="color:var(--green);font-weight:600;">Ver perfil completo</a>`;
     const btn = document.getElementById('pm-block-btn');
     const label = document.getElementById('pm-block-label');
-    if (c.blocked) { btn.classList.add('active'); label.textContent = 'Desbloquear'; }
+    if (bloqueei.has(id)) { btn.classList.add('active'); label.textContent = 'Desbloquear'; }
     else { btn.classList.remove('active'); label.textContent = 'Bloquear'; }
     document.getElementById('profileModal').classList.add('show');
 }
@@ -1047,25 +1183,73 @@ function openPeerProfile() {
 function openMyProfile() { window.location.href = 'perfil.html'; }
 function closeProfile() { document.getElementById('profileModal').classList.remove('show'); }
 
-// ─── ADD CONTACT → abre conversa automaticamente ─────────
+// "+" → procurar alguém para conversar
 function addNewContact() {
-    const name = prompt('Nome do novo contacto:');
-    if (!name || !name.trim()) return;
-    const newC = {
-        id: Date.now(),
-        name: name.trim(),
-        avatar: null,
-        status: 'online',
-        blocked: false,
-        lastSeen: 'online',
-        unread: 0,
-        preview: 'Diz olá! 👋'
+    const s = document.getElementById('contact-search');
+    if (window.innerWidth <= 768) goBackToList();
+    s.focus();
+    showToast('Escreve o nome da pessoa ou empresa.');
+}
+
+// ─── TEMPO REAL ──────────────────────────────────────────
+function ligarTempoReal() {
+    const tratar = async (payload) => {
+        const m = payload.new;
+        if (!m || !m.id) return;
+        const outro = m.sender_id === ME.id ? m.receiver_id : m.sender_id;
+        const recebida = m.receiver_id === ME.id;
+        aplicarMensagem(m);
+
+        if (payload.eventType === 'INSERT' && recebida) {
+            if (outro === activeContactId && !document.hidden) {
+                marcarLidas(outro);
+            } else {
+                await carregarPerfis([outro]);
+                const nome = (perfisCache[outro] || {}).full_name || 'Nova mensagem';
+                showToast('💬 ' + nome + ': ' + previewDe(m).slice(0, 60));
+                notificar(nome, previewDe(m), outro);
+            }
+        }
+        // lista de conversas
+        let c = conversas.get(outro);
+        if (!c) { await carregarConversas(); return; }
+        if (!oculta(m) && (!c.last || new Date(m.created_at) >= new Date(c.last.created_at))) c.last = m;
+        if (payload.eventType === 'INSERT' && recebida && !(outro === activeContactId && !document.hidden)) c.unread = (c.unread || 0) + 1;
+        renderContacts();
+        atualizarTitulo();
     };
-    contacts.push(newC);
-    saveContacts();
-    renderContacts();
-    showToast(`${name.trim()} adicionado!`);
-    openContact(newC.id);
+    supabaseClient.channel('mensagens-' + ME.id)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${ME.id}` }, tratar)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `sender_id=eq.${ME.id}` }, tratar)
+        .subscribe();
+
+    // ao voltar ao separador, marcar como lidas
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && activeContactId) {
+            marcarLidas(activeContactId);
+            const c = conversas.get(activeContactId); if (c) { c.unread = 0; renderContacts(); atualizarTitulo(); }
+        }
+    });
+}
+
+function notificar(titulo, texto, deId) {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || !document.hidden) return;
+    try {
+        const n = new Notification(titulo, { body: texto, icon: avatarDe(perfisCache[deId]) || undefined, tag: 'msg-' + deId });
+        n.onclick = () => { window.focus(); openContact(deId); n.close(); };
+    } catch (e) {}
+}
+
+// quem está online agora (presença do Supabase Realtime)
+function ligarPresenca() {
+    const canal = supabaseClient.channel('online', { config: { presence: { key: ME.id } } });
+    canal.on('presence', { event: 'sync' }, () => {
+        online = new Set(Object.keys(canal.presenceState()));
+        renderContacts();
+        atualizarEstadoPeer();
+    }).subscribe(status => {
+        if (status === 'SUBSCRIBED') canal.track({ em: new Date().toISOString() });
+    });
 }
 
 // ─── LIGHTBOX ────────────────────────────────────────────
@@ -1084,33 +1268,11 @@ function showToast(msg) {
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-// ─── SUPABASE INTEGRATION ─────────────────────────────────
-function initSupabase() {
-    if (typeof supabaseClient !== 'undefined' || typeof window.supabaseClient !== 'undefined') {
-        console.log('✅ Supabase initialized successfully');
-    } else {
-        console.warn('⚠️ Supabase config not loaded. Using localStorage only.');
-    }
-}
-
-// ─── SAVE ────────────────────────────────────────────────
-function saveContacts() { 
-    try {
-        storage.setItem('ca_contacts', JSON.stringify(contacts)); 
-    } catch (e) {
-        console.error('Erro ao salvar contactos:', e);
-    }
-}
-
-// Initialize Supabase when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSupabase);
-} else {
-    initSupabase();
-}
+// apagar dados antigos guardados no navegador (fotos em base64 tornavam a página lenta)
+try { localStorage.removeItem('ca_messages'); localStorage.removeItem('ca_contacts'); } catch (e) {}
 </script>
 </body>
 </html>

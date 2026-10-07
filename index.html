@@ -462,7 +462,8 @@
         @media (min-width: 601px) {
             .mobile-search-btn { display: none !important; }
         }
-    </style>
+    .fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:sans-serif;pointer-events:none}
+</style>
 
 <base target="_self">
 </head>
@@ -489,7 +490,7 @@
         <!-- Lupa só no mobile (search-wrapper fica escondida) -->
                 <div class="nav-btn" title="Vídeos"><i class="fas fa-play-circle"></i></div>
            <a href="amigos.html" class="nav-btn" title="Amigos"> <i class="fas fa-user-friends"></i></a>
-        <a href="mensagen.html" class="item-link"><i class="fas fa-comment-dots" style="color: #f0f2f5; "></i></a>
+        <a href="mensagen.html" class="item-link" style="position:relative;"><i class="fas fa-comment-dots" style="color: #f0f2f5; "></i><span data-fc-msgs class="fc-msg-badge" style="display:none"></span></a>
 <div class="btn-circle mobile-search-btn" onclick="toggleMobileSearch()" title="Pesquisar"><i class="fas fa-search"></i></div>
         <div class="btn-circle" onclick="toggleDarkMode()" title="Tema"><i class="fas fa-moon" id="theme-icon"></i></div>
         
@@ -527,7 +528,7 @@
     <aside class="col-left">
         <a href="perfil.html" class="item-link"><i class="fas fa-user-circle"></i><span>Meu Perfil</span></a>
         <a href="amigos.html" class="item-link"><i class="fas fa-user-friends"></i><span>Amigos</span></a>
-        <a href="mensagen.html" class="item-link"><i class="fas fa-comment-dots"></i><span>Mensagens</span></a>
+        <a href="mensagen.html" class="item-link" style="position:relative;"><i class="fas fa-comment-dots"></i><span>Mensagens</span><span data-fc-msgs class="fc-msg-badge" style="display:none;position:static;margin-left:auto;"></span></a>
         
         <a href="anuncio.html" class="item-link"><i class="fas fa-bullhorn"></i><span>Anúncios</span></a>
 
