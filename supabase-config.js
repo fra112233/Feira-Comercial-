@@ -90,9 +90,32 @@ FC.uploadImage = async function (bucket, file, path) {
   return data.publicUrl;
 };
 
+/* ---------- Mensagens por ler (bolinha vermelha nos links de Mensagens) ---------- */
+FC.badgeMensagens = async function () {
+  const els = document.querySelectorAll('[data-fc-msgs]');
+  if (!els.length || FC._badgeLigado) return;
+  const session = await FC.getSession();
+  if (!session) return;
+  FC._badgeLigado = true;
+  const uid = session.user.id;
+  const mostrar = n => els.forEach(el => { el.textContent = n > 99 ? '99+' : n; el.style.display = n ? '' : 'none'; });
+  const contar = async () => {
+    const { count, error } = await supabaseClient.from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('receiver_id', uid).is('read_at', null).eq('deleted', false).eq('cleared_by_receiver', false);
+    if (!error) mostrar(count || 0);
+  };
+  await contar();
+  supabaseClient.channel('badge-msgs-' + uid)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${uid}` }, contar)
+    .subscribe();
+};
+
 /* ---------- Arranque padrão ---------- */
 FC.boot = async function (opts = {}) {
   const session = await FC.requireAuth(opts.loginPage);
   if (!session) return null;
-  return await FC.applyIdentity(opts);
+  const me = await FC.applyIdentity(opts);
+  FC.badgeMensagens();
+  return me;
 };
