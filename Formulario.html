@@ -6,6 +6,7 @@
     <title>Criar Conta | Feira Comercial</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
+    <script src="perfil-campos.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -63,7 +64,30 @@
             font-size: 15px;
             transition: border-color 0.15s;
         }
-        input:focus { outline: none; border-color: var(--primary); }
+        input[type="url"], input[type="time"], select, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            background: #fff;
+        }
+        textarea { min-height: 80px; resize: vertical; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        .req { color: var(--error); }
+        .section-title {
+            font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+            color: var(--secondary); margin: 26px 0 12px; padding-top: 14px; border-top: 1px solid #e2e8f0;
+        }
+        .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 420px) { .row2 { grid-template-columns: 1fr; } }
+        .loc-btn {
+            background: var(--primary-light); color: var(--primary); border: 1px solid #bfdbfe;
+            border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+        }
+        .so-empresa, .so-singular { display: none; }
+        body.tipo-empresa .so-empresa, body.tipo-singular .so-singular { display: block; }
         input.invalid { border-color: var(--error); }
         input.valid { border-color: var(--success); }
 
@@ -184,11 +208,78 @@
             <small class="hint" id="pw-confirm-hint"></small>
         </div>
 
-        <!-- Celular (opcional) -->
+        <!-- ═══ CONTACTO E LOCALIZAÇÃO ═══ -->
+        <div class="section-title">Contacto e localização</div>
+
+        <div class="group so-singular">
+            <label for="genero">Género <span class="req">*</span></label>
+            <select id="genero"></select>
+        </div>
+
         <div class="group">
-            <label for="celular">Celular / WhatsApp <span style="font-weight:400;color:var(--secondary)">(opcional)</span>:</label>
+            <label for="celular" id="label-celular">Celular <span class="req">*</span></label>
             <input type="tel" id="celular" placeholder="+258 8X XXX XXXX" autocomplete="tel">
         </div>
+
+        <div class="group so-empresa">
+            <label for="whatsapp">WhatsApp</label>
+            <input type="tel" id="whatsapp" placeholder="+258 8X XXX XXXX">
+            <label style="font-weight:400;margin-top:6px;display:flex;gap:6px;align-items:center;">
+                <input type="checkbox" id="whatsapp-igual" checked style="width:auto;"> É o mesmo número do telefone
+            </label>
+        </div>
+
+        <div class="group so-empresa">
+            <label for="website">Website ou página <span style="font-weight:400;color:var(--secondary)">(opcional)</span></label>
+            <input type="url" id="website" placeholder="www.minhaempresa.co.mz">
+        </div>
+
+        <div class="group">
+            <label for="morada" id="label-morada">Morada <span class="req">*</span></label>
+            <input type="text" id="morada" placeholder="Av. / Rua, número, bairro">
+        </div>
+
+        <div class="row2">
+            <div class="group">
+                <label for="provincia">Província</label>
+                <select id="provincia"></select>
+            </div>
+            <div class="group">
+                <label for="cidade">Cidade / Distrito</label>
+                <input type="text" id="cidade" placeholder="Ex: Matola">
+            </div>
+        </div>
+
+        <div class="group so-empresa">
+            <label>Localização no mapa <span style="font-weight:400;color:var(--secondary)">(recomendado)</span></label>
+            <button type="button" class="loc-btn" id="loc-btn" onclick="usarLocalizacao()">📍 Usar a localização atual (estou na empresa)</button>
+            <small class="hint" id="loc-hint">Os clientes vão ver o mapa e o botão "Como chegar". Se não estiver na empresa agora, pode fazer isto mais tarde no perfil.</small>
+        </div>
+
+        <!-- ═══ SÓ EMPRESA ═══ -->
+        <div class="so-empresa">
+            <div class="section-title">Sobre a empresa</div>
+
+            <div class="group">
+                <label for="setor">Setor de atividade <span class="req">*</span></label>
+                <select id="setor"></select>
+            </div>
+
+            <div class="group">
+                <label for="descricao">O que a empresa faz <span style="font-weight:400;color:var(--secondary)">(opcional)</span></label>
+                <textarea id="descricao" placeholder="Ex: Venda de material de construção, entregas em Maputo e Matola."></textarea>
+            </div>
+
+            <div class="group">
+                <label for="nuit">NUIT <span style="font-weight:400;color:var(--secondary)">(opcional)</span></label>
+                <input type="text" id="nuit" placeholder="9 dígitos" inputmode="numeric" maxlength="9">
+            </div>
+
+            <div class="section-title">Horário de trabalho</div>
+            <div class="group" id="horario"></div>
+        </div>
+
+        <div class="section-title">Foto</div>
 
         <!-- Avatar (opcional) -->
         <div class="group">
@@ -203,16 +294,13 @@
 
         <div id="submit-status"></div>
 
-        <p class="login-link">Já tens conta? <a href="login.html">Entrar</a></p>
+        <p class="login-link">Já tens conta? <a href="Portal.html">Entrar</a></p>
     </form>
 </div>
 
 <script>
     // ═══ Cliente Supabase (usa o supabase-config.js se existir) ═══
-    const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
-    const client = (typeof window.supabaseClient !== 'undefined') ? window.supabaseClient
-                 : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const client = supabaseClient; // definido em supabase-config.js
 
     // Regra LEVE: mínimo 8 caracteres (ajusta no Supabase: Auth → Settings → Minimum password length)
     const MIN_PW = 8;
@@ -223,13 +311,43 @@
     const pwEl     = document.getElementById('password');
     const pwConf   = document.getElementById('password_confirm');
     const celEl    = document.getElementById('celular');
+    const $ = id => document.getElementById(id);
+    let localizacao = null;
+
+    // preencher listas
+    $('genero').innerHTML    = FCP.opcoes(FCP.GENEROS, '', 'Escolher...');
+    $('provincia').innerHTML = FCP.opcoes(FCP.PROVINCIAS, 'Maputo Cidade', 'Escolher...');
+    $('setor').innerHTML     = FCP.opcoes(FCP.SETORES, '', 'Escolher...');
+    $('horario').innerHTML   = FCP.camposHorario('reg', FCP.horarioPadrao());
+
+    function tipoAtual() { return document.querySelector('input[name="perfilType"]:checked').value; }
+
+    async function usarLocalizacao() {
+        const hint = $('loc-hint');
+        hint.textContent = 'A obter localização...';
+        hint.className = 'hint';
+        try {
+            localizacao = await FCP.obterLocalizacao();
+            $('loc-btn').textContent = '✅ Localização guardada';
+            hint.textContent = `Coordenadas: ${localizacao.latitude}, ${localizacao.longitude}`;
+            hint.className = 'hint ok';
+        } catch (err) {
+            hint.textContent = err.message;
+            hint.className = 'hint err';
+        }
+    }
     const fotoEl   = document.getElementById('foto_perfil');
     const btn      = document.getElementById('submitBtn');
 
     function toggleType() {
-        const tipo = document.querySelector('input[name="perfilType"]:checked').value;
-        document.getElementById('label-nome').textContent = tipo === 'empresa' ? 'Nome da empresa:' : 'Nome completo:';
-        nomeEl.placeholder = tipo === 'empresa' ? 'Ex: Cisco Systems, Lda' : 'O teu nome';
+        const tipo = tipoAtual();
+        const empresa = tipo === 'empresa';
+        document.body.classList.toggle('tipo-empresa', empresa);
+        document.body.classList.toggle('tipo-singular', !empresa);
+        document.getElementById('label-nome').textContent = empresa ? 'Nome da empresa:' : 'Nome completo:';
+        nomeEl.placeholder = empresa ? 'Ex: Ferragens Machava, Lda' : 'O teu nome';
+        $('label-celular').innerHTML = (empresa ? 'Telefone da empresa' : 'Celular') + ' <span class="req">*</span>';
+        $('label-morada').innerHTML = (empresa ? 'Morada da empresa' : 'Morada') + ' <span class="req">*</span>';
         validateAll();
     }
 
@@ -312,13 +430,27 @@
     }
 
     function validateAll() {
+        const empresa = tipoAtual() === 'empresa';
+        const telefoneOk = celEl.value.replace(/\D/g, '').length >= 9;
         const ok = nomeEl.value.trim().length >= 2
                 && checkEmail()
                 && pwEl.value.length >= MIN_PW
-                && pwConf.value === pwEl.value;
+                && pwConf.value === pwEl.value
+                && telefoneOk
+                && $('morada').value.trim().length >= 3
+                && (empresa ? $('setor').value !== '' : $('genero').value !== '');
         btn.disabled = !ok;
         return ok;
     }
+
+    // os outros campos também revalidam o formulário
+    document.getElementById('mainForm').addEventListener('input', validateAll);
+    document.getElementById('mainForm').addEventListener('change', validateAll);
+    $('whatsapp-igual').addEventListener('change', () => {
+        $('whatsapp').disabled = $('whatsapp-igual').checked;
+        if ($('whatsapp-igual').checked) $('whatsapp').value = '';
+    });
+    $('whatsapp').disabled = true;
 
     [nomeEl, emailEl, pwEl, pwConf].forEach(el => {
         el.addEventListener('input', () => {
@@ -365,10 +497,33 @@
 
         try {
             // 1. Criar utilizador no Supabase Auth
+            // todos os dados vão juntos; a base de dados cria o perfil completo
+            const dados = {
+                full_name: nome,
+                type: tipo,
+                phone: celular,
+                morada: $('morada').value.trim(),
+                province: $('provincia').value,
+                city: $('cidade').value.trim()
+            };
+            if (tipo === 'empresa') {
+                Object.assign(dados, {
+                    whatsapp: $('whatsapp-igual').checked ? celular : $('whatsapp').value.trim(),
+                    website: $('website').value.trim(),
+                    sector: $('setor').value,
+                    bio: $('descricao').value.trim(),
+                    nuit: $('nuit').value.trim(),
+                    opening_hours: FCP.lerHorario('reg')
+                });
+                if (localizacao) Object.assign(dados, localizacao);
+            } else {
+                dados.gender = $('genero').value;
+            }
+
             const { data: authData, error: authError } = await client.auth.signUp({
                 email,
                 password: pwEl.value,
-                options: { data: { full_name: nome, type: tipo } }
+                options: { data: dados }
             });
             if (authError) throw authError;
             if (!authData.user) throw new Error('Não foi possível criar a conta. Tenta novamente.');
@@ -377,37 +532,41 @@
             let avatarUrl = null;
             if (fotoEl.files[0]) {
                 const file = fotoEl.files[0];
-                const path = `${authData.user.id}/avatar.${file.name.split('.').pop()}`;
+                const path = `${authData.user.id}/avatar-${Date.now()}.${file.name.split('.').pop()}`;
                 const { error: upErr } = await client.storage.from('avatars').upload(path, file, { upsert: true });
                 if (!upErr) {
                     avatarUrl = client.storage.from('avatars').getPublicUrl(path).data.publicUrl;
                 }
             }
 
-            // 3. Guardar perfil na tabela 'profiles'
-            const { error: profileError } = await client.from('profiles').insert([{
-                id: authData.user.id,
-                email,
-                full_name: nome,
-                phone: celular || null,
-                type: tipo,
-                avatar_url: avatarUrl
-            }]);
-            if (profileError) console.warn('Perfil não gravado (verifica as políticas RLS):', profileError.message);
+            // 3. O perfil (tabela 'perfis') é criado automaticamente pela base de dados
+            //    (trigger handle_new_user em supabase/migrations/001_perfis.sql).
+            //    com todos os campos acima. Aqui só juntamos a foto, se já houver sessão.
+            if (authData.session && avatarUrl) {
+                const { error: profileError } = await client.from('perfis')
+                    .update({ avatar_url: avatarUrl }).eq('id', authData.user.id);
+                if (profileError) console.warn('Foto não guardada:', profileError.message);
+            }
 
             // 4. Sincronizar com perfil.html / index.html (usam localStorage fc_*)
             localStorage.setItem('fc_name', nome);
             if (avatarUrl) localStorage.setItem('fc_avatar', avatarUrl);
-            localStorage.setItem('fc_profile', JSON.stringify({ name: nome, phone: celular, email }));
+            localStorage.removeItem('fc_profile');
 
+            if (!authData.session) {
+                // confirmação de e-mail ativa no Supabase
+                setStatus('✅ Conta criada! Enviámos um e-mail para <b>' + email + '</b>. Abre o link para confirmar e depois <a href="Portal.html" style="color:var(--primary)">entra aqui</a>.', 'success');
+                btn.textContent = 'Conta criada';
+                return;
+            }
             setStatus('✅ Conta criada com sucesso! A entrar...', 'success');
-            setTimeout(() => window.location.href = 'index.html', 1200);
+            setTimeout(() => window.location.href = 'perfil.html', 1200);
 
         } catch (err) {
             console.error(err);
             const msg = err.message || 'Erro inesperado. Tenta novamente.';
             if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
-                setStatus('Este e-mail já tem conta. <a href="login.html" style="color:var(--primary)">Entrar</a>', 'error');
+                setStatus('Este e-mail já tem conta. <a href="Portal.html" style="color:var(--primary)">Entrar</a>', 'error');
             } else if (msg.toLowerCase().includes('password')) {
                 setStatus('❌ Palavra-passe demasiado curta para o servidor (ajusta em Supabase → Auth → Settings → Minimum password length).', 'error');
             } else {

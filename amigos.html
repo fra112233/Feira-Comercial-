@@ -197,7 +197,7 @@ function esc(s){ return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 async function loadAll(){
   // todos os perfis públicos (exceto eu)
   const { data: users } = await supabaseClient
-    .from('profiles')
+    .from('perfis')
     .select('id, full_name, type, sector, bio, morada, avatar_url, created_at')
     .neq('id', me.id)
     .eq('visibility', 'publico')
