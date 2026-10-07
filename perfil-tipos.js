@@ -4,7 +4,10 @@
    Usado por perfil.html (precisa de perfil-campos.js e supabase-config.js).
    ============================================================ */
 
-let perfilAtual = null;          // linha da tabela "perfis" do utilizador
+let perfilAtual = null;          // linha da tabela "perfis" do perfil mostrado
+const VER_ID = new URLSearchParams(location.search).get('id'); // perfil.html?id=... → perfil de outra pessoa/empresa
+let alvoId = null;               // id do perfil mostrado
+let modoVisita = !!VER_ID;       // true quando vejo o perfil de outra pessoa
 let localizacaoEditada;          // undefined = não mexer; null = remover; {latitude, longitude} = nova
 
 const ehEmpresa = p => p && p.type === 'empresa';
@@ -104,8 +107,15 @@ function aplicarPerfil() {
   if (!p) return;
   const e = FCP.esc;
 
-  if (p.full_name) definirNome(p.full_name);
-  if (p.avatar_url) definirAvatar(p.avatar_url);
+  if (modoVisita) {
+    // perfil de outra pessoa: não mexer no meu nome/foto guardados
+    setTxt('userName', p.full_name || 'Utilizador');
+    const foto = p.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.full_name || 'U') + '&background=random&color=fff&size=256');
+    const img = document.getElementById('profileImg'); if (img) img.src = foto;
+  } else {
+    if (p.full_name) definirNome(p.full_name);
+    if (p.avatar_url) definirAvatar(p.avatar_url);
+  }
   if (p.username) setTxt('profileHandle', '@' + p.username);
 
   const bio = document.getElementById('dispBio');
@@ -288,12 +298,59 @@ function carregarPerfilLocal() {
 
 // número real de seguidores / seguindo (tabela followers)
 async function contarSeguidores() {
-  if (!meuId) return;
+  if (!alvoId) return;
   const sb = getSB();
   const [a, b] = await Promise.all([
-    sb.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', meuId),
-    sb.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', meuId)
+    sb.from('followers').select('id', { count: 'exact', head: true }).eq('following_id', alvoId),
+    sb.from('followers').select('id', { count: 'exact', head: true }).eq('follower_id', alvoId)
   ]);
   if (!a.error) setTxt('seguidoresCount', a.count || 0);
   if (!b.error) setTxt('seguindoCount', b.count || 0);
+}
+
+// ---------- ver o perfil de outra pessoa / empresa ----------
+function prepararModoVisita() {
+  modoVisita = true;
+  const dono = document.getElementById('acoesDono'); if (dono) dono.style.display = 'none';
+  const visita = document.getElementById('acoesVisita'); if (visita) visita.style.display = '';
+  document.querySelectorAll('.profile-pic-edit, .create-post-card').forEach(el => el.style.display = 'none');
+  const vazio = document.getElementById('emptyState');
+  if (vazio) vazio.innerHTML = '<p>Sem publicações nas últimas 36 horas.</p>';
+}
+
+function mostrarModoDono() {
+  modoVisita = false;
+  const dono = document.getElementById('acoesDono'); if (dono) dono.style.display = '';
+  const visita = document.getElementById('acoesVisita'); if (visita) visita.style.display = 'none';
+  document.querySelectorAll('.profile-pic-edit, .create-post-card').forEach(el => el.style.display = '');
+}
+
+let sigoEste = false;
+function desenharBotaoSeguir() {
+  const b = document.getElementById('btnSeguir');
+  if (!b) return;
+  b.innerHTML = sigoEste ? '<i class="fas fa-check"></i> A seguir' : '<i class="fas fa-plus"></i> Seguir';
+  b.className = 'btn ' + (sigoEste ? 'btn-secondary' : 'btn-primary');
+}
+
+async function verificarSeSigo() {
+  const { data } = await getSB().from('followers').select('id')
+    .eq('follower_id', meuId).eq('following_id', alvoId).maybeSingle();
+  sigoEste = !!data;
+  desenharBotaoSeguir();
+}
+
+async function alternarSeguirPerfil() {
+  if (!meuId || !alvoId || meuId === alvoId) return;
+  const b = document.getElementById('btnSeguir'); if (b) b.disabled = true;
+  const sb = getSB();
+  const { error } = sigoEste
+    ? await sb.from('followers').delete().eq('follower_id', meuId).eq('following_id', alvoId)
+    : await sb.from('followers').insert({ follower_id: meuId, following_id: alvoId, created_at: Date.now() });
+  if (b) b.disabled = false;
+  if (error) { alert('Não foi possível: ' + error.message); return; }
+  sigoEste = !sigoEste;
+  desenharBotaoSeguir();
+  contarSeguidores();
+  showToast(sigoEste ? 'Agora segues ' + (perfilAtual ? perfilAtual.full_name : '') : 'Deixaste de seguir');
 }

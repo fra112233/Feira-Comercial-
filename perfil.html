@@ -1326,7 +1326,18 @@
                     </div>
                 </div>
 
-                <div class="profile-actions">
+                <div class="profile-actions" id="acoesVisita" style="display:none;">
+                    <button class="btn btn-primary" id="btnSeguir" onclick="alternarSeguirPerfil()">
+                        <i class="fas fa-plus"></i> Seguir
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='mensagen.html?para=' + encodeURIComponent(alvoId)">
+                        <i class="fas fa-comment-dots"></i> Mensagem
+                    </button>
+                    <button class="btn btn-secondary" onclick="shareProfile()">
+                        <i class="fas fa-share"></i> Partilhar
+                    </button>
+                </div>
+                <div class="profile-actions" id="acoesDono">
                     <button class="btn btn-primary" onclick="openModal('modalPost')">
                         <i class="fas fa-plus"></i> Publicar
                     </button>
@@ -1541,22 +1552,32 @@
 
     // ═══ SESSÃO + DADOS DO SUPABASE (tabela "perfis") ═══
     (async function initPerfil() {
-        carregarPerfilLocal();   // mostra logo a última versão guardada
+        if (!VER_ID) carregarPerfilLocal();   // o meu perfil: mostra logo a última versão guardada
+        else prepararModoVisita();
         try {
             const client = getSB();
             if (!client) return;
             const { data: { session } } = await client.auth.getSession();
             if (!session) { window.location.href = 'Portal.html'; return; }
             meuId = session.user.id;
-            if (perfilAtual && perfilAtual.id !== meuId) perfilAtual = null;
+            alvoId = VER_ID || meuId;
+            modoVisita = alvoId !== meuId;
+            if (!modoVisita) mostrarModoDono();
+            if (perfilAtual && perfilAtual.id !== alvoId) perfilAtual = null;
 
-            const { data: profile, error } = await client.from('perfis').select('*').eq('id', meuId).maybeSingle();
+            const { data: profile, error } = await client.from('perfis').select('*').eq('id', alvoId).maybeSingle();
             if (error) throw error;
             if (profile) {
                 perfilAtual = profile;
-                guardarPerfilLocal();
+                if (!modoVisita) guardarPerfilLocal();
                 aplicarPerfil();
+                if (modoVisita) document.title = (profile.full_name || 'Perfil') + ' | Feira Comercial';
+            } else if (modoVisita) {
+                document.querySelector('.feed-container').innerHTML =
+                    '<div class="empty-state" style="display:block;padding:60px 20px;text-align:center;">Este perfil não existe ou foi removido.</div>';
+                return;
             }
+            if (modoVisita) verificarSeSigo();
         } catch (err) {
             console.warn('Não foi possível carregar o perfil:', err);
         }
@@ -1625,10 +1646,10 @@
     function obterPostsFeed() { return meusPosts; }
 
     async function carregarMeusPosts() {
-        if (!meuId) return;
+        if (!alvoId) return;
         const { data, error } = await getSB().from('posts')
             .select('id, content, media, image_url, created_at, likes(user_id), comments(id)')
-            .eq('user_id', meuId)
+            .eq('user_id', alvoId)
             .gte('created_at', new Date(Date.now() - TEMPO_VIDA).toISOString())
             .order('created_at', { ascending: false });
         if (error) { console.warn('Erro ao carregar publicações:', error.message); return; }
@@ -1669,8 +1690,8 @@
 
     function htmlPostFeed(p) {
         const postId = 'post-' + p.id;
-        const avatar = localStorage.getItem('fc_avatar') || 'images/perfil.jpg';
-        const nome = p.userName || localStorage.getItem('fc_name') || 'Você';
+        const avatar = (perfilAtual && perfilAtual.avatar_url) || localStorage.getItem('fc_avatar') || 'images/perfil.jpg';
+        const nome = (perfilAtual && perfilAtual.full_name) || p.userName || localStorage.getItem('fc_name') || 'Você';
         const hora = new Date(p.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
         const m = (p.media || [])[0];
         let mediaTag = '';
@@ -1690,9 +1711,9 @@
                             <div class="post-time">${hora}</div>
                         </div>
                     </div>
-                    <button class="post-menu" onclick="deletePostFeed(${p.id})" title="Apagar publicação" style="color: var(--danger);">
+                    ${modoVisita ? '' : `<button class="post-menu" onclick="deletePostFeed(${p.id})" title="Apagar publicação" style="color: var(--danger);">
                         <i class="fas fa-trash"></i>
-                    </button>
+                    </button>`}
                 </div>
                 ${p.text ? `<div class="post-content">${(p.text || '').replace(/</g, '&lt;')}</div>` : ''}
                 ${mediaTag}
@@ -1742,7 +1763,7 @@
         const m = (p.media || [])[0];
         localStorage.setItem('fc_reply_draft', JSON.stringify({
             refId: 'post-' + p.id,
-            userId: meuId,
+            userId: alvoId,
             userName: p.userName || localStorage.getItem('fc_name') || 'Você',
             text: p.text ? p.text.substring(0, 200) : '📷 Publicação com mídia',
             thumb: (m && m.type === 'image') ? m.data : null,
@@ -2069,7 +2090,7 @@
     }
 
     function sharePost(postId) {
-        const profileUrl = window.location.href;
+        const profileUrl = location.origin + location.pathname + '?id=' + encodeURIComponent(alvoId || meuId || '');
         const post = allPosts.find(p => p.id === postId);
         const shareText = `Confira esta publicação: "${post.text.substring(0, 50)}..." ${profileUrl}`;
 
@@ -2081,7 +2102,7 @@
     }
 
     function shareProfile() {
-        const profileUrl = window.location.href;
+        const profileUrl = location.origin + location.pathname + '?id=' + encodeURIComponent(alvoId || meuId || '');
         const profileName = document.getElementById('userName').innerText;
         const shareText = `Confira o perfil de ${profileName}: ${profileUrl}`;
 

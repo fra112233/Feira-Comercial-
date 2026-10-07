@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="perfil-campos.js"></script>
 <style>
 :root{ --brand:#2563eb; --pro:#7c3aed; --bg:#0f172a; --surface:#1e293b; --hover:#334155;
   --text:#f8fafc; --sub:#94a3b8; --border:rgba(255,255,255,.1); --ok:#22c55e; --danger:#ef4444; --radius:16px; }
@@ -77,6 +78,9 @@ a{text-decoration:none;color:inherit}
 .btn-full:disabled{background:var(--hover);color:var(--sub);cursor:default}
 .btn-row{display:flex;gap:8px}
 .btn-row .btn-full{flex:1}
+.filtro{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:30px;padding:10px 14px;font-size:13px;max-width:200px}
+.btn-full.seguindo{background:var(--hover);color:var(--text)}
+a.card-top{color:inherit}
 .accept{background:var(--ok)} .decline{background:var(--hover);color:var(--sub)}
 
 .empty{text-align:center;padding:50px 20px;color:var(--sub);grid-column:1/-1}
@@ -117,35 +121,25 @@ a{text-decoration:none;color:inherit}
 </header>
 
 <main class="main">
-  <div class="pro-card">
-    <div>
-      <h3><i class="fas fa-briefcase" style="color:#c4b5fd"></i> Modo Profissional</h3>
-      <p>Alterne para o modo de seguidores e convites diretos.</p>
-    </div>
-    <button id="togglePro" onclick="togglePro()">ATIVAR</button>
-  </div>
-
   <div class="toolbar">
     <div class="search">
       <i class="fas fa-search"></i>
-      <input id="searchInput" placeholder="Pesquisar pessoas ou empresas..." oninput="render()">
+      <input id="searchInput" placeholder="Pesquisar pessoas ou empresas..." oninput="agendarPesquisa()">
     </div>
+    <select id="filtroProvincia" class="filtro" onchange="carregarPerfis()"></select>
+    <select id="filtroSetor" class="filtro" onchange="carregarPerfis()"></select>
   </div>
 
   <div class="tabs">
-    <button class="tab active" id="tab-sug" onclick="setTab('sugestoes',this)">✨ Sugestões</button>
-    <button class="tab" id="tab-ped" onclick="setTab('pedidos',this)">📨 Pedidos <span class="badge" id="reqBadge" style="display:none">0</span></button>
-    <button class="tab" id="tab-ami" onclick="setTab('amigos',this)">👥 Amigos <span class="badge" id="frBadge" style="display:none">0</span></button>
+    <button class="tab active" id="tab-sug" onclick="setTab('sugestoes',this)">✨ Descobrir</button>
+    <button class="tab" id="tab-seg" onclick="setTab('seguindo',this)">➕ A seguir <span class="badge" id="segBadge" style="display:none">0</span></button>
+    <button class="tab" id="tab-fol" onclick="setTab('seguidores',this)">👥 Seguidores <span class="badge" id="folBadge" style="display:none">0</span></button>
   </div>
 
   <div class="chips" id="chips">
-    <div class="chip active" data-f="" onclick="setFilter('',this)">Todos</div>
-    <div class="chip" data-f="tecnologia" onclick="setFilter('tecnologia',this)">💻 Tecnologia</div>
-    <div class="chip" data-f="educacao" onclick="setFilter('educacao',this)">🎓 Educação</div>
-    <div class="chip" data-f="varejo" onclick="setFilter('varejo',this)">🛍️ Varejo</div>
-    <div class="chip" data-f="saude" onclick="setFilter('saude',this)">🩺 Saúde</div>
-    <div class="chip" data-f="construcao" onclick="setFilter('construcao',this)">🏗️ Construção</div>
-    <div class="chip" data-f="empresa" onclick="setFilter('empresa',this)">🏢 Empresas</div>
+    <div class="chip active" onclick="setFilter('',this)">Todos</div>
+    <div class="chip" onclick="setFilter('empresa',this)">🏢 Empresas</div>
+    <div class="chip" onclick="setFilter('singular',this)">👤 Pessoas</div>
   </div>
 
   <div class="grid" id="grid">
@@ -163,85 +157,85 @@ a{text-decoration:none;color:inherit}
 <div id="toast"></div>
 
 <script>
+// ─────────────────────────────────────
+//  AMIGOS = SEGUIR PESSOAS E EMPRESAS (tabela followers)
+// ─────────────────────────────────────
 let me = null;
-let allUsers = [];
-let friends = [];      // ids dos meus amigos
-let sentTo = [];       // ids para quem já enviei pedido
-let incoming = [];     // pedidos recebidos {id, from_id, profiles}
+let perfis = [];          // resultado de "Descobrir"
+let seguindo = new Set(); // ids que eu sigo
+let seguidores = new Set(); // ids que me seguem
+let perfisSeguindo = [];
+let perfisSeguidores = [];
 let currentTab = 'sugestoes';
 let filter = '';
-let isPro = false;
+
+const CAMPOS = 'id, full_name, username, type, sector, bio, city, province, avatar_url, created_at';
 
 (async function init(){
+  document.getElementById('filtroProvincia').innerHTML = FCP.opcoes(FCP.PROVINCIAS, '', 'Todas as províncias');
+  document.getElementById('filtroSetor').innerHTML = FCP.opcoes(FCP.SETORES, '', 'Todos os setores');
   me = await FC.boot();
   if (!me) return;
-  await loadAll();
+  await Promise.all([carregarLigacoes(), carregarPerfis()]);
 })();
 
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 2600);
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', 2600);
 }
 
 function avatarOf(u){
   return u.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(u.full_name || 'U') +
     '&background=random&color=fff&size=128');
 }
-function sectorLabel(s){
-  return ({tecnologia:'💻 Tecnologia', educacao:'🎓 Educação', varejo:'🛍️ Varejo',
-    saude:'🩺 Saúde', construcao:'🏗️ Construção', outro:'Outros'})[s] || '';
-}
-function esc(s){ return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const esc = FCP.esc;
 
-async function loadAll(){
-  // todos os perfis públicos (exceto eu)
-  const { data: users } = await supabaseClient
-    .from('perfis')
-    .select('id, full_name, type, sector, bio, morada, avatar_url, created_at')
-    .neq('id', me.id)
-    .eq('visibility', 'publico')
-    .order('created_at', { ascending: false })
-    .limit(100);
-  allUsers = users || [];
-
-  // amizades aceites
-  const { data: f1 } = await supabaseClient.from('friendships').select('friend_id').eq('user_id', me.id);
-  const { data: f2 } = await supabaseClient.from('friendships').select('user_id').eq('friend_id', me.id);
-  friends = [...(f1||[]).map(r => r.friend_id), ...(f2||[]).map(r => r.user_id)];
-
-  // pedidos enviados por mim (pendentes)
-  const { data: sent } = await supabaseClient
-    .from('friend_requests').select('to_id').eq('from_id', me.id).eq('status', 'pendente');
-  sentTo = (sent||[]).map(r => r.to_id);
-
-  // pedidos recebidos
-  const { data: reqs } = await supabaseClient
-    .from('friend_requests')
-    .select('id, from_id, created_at, profiles!friend_requests_from_id_fkey(full_name, avatar_url, sector, type, bio)')
-    .eq('to_id', me.id).eq('status', 'pendente');
-  incoming = (reqs || []).map(r => ({ ...r, user: Array.isArray(r.profiles) ? r.profiles[0] : r.profiles }));
-
-  const badge = document.getElementById('reqBadge');
-  if (incoming.length){ badge.textContent = incoming.length; badge.style.display = ''; }
-  const fb = document.getElementById('frBadge');
-  if (friends.length){ fb.textContent = friends.length; fb.style.display = ''; }
-
+// quem eu sigo e quem me segue
+async function carregarLigacoes(){
+  const [a, b] = await Promise.all([
+    supabaseClient.from('followers').select(`following_id, p:perfis!followers_following_id_fkey(${CAMPOS})`).eq('follower_id', me.id),
+    supabaseClient.from('followers').select(`follower_id, p:perfis!followers_follower_id_fkey(${CAMPOS})`).eq('following_id', me.id)
+  ]);
+  if (a.error) console.warn(a.error.message);
+  if (b.error) console.warn(b.error.message);
+  perfisSeguindo = (a.data || []).map(r => r.p).filter(Boolean);
+  perfisSeguidores = (b.data || []).map(r => r.p).filter(Boolean);
+  seguindo = new Set(perfisSeguindo.map(p => p.id));
+  seguidores = new Set(perfisSeguidores.map(p => p.id));
+  atualizarBadges();
   render();
 }
 
-function togglePro(){
-  isPro = !isPro;
-  const btn = document.getElementById('togglePro');
-  btn.textContent = isPro ? 'DESATIVAR' : 'ATIVAR';
-  btn.style.background = isPro ? '#ef4444' : 'var(--pro)';
-  toast(isPro ? 'Modo Profissional ativo' : 'Modo Pessoal ativo');
+function atualizarBadges(){
+  const s = document.getElementById('segBadge'), f = document.getElementById('folBadge');
+  s.textContent = seguindo.size; s.style.display = seguindo.size ? '' : 'none';
+  f.textContent = seguidores.size; f.style.display = seguidores.size ? '' : 'none';
+}
+
+let _tPesq;
+function agendarPesquisa(){ clearTimeout(_tPesq); _tPesq = setTimeout(() => { carregarPerfis(); render(); }, 300); }
+
+// "Descobrir": pesquisa na base de dados
+async function carregarPerfis(){
+  if (!me) return;
+  const termo = document.getElementById('searchInput').value.replace(/[%,()]/g, ' ').trim();
+  const prov = document.getElementById('filtroProvincia').value;
+  const setor = document.getElementById('filtroSetor').value;
+  let q = supabaseClient.from('perfis').select(CAMPOS).neq('id', me.id).eq('visibility', 'publico');
+  if (termo) q = q.ilike('full_name', `%${termo}%`);
+  if (prov) q = q.eq('province', prov);
+  if (setor) q = q.eq('sector', setor);
+  if (filter) q = q.eq('type', filter);
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(60);
+  if (error) { console.warn(error.message); toast('Erro ao carregar perfis'); return; }
+  perfis = data || [];
   render();
 }
 
 function setTab(tab, btn){
   currentTab = tab;
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   render();
 }
@@ -250,104 +244,84 @@ function setFilter(f, el){
   filter = f;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  render();
+  document.getElementById('filtroSetor').style.display = f === 'singular' ? 'none' : '';
+  carregarPerfis();
 }
 
-function card(u, mode, extra){
-  const tag = u.type === 'empresa'
-    ? '<span class="type-tag type-empresa">🏢 Empresa</span>'
-    : '<span class="type-tag type-singular">👤 Pessoa</span>';
-  let btnHtml = '';
-  if (mode === 'sugestao'){
-    const sent = sentTo.includes(u.id);
-    btnHtml = '<button class="btn-full' + (isPro ? ' pro' : '') + '" ' + (sent ? 'disabled' : '') +
-      ' onclick="sendRequest(\'' + u.id + '\', this)">' +
-      (sent ? '<i class="fas fa-check"></i> Pedido enviado'
-            : (isPro ? '<i class="fas fa-rss"></i> Seguir' : '<i class="fas fa-user-plus"></i> Adicionar Amigo')) + '</button>';
-  } else if (mode === 'pedido'){
-    btnHtml = '<div class="btn-row">' +
-      '<button class="btn-full accept" onclick="answerRequest(' + extra + ', true)"><i class="fas fa-check"></i> Aceitar</button>' +
-      '<button class="btn-full decline" onclick="answerRequest(' + extra + ', false)"><i class="fas fa-times"></i></button></div>';
-  } else {
-    btnHtml = '<div class="btn-row">' +
-      '<a class="btn-full" style="text-align:center" href="mensagen.html"><i class="fas fa-comment-dots"></i> Mensagem</a>' +
-      '<button class="btn-full decline" onclick="removeFriend(\'' + u.id + '\')"><i class="fas fa-user-minus"></i></button></div>';
-  }
-  return '<div class="card">' +
-    '<div class="card-top"><img src="' + avatarOf(u) + '">' +
-    '<div><div class="nm">' + esc(u.full_name || 'Utilizador') + tag + '</div>' +
-    '<div class="cl">' + sectorLabel(u.sector) + (u.morada ? ' · ' + esc(u.morada) : '') + '</div></div></div>' +
-    '<p class="bio">' + esc(u.bio || 'Sem descrição.') + '</p>' + btnHtml + '</div>';
+// filtros também se aplicam às listas "A seguir" e "Seguidores"
+function filtrarLocal(lista){
+  const termo = document.getElementById('searchInput').value.trim().toLowerCase();
+  const prov = document.getElementById('filtroProvincia').value;
+  const setor = document.getElementById('filtroSetor').value;
+  return lista.filter(u =>
+    (!filter || u.type === filter) &&
+    (!prov || u.province === prov) &&
+    (!setor || u.sector === setor) &&
+    (!termo || (u.full_name || '').toLowerCase().includes(termo)));
 }
 
 function render(){
   const grid = document.getElementById('grid');
-  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  let lista, vazio;
+  if (currentTab === 'seguindo') { lista = filtrarLocal(perfisSeguindo); vazio = 'Ainda não segues ninguém. Vai a "Descobrir".'; }
+  else if (currentTab === 'seguidores') { lista = filtrarLocal(perfisSeguidores); vazio = 'Ainda ninguém te segue.'; }
+  else { lista = perfis; vazio = 'Nenhum perfil encontrado.'; }
 
-  if (currentTab === 'pedidos'){
-    if (!incoming.length){
-      grid.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><b>Sem pedidos pendentes</b><p>Quando alguém te enviar um pedido, aparece aqui.</p></div>';
-      return;
-    }
-    grid.innerHTML = incoming.map(r => card(r.user || {}, 'pedido', r.id)).join('');
+  if (!lista.length) {
+    grid.innerHTML = `<div class="empty"><i class="fas fa-user-friends"></i>${vazio}</div>`;
     return;
   }
-
-  let list = allUsers;
-  if (currentTab === 'sugestoes') list = list.filter(u => !friends.includes(u.id));
-  if (currentTab === 'amigos')    list = list.filter(u => friends.includes(u.id));
-  if (filter === 'empresa')       list = list.filter(u => u.type === 'empresa');
-  else if (filter)                list = list.filter(u => u.sector === filter);
-  if (q) list = list.filter(u => (u.full_name || '').toLowerCase().includes(q));
-
-  if (!list.length){
-    grid.innerHTML = '<div class="empty"><i class="fas fa-users"></i><b>Nada por aqui</b><p>Experimenta outro filtro ou pesquisa.</p></div>';
-    return;
-  }
-  grid.innerHTML = list.map(u => card(u, currentTab === 'sugestoes' ? 'sugestao' : 'amigo')).join('');
+  grid.innerHTML = lista.map(cartao).join('');
 }
 
-async function sendRequest(toId, btn){
+function cartao(u){
+  const empresa = u.type === 'empresa';
+  const sigo = seguindo.has(u.id);
+  const segueMe = seguidores.has(u.id);
+  const local = [u.city, u.province].filter(Boolean).join(', ');
+  const sub = [empresa ? u.sector : null, local].filter(Boolean).join(' · ');
+  return `
+  <div class="card">
+    <a class="card-top" href="perfil.html?id=${u.id}">
+      <img src="${esc(avatarOf(u))}" alt="" loading="lazy">
+      <div>
+        <div class="nm">${esc(u.full_name || 'Utilizador')}
+          <span class="type-tag ${empresa ? 'type-empresa' : 'type-singular'}">${empresa ? '🏢 Empresa' : '👤 Pessoa'}</span></div>
+        <div class="cl">${esc(sub)}${segueMe ? ' · <b style="color:var(--ok)">segue-te</b>' : ''}</div>
+      </div>
+    </a>
+    <p class="bio">${esc((u.bio || '').slice(0, 120))}</p>
+    <div class="btn-row">
+      <button class="btn-full ${sigo ? 'seguindo' : (empresa ? 'pro' : '')}" onclick="alternarSeguir('${u.id}', this)">
+        ${sigo ? '<i class="fas fa-check"></i> A seguir' : '<i class="fas fa-plus"></i> Seguir'}
+      </button>
+      <button class="btn-full decline" onclick="enviarMensagem('${u.id}')" title="Enviar mensagem"><i class="fas fa-comment-dots"></i></button>
+    </div>
+  </div>`;
+}
+
+async function alternarSeguir(id, btn){
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> A enviar...';
-  const { error } = await supabaseClient.from('friend_requests').insert({
-    from_id: me.id, to_id: toId, status: 'pendente'
-  });
-  if (error){
-    toast('Erro: ' + error.message);
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-user-plus"></i> Adicionar Amigo';
-    return;
+  const u = [...perfis, ...perfisSeguidores, ...perfisSeguindo].find(x => x.id === id);
+  if (seguindo.has(id)) {
+    const { error } = await supabaseClient.from('followers').delete().eq('follower_id', me.id).eq('following_id', id);
+    if (error) { toast('Erro: ' + error.message); btn.disabled = false; return; }
+    seguindo.delete(id);
+    perfisSeguindo = perfisSeguindo.filter(p => p.id !== id);
+    toast('Deixaste de seguir ' + (u ? u.full_name : ''));
+  } else {
+    const { error } = await supabaseClient.from('followers').insert({ follower_id: me.id, following_id: id, created_at: Date.now() });
+    if (error && !String(error.message).includes('duplicate')) { toast('Erro: ' + error.message); btn.disabled = false; return; }
+    seguindo.add(id);
+    if (u && !perfisSeguindo.some(p => p.id === id)) perfisSeguindo.unshift(u);
+    toast('Agora segues ' + (u ? u.full_name : ''));
   }
-  sentTo.push(toId);
-  toast(isPro ? 'Agora segues este perfil!' : 'Pedido de amizade enviado!');
+  atualizarBadges();
   render();
 }
 
-async function answerRequest(reqId, accept){
-  if (accept){
-    const req = incoming.find(r => r.id === reqId);
-    await supabaseClient.from('friend_requests').update({ status: 'aceite' }).eq('id', reqId);
-    if (req){
-      await supabaseClient.from('friendships').insert([
-        { user_id: me.id, friend_id: req.from_id },
-        { user_id: req.from_id, friend_id: me.id }
-      ]);
-    }
-    toast('Pedido aceite! 🎉');
-  } else {
-    await supabaseClient.from('friend_requests').update({ status: 'recusado' }).eq('id', reqId);
-    toast('Pedido recusado.');
-  }
-  await loadAll();
-}
-
-async function removeFriend(friendId){
-  await supabaseClient.from('friendships').delete().or(
-    'and(user_id.eq.' + me.id + ',friend_id.eq.' + friendId + '),' +
-    'and(user_id.eq.' + friendId + ',friend_id.eq.' + me.id + ')');
-  toast('Amizade removida.');
-  await loadAll();
+function enviarMensagem(id){
+  window.location.href = 'mensagen.html?para=' + encodeURIComponent(id);
 }
 </script>
 </body>
