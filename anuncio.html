@@ -1,265 +1,445 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anuncio Pro | Vagas & Ofertas</title>
-    <script src="https://kit.fontawesome.com" crossorigin="anonymous"></script>
-        <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
-
-    <link href="https://fonts.googleapis.com" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anúncios | Feira Comercial</title>
+<link rel="icon" href="images/logo.jpg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
-    
-   <style>
-        :root {
-            --primary: #0062ff;
-            --accent: #ff4757;
-            --bg: #f4f7f6;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: var(--text-main); }
-        
-        /* HEADER */
-        .top-nav { background: #facc15; padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-        .nav-left { display: flex; align-items: center; gap: 15px; }
-        .logo-area { display: flex; align-items: center; gap: 30px; font-weight: 800; font-size: 1.2rem; color: #1e293b; text-decoration: none; }
-        .logo-area img { height: 62px; width: 100px; border-radius: 10px; object-fit: cover; background: white; border: 2px solid white; }
-        .btn-home { background: white; color: #1e293b; border-radius: 8px; padding: 8px 12px; font-weight: 600; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+<script src="perfil-campos.js"></script>
+<style>
+:root { --primary:#0062ff; --accent:#ff4757; --ouro:#facc15; --bg:#f4f7f6; --text-main:#1e293b; --text-muted:#64748b; --border:#e2e8f0; }
+* { margin:0; padding:0; box-sizing:border-box; font-family:Inter,'Segoe UI',system-ui,sans-serif; }
+body { background:var(--bg); color:var(--text-main); }
+a { color:inherit; text-decoration:none; }
 
-        .container { max-width: 950px; margin: 20px auto; padding: 0 15px; }
-        
-        /* FILTROS E BUSCA */
-        .search-area { background: white; padding: 20px; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
-        .category-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .tab-btn { padding: 8px 15px; border-radius: 10px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); transition: 0.2s; }
-        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .search-bar { width: 100%; padding: 12px 18px; border: 2px solid var(--border); border-radius: 12px; outline: none; font-size: 0.95rem; }
+/* CABEÇALHO */
+.top-nav { background:var(--ouro); padding:.7rem 1.2rem; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,.1); position:sticky; top:0; z-index:100; }
+.nav-left { display:flex; align-items:center; gap:12px; }
+.logo-area img { height:52px; width:52px; border-radius:12px; object-fit:cover; background:#000; display:block; }
+.btn-home { background:#fff; color:#1e293b; border-radius:8px; padding:8px 12px; font-weight:600; font-size:.85rem; display:flex; align-items:center; gap:6px; }
+.titulo-nav { font-weight:800; font-size:1.1rem; }
 
-        /* FEED */
-        .feed { display: flex; flex-direction: column; gap: 12px; }
-        .card { 
-            background: white; padding: 18px; border-radius: 20px; border: 1px solid var(--border); 
-            display: grid; grid-template-columns: 100px 1fr auto; gap: 20px; align-items: center;
-            transition: 0.3s;
-        }
-        .card:hover { border-color: var(--primary); transform: translateY(-2px); }
-        .card-img { width: 100px; height: 100px; border-radius: 14px; object-fit: cover; background: #eee; border: 1px solid var(--border); }
-        .card-body { min-width: 0; }
-        .card-title { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-        .card-desc { font-size: 0.85rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 6px; }
-        
-        .badge { padding: 4px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; display: inline-block; }
-        .badge-job { background: #dbeafe; color: #1e40af; }
-        .badge-promo { background: #fee2e2; color: #991b1b; }
+.container { max-width:1000px; margin:20px auto; padding:0 15px 60px; }
 
-        .btn { padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-view { background: var(--primary); color: white; }
-        .btn-del { background: #fff1f2; color: var(--accent); padding: 10px; border-radius: 10px; }
+/* AVISO PARA PESSOAS */
+.aviso-pessoa { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:14px; padding:12px 16px; font-size:.88rem; margin-bottom:16px; display:none; }
 
-        /* MODAIS */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.8); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; padding: 15px; cursor: pointer; }
-        .modal-content { background: white; width: 100%; max-width: 550px; border-radius: 28px; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto; cursor: default; animation: popIn 0.3s ease; }
-        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        
-        .close-btn { 
-            position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; 
-            background: #f1f5f9; color: #1e293b; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 1.5rem; cursor: pointer; border: 2px solid var(--border); 
-            z-index: 1100; transition: 0.2s;
-        }
-        .close-btn:hover { background: var(--accent); color: white; transform: rotate(90deg); }
+/* PESQUISA E FILTROS */
+.search-area { background:#fff; padding:18px; border-radius:20px; border:1px solid var(--border); margin-bottom:20px; display:flex; flex-direction:column; gap:12px; }
+.category-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+.tab-btn { padding:8px 14px; border-radius:10px; border:1px solid var(--border); background:#f8fafc; cursor:pointer; font-weight:600; font-size:.85rem; color:var(--text-muted); }
+.tab-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.filtros { display:flex; gap:10px; flex-wrap:wrap; }
+.search-bar, .filtros select { padding:11px 16px; border:2px solid var(--border); border-radius:12px; outline:none; font-size:.95rem; background:#fff; }
+.search-bar { flex:1; min-width:200px; }
 
-        .detail-img { width: 100%; height: 260px; border-radius: 20px; object-fit: cover; margin-bottom: 20px; border: 1px solid var(--border); }
-        .info-card { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
-        .info-row { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: var(--text-main); }
-        .info-row i { color: var(--primary); font-size: 1rem; }
+/* GRELHA DE ANÚNCIOS */
+.feed { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+.card { background:#fff; border-radius:20px; border:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:.25s; }
+.card:hover { border-color:var(--primary); transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.06); }
+.card-img { width:100%; aspect-ratio:16/10; object-fit:cover; background:#e2e8f0; display:block; }
+.card-sem-img { width:100%; aspect-ratio:16/10; display:flex; align-items:center; justify-content:center; font-size:42px; color:#94a3b8; background:linear-gradient(135deg,#f1f5f9,#e2e8f0); }
+.card-body { padding:14px 16px 16px; display:flex; flex-direction:column; gap:6px; flex:1; }
+.card-title { font-size:1.05rem; font-weight:700; color:#0f172a; }
+.card-desc { font-size:.85rem; color:var(--text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.preco { font-weight:800; color:#16a34a; font-size:1rem; }
+.card-rodape { display:flex; align-items:center; gap:8px; margin-top:auto; padding-top:10px; border-top:1px solid #f1f5f9; font-size:.8rem; color:var(--text-muted); }
+.card-rodape img { width:26px; height:26px; border-radius:50%; object-fit:cover; }
+.card-rodape b { color:var(--text-main); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-        /* FORM */
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; color: #475569; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; }
+.badge { padding:4px 10px; border-radius:8px; font-size:.65rem; font-weight:800; text-transform:uppercase; display:inline-block; align-self:flex-start; }
+.badge-vaga { background:#dbeafe; color:#1e40af; }
+.badge-promo { background:#fee2e2; color:#991b1b; }
+.badge-servico { background:#dcfce7; color:#166534; }
+.badge-inativo { background:#e2e8f0; color:#475569; margin-left:6px; }
 
-        @media (max-width: 700px) {
-            .card { grid-template-columns: 1fr; text-align: center; padding: 25px; }
-            .card-img { margin: 0 auto 10px; width: 120px; height: 120px; }
-            .card-actions { justify-content: center; flex-direction: row; margin-top: 10px; }
-        }
-    </style>
+.btn { padding:10px 16px; border-radius:10px; font-weight:600; cursor:pointer; border:none; font-size:.88rem; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.btn-view { background:var(--primary); color:#fff; }
+.btn-claro { background:#f1f5f9; color:#1e293b; }
+.btn-whats { background:#25d366; color:#fff; }
+.btn-del { background:#fff1f2; color:var(--accent); }
+.btn:disabled { opacity:.6; cursor:default; }
+
+.vazio { grid-column:1/-1; text-align:center; padding:50px 20px; color:var(--text-muted); }
+.vazio i { font-size:46px; opacity:.35; display:block; margin-bottom:12px; }
+
+/* MODAIS */
+.modal { display:none; position:fixed; inset:0; background:rgba(15,23,42,.8); backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center; padding:15px; }
+.modal.aberto { display:flex; }
+.modal-content { background:#fff; width:100%; max-width:560px; border-radius:24px; padding:24px; position:relative; max-height:92vh; overflow-y:auto; animation:popIn .3s ease; }
+@keyframes popIn { from { transform:scale(.95); opacity:0; } to { transform:none; opacity:1; } }
+.close-btn { position:absolute; top:14px; right:14px; width:38px; height:38px; background:#f1f5f9; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:1.4rem; cursor:pointer; border:2px solid var(--border); z-index:2; }
+.detail-img { width:100%; max-height:320px; border-radius:18px; object-fit:cover; margin-bottom:16px; border:1px solid var(--border); }
+.info-card { display:flex; flex-direction:column; gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid #eee; }
+.info-row { display:flex; align-items:flex-start; gap:10px; font-size:.93rem; }
+.info-row i { color:var(--primary); width:18px; margin-top:3px; }
+.empresa-box { display:flex; align-items:center; gap:12px; margin-top:16px; padding:12px; border-radius:14px; background:#f8fafc; }
+.empresa-box img { width:46px; height:46px; border-radius:12px; object-fit:cover; }
+.acoes-det { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+.acoes-det .btn { flex:1; min-width:140px; }
+
+.form-group { margin-bottom:12px; }
+.form-group label { display:block; font-size:.85rem; font-weight:700; margin-bottom:4px; color:#475569; }
+.form-group input, .form-group textarea, .form-group select { width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:12px; font-size:.97rem; outline:none; font-family:inherit; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color:var(--primary); }
+.duas { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.foto-prev { width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin-top:8px; display:none; }
+.ajuda { font-size:.78rem; color:var(--text-muted); margin-top:3px; }
+
+#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fff; padding:12px 20px; border-radius:12px; z-index:2000; display:none; font-weight:600; }
+
+@media (max-width:600px) {
+  .duas { grid-template-columns:1fr; }
+  .titulo-nav { display:none; }
+}
+</style>
 </head>
 <body>
 
 <nav class="top-nav">
-    <div class="nav-left">
-        <a href="index.html" class="logo-area">
-            <img src="images/icon.jpeg" alt="Logo">
-            <span></span>
-        </a>
-        <a href="index.html" class="btn-home"><i class="fa-solid fa-house"></i> Home</a>
-    </div>
-    <button class="btn btn-view" onclick="toggleModal('formModal')"><i class="fa-solid fa-plus-circle"></i> Anúnciar</button>
+  <div class="nav-left">
+    <a href="index.html" class="logo-area"><img src="images/logo.jpg" alt="Feira Comercial"></a>
+    <a href="index.html" class="btn-home"><i class="fa-solid fa-house"></i> Início</a>
+    <span class="titulo-nav">Anúncios</span>
+  </div>
+  <button class="btn btn-view" id="btnAnunciar" style="display:none" onclick="abrirFormulario()"><i class="fa-solid fa-plus-circle"></i> Anunciar</button>
 </nav>
 
 <div class="container">
-    <div class="search-area">
-        <div class="category-tabs">
-            <button class="tab-btn active" id="tab-all" onclick="filterType('all')">Todos</button>
-            <button class="tab-btn" id="tab-job" onclick="filterType('job')">Vagas</button>
-            <button class="tab-btn" id="tab-promo" onclick="filterType('promo')">Promoções</button>
-        </div>
-        <input type="text" id="searchInput" class="search-bar" placeholder="🔍 O que procura hoje?">
+  <div class="aviso-pessoa" id="avisoPessoa">
+    <i class="fas fa-info-circle"></i> Só <b>contas de empresa</b> podem publicar anúncios. Podes ver todos os anúncios e contactar as empresas.
+  </div>
+
+  <div class="search-area">
+    <div class="category-tabs">
+      <button class="tab-btn active" data-tipo="todos" onclick="filtrarTipo('todos', this)">Todos</button>
+      <button class="tab-btn" data-tipo="promo" onclick="filtrarTipo('promo', this)">🏷️ Promoções</button>
+      <button class="tab-btn" data-tipo="vaga" onclick="filtrarTipo('vaga', this)">💼 Vagas de emprego</button>
+      <button class="tab-btn" data-tipo="servico" onclick="filtrarTipo('servico', this)">🛠️ Serviços</button>
+      <button class="tab-btn" data-tipo="meus" id="tabMeus" style="display:none" onclick="filtrarTipo('meus', this)">⭐ Os meus anúncios</button>
     </div>
-    
-    <main class="feed" id="feedContainer"></main>
+    <div class="filtros">
+      <input type="text" id="searchInput" class="search-bar" placeholder="🔍 O que procura hoje?" oninput="agendar()">
+      <select id="filtroProvincia" onchange="carregar()"></select>
+    </div>
+  </div>
+
+  <main class="feed" id="feedContainer"></main>
 </div>
 
-<!-- MODAL FORMULÁRIO -->
-<div class="modal" id="formModal" onclick="closeOutside(event, 'formModal')">
-    <div class="modal-content">
-        <div class="close-btn" onclick="toggleModal('formModal')">&times;</div>
-        <h3 style="font-size: 1.4rem;">Publicar Anúncio</h3>
-        <form id="adForm" style="margin-top: 20px;">
-            <div class="form-group"><label>Categoria</label><select id="type"><option value="job">Vaga de Emprego</option><option value="promo">Promoção / Oferta</option></select></div>
-            <div class="form-group"><label>Título do Anúncio</label><input type="text" id="title" placeholder="Ex: iPhone 15 ou Designer" required></div>
-            <div class="form-group"><label>Descrição Completa</label><textarea id="desc" rows="3" placeholder="Detalhes da oferta..." required></textarea></div>
-            <div class="form-group"><label>Endereço / Localização</label><input type="text" id="loc" placeholder="Ex: Luanda, Talatona" required></div>
-            <div class="form-group"><label>Data Limite</label><input type="date" id="date" required></div>
-            <div class="form-group"><label>Link do Perfil (URL)</label><input type="url" id="profile" placeholder="https://exemplo.com"></div>
-            <div class="form-group"><label>Link Oficial (URL)</label><input type="url" id="link" placeholder="https://site.com"></div>
-            <div class="form-group"><label>Imagem</label><input type="file" id="imgInput" accept="image/*"></div>
-            <button type="submit" class="btn btn-view" style="width:100%; justify-content:center; padding:16px; font-size:1rem; margin-top:10px;">Publicar Agora</button>
-        </form>
-    </div>
+<!-- FORMULÁRIO (só empresas) -->
+<div class="modal" id="formModal" onclick="if(event.target===this) fecharModal('formModal')">
+  <div class="modal-content">
+    <div class="close-btn" onclick="fecharModal('formModal')">&times;</div>
+    <h3 style="font-size:1.3rem;" id="formTitulo">Publicar anúncio</h3>
+    <form id="adForm" style="margin-top:18px;" onsubmit="guardarAnuncio(event)">
+      <div class="form-group"><label>Tipo de anúncio</label>
+        <select id="tipo" onchange="ajustarCampos()">
+          <option value="promo">🏷️ Promoção / Produto</option>
+          <option value="vaga">💼 Vaga de emprego</option>
+          <option value="servico">🛠️ Serviço</option>
+        </select></div>
+      <div class="form-group"><label>Título</label><input type="text" id="titulo" maxlength="120" required placeholder="Ex: Cimento 42.5 com 10% de desconto"></div>
+      <div class="form-group"><label>Descrição</label><textarea id="descricao" rows="4" maxlength="3000" required placeholder="Detalhes, condições, como candidatar-se..."></textarea></div>
+      <div class="duas">
+        <div class="form-group"><label id="lblPreco">Preço</label><input type="text" id="preco" maxlength="60" placeholder="Ex: 1.500 MT"></div>
+        <div class="form-group"><label>Válido até</label><input type="date" id="validade"></div>
+      </div>
+      <div class="form-group"><label>Local</label><input type="text" id="localizacao" maxlength="120" placeholder="Ex: Matola, Machava"></div>
+      <div class="duas">
+        <div class="form-group"><label>Contacto (WhatsApp/telefone)</label><input type="tel" id="contacto" maxlength="30" placeholder="Usa o da empresa se vazio"></div>
+        <div class="form-group"><label>Link (opcional)</label><input type="text" id="link" maxlength="300" placeholder="www.site.co.mz"></div>
+      </div>
+      <div class="form-group"><label>Imagem</label><input type="file" id="imgInput" accept="image/*" onchange="previewFoto(event)">
+        <img class="foto-prev" id="fotoPrev" alt=""><div class="ajuda">Será reduzida automaticamente para carregar rápido.</div></div>
+      <button type="submit" class="btn btn-view" id="btnGuardar" style="width:100%; padding:15px; font-size:1rem; margin-top:8px;">Publicar agora</button>
+    </form>
+  </div>
 </div>
 
-<!-- MODAL DETALHES -->
-<div class="modal" id="detailModal" onclick="closeOutside(event, 'detailModal')">
-    <div class="modal-content">
-        <div class="close-btn" onclick="toggleModal('detailModal')">&times;</div>
-        <div id="detailView"></div>
-    </div>
+<!-- DETALHES -->
+<div class="modal" id="detailModal" onclick="if(event.target===this) fecharModal('detailModal')">
+  <div class="modal-content">
+    <div class="close-btn" onclick="fecharModal('detailModal')">&times;</div>
+    <div id="detailView"></div>
+  </div>
 </div>
+
+<div id="toast"></div>
 
 <script>
-    let ads = JSON.parse(localStorage.getItem('ads_v7_final')) || [];
-    let currentBase64 = "";
-    let selectedType = "all";
+let me = null;
+let souEmpresa = false;
+let anuncios = [];
+let tipoAtual = 'todos';
+let fotoFicheiro = null;
+let emEdicao = null;      // anúncio a ser editado
+const vistos = new Set();
 
-    function toggleModal(id) {
-        const m = document.getElementById(id);
-        m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+const TIPOS = { promo: ['Promoção', 'badge-promo', 'fa-tag'], vaga: ['Vaga', 'badge-vaga', 'fa-briefcase'], servico: ['Serviço', 'badge-servico', 'fa-screwdriver-wrench'] };
+const esc = FCP.esc;
+const logo = p => (p && p.avatar_url) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent((p && p.full_name) || 'E') + '&background=random&color=fff&size=128');
+
+function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 2600); }
+function abrirModal(id) { document.getElementById(id).classList.add('aberto'); document.body.style.overflow = 'hidden'; }
+function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); document.body.style.overflow = ''; }
+
+(async function init() {
+  document.getElementById('filtroProvincia').innerHTML = FCP.opcoes(FCP.PROVINCIAS, '', 'Todas as províncias');
+  me = await FC.boot();
+  if (!me) return;
+  souEmpresa = me.type === 'empresa';
+  document.getElementById('btnAnunciar').style.display = souEmpresa ? '' : 'none';
+  document.getElementById('tabMeus').style.display = souEmpresa ? '' : 'none';
+  document.getElementById('avisoPessoa').style.display = souEmpresa ? 'none' : 'block';
+  await carregar();
+  const a = new URLSearchParams(location.search).get('a');
+  if (a) mostrarDetalhes(a);
+})();
+
+let _t;
+function agendar() { clearTimeout(_t); _t = setTimeout(carregar, 300); }
+
+function filtrarTipo(tipo, btn) {
+  tipoAtual = tipo;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  carregar();
+}
+
+async function carregar() {
+  if (!me) return;
+  const feed = document.getElementById('feedContainer');
+  const termo = document.getElementById('searchInput').value.replace(/[%,()]/g, ' ').trim();
+  const prov = document.getElementById('filtroProvincia').value;
+
+  let q = supabaseClient.from('vagas_anuncios')
+    .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, phone, whatsapp, province, city, sector, website)')
+    .order('data_publicacao', { ascending: false })
+    .limit(60);
+  if (tipoAtual === 'meus') q = q.eq('empresa_id', me.id);
+  else {
+    q = q.eq('ativo', true);
+    if (tipoAtual !== 'todos') q = q.eq('tipo', tipoAtual);
+  }
+  if (termo) q = q.or(`titulo.ilike.%${termo}%,descricao.ilike.%${termo}%,localizacao.ilike.%${termo}%`);
+
+  const { data, error } = await q;
+  if (error) { console.error(error.message); feed.innerHTML = '<p class="vazio">Erro ao carregar anúncios.</p>'; return; }
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  anuncios = (data || []).filter(a =>
+    (tipoAtual === 'meus' || !a.validade || a.validade >= hoje) &&     // esconde os que já expiraram
+    (!prov || (a.empresa && a.empresa.province === prov)));
+  render();
+}
+
+function render() {
+  const feed = document.getElementById('feedContainer');
+  if (!anuncios.length) {
+    feed.innerHTML = `<div class="vazio"><i class="fas fa-bullhorn"></i>
+      ${tipoAtual === 'meus' ? 'Ainda não publicaste anúncios.' : 'Ainda não há anúncios aqui.'}
+      ${souEmpresa ? '<br><br><button class="btn btn-view" onclick="abrirFormulario()"><i class="fas fa-plus"></i> Publicar o primeiro</button>' : ''}</div>`;
+    return;
+  }
+  const hoje = new Date().toISOString().slice(0, 10);
+  feed.innerHTML = anuncios.map(a => {
+    const [nomeTipo, classe, icone] = TIPOS[a.tipo] || TIPOS.promo;
+    const expirado = a.validade && a.validade < hoje;
+    return `
+    <article class="card" onclick="mostrarDetalhes('${a.id}')">
+      ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="card-img" loading="lazy" alt="">` : `<div class="card-sem-img"><i class="fas ${icone}"></i></div>`}
+      <div class="card-body">
+        <div><span class="badge ${classe}">${nomeTipo}</span>${!a.ativo ? '<span class="badge badge-inativo">Pausado</span>' : ''}${expirado ? '<span class="badge badge-inativo">Expirado</span>' : ''}</div>
+        <div class="card-title">${esc(a.titulo)}</div>
+        ${a.preco ? `<div class="preco">${esc(a.preco)}</div>` : ''}
+        <p class="card-desc">${esc(a.descricao)}</p>
+        ${a.localizacao ? `<div style="font-size:.78rem;color:var(--primary);font-weight:700;"><i class="fa-solid fa-location-dot"></i> ${esc(a.localizacao)}</div>` : ''}
+        <div class="card-rodape">
+          <img src="${esc(logo(a.empresa))}" alt=""><b>${esc(a.empresa ? a.empresa.full_name : 'Empresa')}</b>
+          <span>${new Date(a.data_publicacao).toLocaleDateString('pt-PT')}</span>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+async function mostrarDetalhes(id) {
+  let a = anuncios.find(x => x.id === id);
+  if (!a) {
+    const { data } = await supabaseClient.from('vagas_anuncios')
+      .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, phone, whatsapp, province, city, sector, website)')
+      .eq('id', id).maybeSingle();
+    a = data;
+  }
+  if (!a) { toast('Este anúncio já não existe.'); return; }
+  if (!vistos.has(a.id) && a.empresa_id !== me.id) { vistos.add(a.id); supabaseClient.rpc('ver_anuncio', { aid: a.id }); }
+
+  const e = a.empresa || {};
+  const [nomeTipo, classe] = TIPOS[a.tipo] || TIPOS.promo;
+  const meu = a.empresa_id === me.id;
+  const contacto = a.contacto || e.whatsapp || e.phone || '';
+  const wa = FCP.numeroWhatsApp(contacto);
+  const msgWa = encodeURIComponent(`Olá! Vi o vosso anúncio "${a.titulo}" na Feira Comercial.`);
+  document.getElementById('detailView').innerHTML = `
+    ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="detail-img" alt="">` : ''}
+    <span class="badge ${classe}">${nomeTipo}</span>
+    <h2 style="margin:8px 0;">${esc(a.titulo)}</h2>
+    ${a.preco ? `<div class="preco" style="font-size:1.2rem;margin-bottom:10px;">${esc(a.preco)}</div>` : ''}
+    <p style="color:var(--text-muted);line-height:1.6;white-space:pre-line;">${esc(a.descricao)}</p>
+    <div class="info-card">
+      ${a.localizacao ? `<div class="info-row"><i class="fa-solid fa-location-dot"></i><span><b>Local:</b> ${esc(a.localizacao)}</span></div>` : ''}
+      ${a.validade ? `<div class="info-row"><i class="fa-solid fa-calendar-check"></i><span><b>Válido até:</b> ${new Date(a.validade + 'T12:00').toLocaleDateString('pt-PT')}</span></div>` : ''}
+      ${contacto ? `<div class="info-row"><i class="fa-solid fa-phone"></i><span><b>Contacto:</b> ${esc(contacto)}</span></div>` : ''}
+      ${a.link ? `<div class="info-row"><i class="fa-solid fa-link"></i><a href="${esc(FCP.linkSite(a.link))}" target="_blank" rel="noopener" style="color:var(--primary);">${esc(a.link)}</a></div>` : ''}
+      ${meu ? `<div class="info-row"><i class="fa-solid fa-eye"></i><span><b>Visto</b> ${a.views || 0} vezes</span></div>` : ''}
+    </div>
+    <a class="empresa-box" href="perfil.html?id=${e.id}">
+      <img src="${esc(logo(e))}" alt="">
+      <div><b>${esc(e.full_name || 'Empresa')}</b><div style="font-size:.8rem;color:var(--text-muted);">${esc([e.sector, e.city, e.province].filter(Boolean).join(' · '))}</div></div>
+      <i class="fas fa-chevron-right" style="margin-left:auto;color:#94a3b8;"></i>
+    </a>
+    <div class="acoes-det">
+      ${meu ? `
+        <button class="btn btn-claro" onclick="editarAnuncio('${a.id}')"><i class="fas fa-pen"></i> Editar</button>
+        <button class="btn btn-claro" onclick="alternarAtivo('${a.id}', ${!a.ativo})"><i class="fas ${a.ativo ? 'fa-pause' : 'fa-play'}"></i> ${a.ativo ? 'Pausar' : 'Reativar'}</button>
+        <button class="btn btn-del" onclick="apagarAnuncio('${a.id}')"><i class="fas fa-trash-alt"></i> Apagar</button>`
+      : `
+        ${wa ? `<a class="btn btn-whats" href="https://wa.me/${wa}?text=${msgWa}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+        <a class="btn btn-view" href="mensagen.html?para=${e.id}"><i class="fas fa-comment-dots"></i> Mensagem</a>
+        ${contacto ? `<a class="btn btn-claro" href="tel:${esc(contacto.replace(/\s/g, ''))}"><i class="fas fa-phone"></i> Ligar</a>` : ''}`}
+      <button class="btn btn-claro" onclick="partilharAnuncio('${a.id}')"><i class="fas fa-share"></i> Partilhar</button>
+    </div>`;
+  abrirModal('detailModal');
+}
+
+async function partilharAnuncio(id) {
+  const url = location.origin + location.pathname + '?a=' + id;
+  try {
+    if (navigator.share) await navigator.share({ title: 'Anúncio na Feira Comercial', url });
+    else { await navigator.clipboard.writeText(url); toast('Link copiado!'); }
+  } catch (e) {}
+}
+
+// ─── PUBLICAR / EDITAR (só empresas) ───
+function ajustarCampos() {
+  const t = document.getElementById('tipo').value;
+  document.getElementById('lblPreco').textContent = t === 'vaga' ? 'Salário' : 'Preço';
+  document.getElementById('preco').placeholder = t === 'vaga' ? 'Ex: 25.000 MT / a combinar' : 'Ex: 1.500 MT';
+}
+
+function abrirFormulario() {
+  if (!souEmpresa) { toast('Só contas de empresa podem publicar anúncios.'); return; }
+  emEdicao = null;
+  document.getElementById('adForm').reset();
+  fotoFicheiro = null;
+  document.getElementById('fotoPrev').style.display = 'none';
+  document.getElementById('formTitulo').textContent = 'Publicar anúncio';
+  document.getElementById('btnGuardar').textContent = 'Publicar agora';
+  document.getElementById('localizacao').value = [me.city, me.province].filter(Boolean).join(', ');
+  ajustarCampos();
+  abrirModal('formModal');
+}
+
+function editarAnuncio(id) {
+  const a = anuncios.find(x => x.id === id);
+  if (!a) return;
+  fecharModal('detailModal');
+  emEdicao = a;
+  fotoFicheiro = null;
+  ['tipo', 'titulo', 'descricao', 'preco', 'validade', 'localizacao', 'contacto', 'link'].forEach(k => {
+    document.getElementById(k).value = a[k] || '';
+  });
+  const prev = document.getElementById('fotoPrev');
+  if (a.foto_url) { prev.src = a.foto_url; prev.style.display = 'block'; } else prev.style.display = 'none';
+  document.getElementById('formTitulo').textContent = 'Editar anúncio';
+  document.getElementById('btnGuardar').textContent = 'Guardar alterações';
+  ajustarCampos();
+  abrirModal('formModal');
+}
+
+async function reduzirImagem(file, max = 1200) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+    return blob ? new File([blob], 'anuncio.jpg', { type: 'image/jpeg' }) : file;
+  } catch (e) { return file; }
+}
+
+async function previewFoto(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  fotoFicheiro = await reduzirImagem(f);
+  const prev = document.getElementById('fotoPrev');
+  prev.src = URL.createObjectURL(fotoFicheiro);
+  prev.style.display = 'block';
+}
+
+async function guardarAnuncio(e) {
+  e.preventDefault();
+  if (!souEmpresa) return;
+  const btn = document.getElementById('btnGuardar');
+  const textoBtn = btn.textContent;
+  btn.disabled = true; btn.textContent = 'A guardar...';
+  try {
+    let foto_url = emEdicao ? emEdicao.foto_url : null;
+    if (fotoFicheiro) {
+      const caminho = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      const { error } = await supabaseClient.storage.from('ads_media').upload(caminho, fotoFicheiro, { contentType: 'image/jpeg' });
+      if (error) throw error;
+      foto_url = supabaseClient.storage.from('ads_media').getPublicUrl(caminho).data.publicUrl;
     }
-
-    function closeOutside(e, id) { if (e.target.id === id) toggleModal(id); }
-
-    // Upload de Imagem Seguro
-    document.getElementById('imgInput').onchange = function(e) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const scale = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scale;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                currentBase64 = canvas.toDataURL('image/jpeg', 0.8);
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(e.target.files[0]);
+    const v = id => document.getElementById(id).value.trim();
+    const dados = {
+      tipo: v('tipo'), titulo: v('titulo'), descricao: v('descricao'),
+      preco: v('preco') || null, validade: v('validade') || null, localizacao: v('localizacao') || null,
+      contacto: v('contacto') || null, link: v('link') || null, foto_url
     };
+    const { error } = emEdicao
+      ? await supabaseClient.from('vagas_anuncios').update(dados).eq('id', emEdicao.id)
+      : await supabaseClient.from('vagas_anuncios').insert(Object.assign({ empresa_id: me.id }, dados));
+    if (error) throw error;
+    fecharModal('formModal');
+    toast(emEdicao ? 'Anúncio atualizado!' : 'Anúncio publicado! 🎉');
+    emEdicao = null;
+    await carregar();
+  } catch (err) {
+    toast('Erro: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = textoBtn;
+  }
+}
 
-    document.getElementById('adForm').onsubmit = function(e) {
-        e.preventDefault();
-        const newAd = {
-            id: Date.now(),
-            type: document.getElementById('type').value,
-            title: document.getElementById('title').value,
-            desc: document.getElementById('desc').value,
-            loc: document.getElementById('loc').value,
-            date: document.getElementById('date').value,
-            profile: document.getElementById('profile').value || '#',
-            link: document.getElementById('link').value || '#',
-            img: currentBase64 || 'https://via.placeholder.com'
-        };
-        ads.unshift(newAd);
-        localStorage.setItem('ads_v7_final', JSON.stringify(ads));
-        render();
-        toggleModal('formModal');
-        this.reset();
-        currentBase64 = ""; // Reset da imagem
-    };
+async function alternarAtivo(id, ativo) {
+  const { error } = await supabaseClient.from('vagas_anuncios').update({ ativo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message); return; }
+  fecharModal('detailModal');
+  toast(ativo ? 'Anúncio reativado' : 'Anúncio pausado (já não aparece aos outros)');
+  carregar();
+}
 
-    function showDetails(id) {
-        const ad = ads.find(a => a.id === id);
-        document.getElementById('detailView').innerHTML = `
-            <img src="${ad.img}" class="detail-img">
-            <span class="badge ${ad.type === 'job' ? 'badge-job' : 'badge-promo'}">${ad.type === 'job' ? 'Emprego' : 'Oferta'}</span>
-            <h2 style="margin-bottom:10px;">${ad.title}</h2>
-            <p style="color:var(--text-muted); line-height:1.6; font-size:1rem; margin-bottom:20px;">${ad.desc}</p>
-            <div class="info-card">
-                <div class="info-row"><i class="fa-solid fa-location-dot"></i> <strong>Local:</strong> ${ad.loc}</div>
-                <div class="info-row"><i class="fa-solid fa-calendar-check"></i> <strong>Prazo:</strong> ${ad.date}</div>
-            </div>
-            <div style="display:flex; gap:12px; margin-top:30px;">
-                <a href="${ad.profile}" target="_blank" class="btn" style="background:#f1f5f9; flex:1; justify-content:center; color:#1e293b;"><i class="fa-solid fa-user-circle"></i> Ver Perfil</a>
-                <a href="${ad.link}" target="_blank" class="btn btn-view" style="flex:1; justify-content:center;"><i class="fa-solid fa-external-link"></i> Site Oficial</a>
-            </div>
-        `;
-        toggleModal('detailModal');
-    }
+async function apagarAnuncio(id) {
+  if (!confirm('Apagar este anúncio permanentemente?')) return;
+  const a = anuncios.find(x => x.id === id);
+  const { error } = await supabaseClient.from('vagas_anuncios').delete().eq('id', id);
+  if (error) { toast('Erro: ' + error.message); return; }
+  const caminho = a && a.foto_url && a.foto_url.split('/storage/v1/object/public/ads_media/')[1];
+  if (caminho) supabaseClient.storage.from('ads_media').remove([caminho]);
+  fecharModal('detailModal');
+  toast('Anúncio apagado');
+  carregar();
+}
 
-    function deleteAd(id) {
-        if(confirm("Deseja apagar este anúncio permanentemente?")) {
-            ads = ads.filter(a => a.id !== id);
-            localStorage.setItem('ads_v7_final', JSON.stringify(ads));
-            render();
-        }
-    }
-
-    function filterType(type) {
-        selectedType = type;
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('tab-' + type).classList.add('active');
-        render();
-    }
-
-    function render() {
-        const term = document.getElementById('searchInput').value.toLowerCase();
-        const container = document.getElementById('feedContainer');
-        const filtered = ads.filter(a => {
-            const matchesSearch = a.title.toLowerCase().includes(term) || a.desc.toLowerCase().includes(term);
-            const matchesTab = selectedType === 'all' || a.type === selectedType;
-            return matchesSearch && matchesTab;
-        });
-
-        container.innerHTML = filtered.map(ad => `
-            <div class="card">
-                <img src="${ad.img}" class="card-img">
-                <div class="card-body">
-                    <span class="badge ${ad.type === 'job' ? 'badge-job' : 'badge-promo'}">${ad.type === 'job' ? 'Vaga' : 'Oferta'}</span>
-                    <div class="card-title">${ad.title}</div>
-                    <p class="card-desc">${ad.desc}</p>
-                    <div style="font-size:0.75rem; color:var(--primary); font-weight:700;"><i class="fa-solid fa-map-pin"></i> ${ad.loc}</div>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <button class="btn btn-del" onclick="deleteAd(${ad.id})"><i class="fa-solid fa-trash-alt"></i></button>
-                    <button class="btn btn-view" onclick="showDetails(${ad.id})">Ver Oferta</button>
-                </div>
-            </div>
-        `).join('') || '<p style="text-align:center; padding:40px; color:var(--text-muted);">Ainda não há anúncios nesta categoria.</p>';
-    }
-
-    document.getElementById('searchInput').oninput = render;
-    render();
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharModal('formModal'); fecharModal('detailModal'); } });
 </script>
-
 </body>
 </html>
