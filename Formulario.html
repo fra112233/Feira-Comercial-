@@ -526,7 +526,7 @@
             const { data: authData, error: authError } = await client.auth.signUp({
                 email,
                 password: pwEl.value,
-                options: { data: dados }
+                options: { data: dados, emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'Portal.html?confirmado=1&email=' + encodeURIComponent(email) }
             });
             if (authError) throw authError;
             if (!authData.user) throw new Error('Não foi possível criar a conta. Tenta novamente.');
@@ -558,7 +558,7 @@
 
             if (!authData.session) {
                 // confirmação de e-mail ativa no Supabase
-                setStatus('✅ Conta criada! Enviámos um e-mail para <b>' + email + '</b>. Abre o link para confirmar e depois <a href="Portal.html" style="color:var(--primary)">entra aqui</a>.', 'success');
+                setStatus('✅ Conta criada! Enviámos um e-mail para <b>' + email + '</b>. Abre o link para confirmar e depois <a href="Portal.html?email=' + encodeURIComponent(email) + '" style="color:var(--primary)">entra aqui</a>.', 'success');
                 btn.textContent = 'Conta criada';
                 return;
             }
