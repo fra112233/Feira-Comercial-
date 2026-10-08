@@ -486,6 +486,8 @@
             .mobile-search-btn { display: none !important; }
         }
     .fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:sans-serif;pointer-events:none}
+.fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;min-width:0}.fc-marca img{width:40px;height:40px;border-radius:10px;display:block;flex-shrink:0}.fc-marca span{font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f3c64e,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media (max-width:900px){.fc-marca span{display:none}}
 /* nada empurra a página para os lados no telemóvel */
 html, body { max-width: 100%; overflow-x: hidden; }
 </style>
@@ -499,8 +501,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 
 <!-- HEADER -->
 <header>
-    <div class="logo"></div>
-<img src="images/icon.jpeg" alt="Ícone" style="position: absolute; top: 02px;   left: 01px; width: 115px; border: 0; border-style: none; outline: none; border-radius: 20px ">
+    <a href="index.html" class="fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial"><span>Feira Comercial</span></a>
 
     <div class="search-wrapper">
         <div class="search-box">
