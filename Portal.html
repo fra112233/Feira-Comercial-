@@ -1,158 +1,236 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles/styles.css" />
-    <script src="https://kit.fontawesome.com/1da7d53075.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" media="screen and (max-width: 768px)" href="styles/mobile.css" />
-    <!-- SDK do Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <title>Portal - Login </title>
-    <link rel="icon" href="favicon.ico">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar | Feira Comercial</title>
+<meta name="description" content="Feira Comercial — a rede social de pessoas e empresas. Explore, Exiba, Expanda.">
+<link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<style>
+:root {
+  --ouro: #f3c64e; --ouro-esc: #d9a52e; --fundo: #0b0b0c; --cartao: #16161a; --campo: #1f1f25;
+  --linha: #2c2c34; --texto: #f4f4f5; --sub: #a1a1aa; --ok: #4ade80;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+body {
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif; color: var(--texto); min-height: 100vh; min-height: 100dvh;
+  background: radial-gradient(circle at 50% -10%, rgba(243,198,78,.16), transparent 55%), var(--fundo);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px;
+}
+a { color: var(--ouro); text-decoration: none; }
+
+.cartao { width: 100%; max-width: 420px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 22px;
+  padding: 28px 24px 22px; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+.marca { text-align: center; margin-bottom: 22px; }
+.marca img { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; background: #000; box-shadow: 0 0 0 1px rgba(243,198,78,.25); }
+.marca h1 { font-size: 24px; margin-top: 12px; }
+.marca p { font-size: 14px; color: var(--sub); margin-top: 4px; }
+.marca p b { color: var(--ouro); font-weight: 600; }
+
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.campo { position: relative; margin-bottom: 14px; }
+.campo input { width: 100%; padding: 14px 44px 14px 42px; background: var(--campo); border: 1.5px solid var(--linha); border-radius: 12px;
+  color: var(--texto); font-size: 15px; outline: none; transition: border-color .2s; }
+.campo input:focus { border-color: var(--ouro); }
+.campo > i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--sub); }
+.ver { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--sub);
+  width: 36px; height: 36px; cursor: pointer; font-size: 15px; }
+.linha-senha { display: flex; justify-content: space-between; align-items: baseline; }
+.linha-senha a { font-size: 13px; }
+.caps { display: none; font-size: 12px; color: #fbbf24; margin: -8px 0 12px; }
+
+.termos { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--sub); line-height: 1.45; margin: 4px 0 16px; cursor: pointer; }
+.termos input { width: 18px; height: 18px; accent-color: var(--ouro); margin-top: 1px; flex-shrink: 0; }
+
+.btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+  background: linear-gradient(135deg, var(--ouro), var(--ouro-esc)); color: #000; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn-sec { background: var(--campo); color: var(--texto); border: 1px solid var(--linha); font-weight: 600; }
+.girar { width: 16px; height: 16px; border: 2.5px solid rgba(0,0,0,.25); border-top-color: #000; border-radius: 50%; animation: girar .8s linear infinite; display: none; }
+.btn.carregando .girar { display: inline-block; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.ou { display: flex; align-items: center; gap: 12px; color: var(--sub); font-size: 12px; margin: 18px 0; }
+.ou::before, .ou::after { content: ''; flex: 1; height: 1px; background: var(--linha); }
+
+.aviso { display: none; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.45; margin-bottom: 16px; }
+.aviso.erro { display: block; background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.35); color: #fecaca; }
+.aviso.ok { display: block; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.35); color: #bbf7d0; }
+.aviso button { background: none; border: none; color: var(--ouro); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0; }
+
+/* já com sessão iniciada */
+.sessao { display: none; text-align: center; }
+.sessao .eu { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--campo); border: 1px solid var(--linha);
+  border-radius: 14px; margin-bottom: 14px; text-align: left; }
+.sessao .eu img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #333; }
+.sessao .eu b { display: block; font-size: 15px; }
+.sessao .eu span { font-size: 13px; color: var(--sub); word-break: break-all; }
+.sessao .outra { display: inline-block; margin-top: 12px; font-size: 13px; background: none; border: none; color: var(--sub); cursor: pointer; text-decoration: underline; }
+
+.rodape { margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; font-size: 13px; }
+.rodape a { color: var(--sub); }
+.rodape a:hover { color: var(--ouro); }
+.rodape i { margin-right: 5px; }
+.seguranca { margin-top: 10px; font-size: 12px; color: #71717a; text-align: center; max-width: 420px; }
+</style>
 </head>
 <body>
 <script src="splash.js"></script>
-    <header>
-        <nav id="navbar">
-            <div class="container">
-                <h1>Feira Comercial</h1>
-                <ul>
-                    <li><a class="actual" href="about.html">Voltar</a></li>
-                </ul>
-            </div>
-        </nav>
-    </header>
 
-    <section id="Portal-form" class="py-3">
-        <div class="container">
-            <h1 class="titulo"><span class="texto-primario">Faça login</span></h1>
-            
-            <div class="login-box">
-                <form id="loginForm">
-                    <div class="row">
-                        <label for="username">E-mail</label>
-                        <input id="username" name="username" type="email" placeholder="exemplo@email.com" required>
-                    </div>
+<main class="cartao">
+  <div class="marca">
+    <img src="images/logo.jpg" alt="Feira Comercial">
+    <h1>Feira Comercial</h1>
+    <p><b>Explore, Exiba, Expanda</b> — pessoas e empresas num só lugar</p>
+  </div>
 
-                    <div class="row">
-                        <label for="password">Password</label>
-                        <input id="password" name="password" type="password" placeholder="Sua senha" required>
-                    </div>
-                    
-                    <div class="row check">
-                        <input id="warn" name="warn" type="checkbox" required>
-                        <label for="warn">Aceito os termos antes de fazer login</label>
-                    </div> 
+  <div class="aviso" id="aviso" role="alert"></div>
 
-                    <button class="btn" type="submit" id="loginBtn">Log In</button>
-                </form>
+  <!-- já tem sessão iniciada -->
+  <section class="sessao" id="sessao">
+    <div class="eu"><img id="sessaoFoto" alt=""><div style="min-width:0"><b id="sessaoNome">A sua conta</b><span id="sessaoEmail"></span></div></div>
+    <button class="btn" type="button" onclick="seguir()">Continuar <i class="fas fa-arrow-right"></i></button>
+    <button class="outra" type="button" onclick="outraConta()">Entrar com outra conta</button>
+  </section>
 
-                <div id="message" style="margin-top: 15px; padding: 12px; border-radius: 6px; display: none; font-size: 14px; text-align: center;"></div>
+  <!-- formulário de entrada -->
+  <form id="formEntrar" onsubmit="entrar(event)" novalidate>
+    <label for="email">E-mail</label>
+    <div class="campo"><i class="fas fa-envelope"></i>
+      <input type="email" id="email" placeholder="exemplo@email.com" autocomplete="username" required></div>
 
-                <div class="row btn-row" style="margin-top: 20px;">
-                    <a href="password.html" onclick="const e=document.getElementById('username').value.trim(); if(e) this.href='password.html?email='+encodeURIComponent(e);" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-user-lock fa-shake" style="color: rgb(255, 212, 59);"></i>
-                        <strong>Esqueceu-se da palavra-passe</strong>
-                    </a>
-                </div> 
+    <div class="linha-senha"><label for="senha">Palavra-passe</label>
+      <a href="password.html" id="linkEsqueci">Esqueceu-se?</a></div>
+    <div class="campo"><i class="fas fa-lock"></i>
+      <input type="password" id="senha" placeholder="A sua palavra-passe" autocomplete="current-password" required>
+      <button type="button" class="ver" onclick="verSenha(this)" aria-label="Mostrar palavra-passe"><i class="fas fa-eye"></i></button></div>
+    <div class="caps" id="caps"><i class="fas fa-triangle-exclamation"></i> As maiúsculas (Caps Lock) estão ligadas</div>
 
-                <p style="margin-top: 15px;">Segurança: Faça logout ou feche o navegador quando quiser sair do aplicativo.</p>
+    <label class="termos" id="caixaTermos"><input type="checkbox" id="termos">
+      <span>Li e aceito os <a href="politicas.html">Termos e Políticas de Segurança</a></span></label>
 
-                <a href="reclamacao.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-book fa-beat" style="color: rgb(255, 212, 59);"></i>
-                    <strong>Livro de Reclamações</strong>
-                </a>
-            </div>
-        </div>
-    </section>
+    <button class="btn" id="btnEntrar"><span class="girar"></span><span id="txtEntrar">Entrar</span></button>
 
-    <footer id="main-footer">
-        <p>
-            <b>
-                <a href="politicas.html" class="item-link" style="text-decoration: none; color: inherit;">
-                    <span>Termos e Políticas de Segurança | Feira Comercial</span>
-                </a>
-            </b>
-        </p>
-    </footer>
+    <div class="ou">ainda não tem conta?</div>
+    <a class="btn btn-sec" href="Formulario.html"><i class="fas fa-user-plus"></i> Criar conta grátis</a>
+  </form>
+</main>
 
-    <script>
-        // Configurações do Supabase fornecidas
-        const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
-        
-        // Inicializar o cliente Supabase
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<nav class="rodape">
+  <a href="about.html"><i class="fas fa-circle-info"></i>Sobre</a>
+  <a href="politicas.html"><i class="fas fa-shield-halved"></i>Termos e Privacidade</a>
+  <a href="reclamacao.html"><i class="fas fa-book"></i>Livro de Reclamações</a>
+</nav>
+<p class="seguranca"><i class="fas fa-lock"></i> Num computador partilhado, saia da conta (menu ☰ → Sair) quando terminar.</p>
 
-        const loginForm = document.getElementById('loginForm');
-        const loginBtn = document.getElementById('loginBtn');
-        const messageDiv = document.getElementById('message');
+<script>
+const $ = id => document.getElementById(id);
+const CHAVE_TERMOS = 'fc_termos_aceites';
 
-        function showMessage(text, isError = true) {
-            messageDiv.textContent = text;
-            messageDiv.style.display = 'block';
-            messageDiv.style.backgroundColor = isError ? '#fee2e2' : '#dcfce7';
-            messageDiv.style.color = isError ? '#991b1b' : '#166534';
-            messageDiv.style.border = `1px solid ${isError ? '#ef4444' : '#22c55e'}`;
-        }
+// para onde ir depois de entrar (?voltar=pagina.html...), só páginas deste site
+function destino() {
+  const v = new URLSearchParams(location.search).get('voltar') || '';
+  return /^[A-Za-z0-9_-]+\.html([?#].*)?$/.test(v) && !/^(Portal|password|Formulario)\.html/i.test(v) ? v : 'index.html';
+}
+function seguir() { location.href = destino(); }
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+function aviso(html, tipo = 'erro') { const a = $('aviso'); a.className = 'aviso ' + tipo; a.innerHTML = html; }
+function limparAviso() { $('aviso').className = 'aviso'; }
+function esc(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+function verSenha(b) {
+  const i = $('senha'); const ver = i.type === 'password';
+  i.type = ver ? 'text' : 'password';
+  b.innerHTML = `<i class="fas fa-eye${ver ? '-slash' : ''}"></i>`;
+}
 
-            // Feedback visual de carregamento
-            loginBtn.disabled = true;
-            loginBtn.textContent = "A autenticar...";
-            messageDiv.style.display = 'none';
+// aviso de Caps Lock
+['keydown', 'keyup'].forEach(ev => $('senha').addEventListener(ev, e => {
+  if (e.getModifierState) $('caps').style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+}));
 
-            try {
-                // Tentativa de login
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password,
-                });
+// "Esqueceu-se?" leva o e-mail escrito
+$('linkEsqueci').addEventListener('click', function () {
+  const e = $('email').value.trim();
+  this.href = 'password.html' + (e ? '?email=' + encodeURIComponent(e) : '');
+});
 
-                if (error) throw error;
+function traduzir(err) {
+  const m = ((err && err.message) || '').toLowerCase();
+  if (m.includes('invalid login credentials')) return 'E-mail ou palavra-passe incorretos. <a href="password.html?email=' + encodeURIComponent($('email').value.trim()) + '">Esqueceu-se da palavra-passe?</a>';
+  if (m.includes('email not confirmed')) return 'Ainda não confirmou o seu e-mail. Abra a mensagem que lhe enviámos no registo. <button type="button" onclick="reenviarConfirmacao()">Reenviar e-mail de confirmação</button>';
+  if (m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'Demasiadas tentativas. Aguarde um minuto e tente de novo.';
+  if (m.includes('network') || m.includes('failed to fetch')) return 'Sem ligação à internet. Verifique a rede e tente de novo.';
+  return esc((err && err.message) || 'Não foi possível entrar. Tente de novo.');
+}
 
-                // Sucesso
-                showMessage("Login efetuado com sucesso! Redirecionando...", false);
-                console.log('Sessão iniciada:', data.session);
+async function reenviarConfirmacao() {
+  const email = $('email').value.trim();
+  try {
+    const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
+    if (error) throw error;
+    aviso('Enviámos de novo o e-mail de confirmação para <b>' + esc(email) + '</b>. Veja também a pasta de Spam.', 'ok');
+  } catch (err) { aviso(traduzir(err)); }
+}
 
-                // Redirecionar após 1.5 segundos
-                setTimeout(() => {
-                    window.location.href = 'index.html'; // Ajuste para a sua página de destino
-                }, 1500);
+async function entrar(e) {
+  e.preventDefault();
+  limparAviso();
+  const email = $('email').value.trim().toLowerCase(), senha = $('senha').value;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { aviso('Escreva um e-mail válido.'); $('email').focus(); return; }
+  if (!senha) { aviso('Escreva a sua palavra-passe.'); $('senha').focus(); return; }
+  if (!$('termos').checked) { aviso('Para entrar, aceite os Termos e Políticas de Segurança.'); $('caixaTermos').scrollIntoView({ block: 'center' }); return; }
 
-            } catch (error) {
-                console.error('Erro:', error.message);
-                let errorMsg = "Erro ao entrar. Verifique as suas credenciais.";
-                
-                if (error.message.includes("Invalid login credentials")) {
-                    errorMsg = "E-mail ou palavra-passe incorretos.";
-                } else if (error.message.includes("Email not confirmed")) {
-                    errorMsg = "Por favor, confirme o seu e-mail antes de fazer login.";
-                }
-                
-                showMessage(errorMsg);
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = "Log In";
-            }
-        });
+  const btn = $('btnEntrar'); btn.disabled = true; btn.classList.add('carregando'); $('txtEntrar').textContent = 'A entrar…';
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
+    if (error) throw error;
+    try { localStorage.setItem(CHAVE_TERMOS, '1'); localStorage.removeItem('fc_profile'); } catch (x) {}
+    $('txtEntrar').textContent = 'Bem-vindo!';
+    seguir();
+  } catch (err) {
+    aviso(traduzir(err));
+    btn.disabled = false; btn.classList.remove('carregando'); $('txtEntrar').textContent = 'Entrar';
+  }
+}
 
-        // Verificar se já existe uma sessão ativa
-        async function checkUser() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                console.log('Utilizador já autenticado');
-                // Opcional: window.location.href = 'index.html';
-            }
-        }
-        checkUser();
-    </script>
+async function outraConta() {
+  await supabaseClient.auth.signOut();
+  try { localStorage.removeItem('fc_profile'); localStorage.removeItem('fc_perfil_v2'); } catch (x) {}
+  $('sessao').style.display = 'none';
+  $('formEntrar').style.display = '';
+  $('email').value = ''; $('email').focus();
+}
+
+// ─── arranque ───
+(async function () {
+  const q = new URLSearchParams(location.search);
+  if (q.get('email')) $('email').value = q.get('email');
+  try { if (localStorage.getItem(CHAVE_TERMOS)) { $('termos').checked = true; $('caixaTermos').style.display = 'none'; } } catch (x) {}
+  if (q.get('voltar')) aviso('Entre na sua conta para continuar.', 'ok');
+  if (q.get('confirmado')) aviso('E-mail confirmado! Já pode entrar.', 'ok');
+  if (!$('email').value) setTimeout(() => $('email').focus(), 300); else $('senha').focus();
+
+  // já tem sessão? mostra "Continuar como …"
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) return;
+  let nome = '', foto = '';
+  try {
+    const { data } = await supabaseClient.from('perfis').select('full_name, avatar_url').eq('id', session.user.id).maybeSingle();
+    if (data) { nome = data.full_name; foto = data.avatar_url; }
+  } catch (x) {}
+  $('sessaoNome').textContent = nome || 'A sua conta';
+  $('sessaoEmail').textContent = session.user.email || '';
+  $('sessaoFoto').src = foto || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nome || 'U') + '&background=random&color=fff&size=128');
+  $('formEntrar').style.display = 'none';
+  $('sessao').style.display = 'block';
+  if (!q.get('voltar')) limparAviso();
+})();
+</script>
 </body>
 </html>

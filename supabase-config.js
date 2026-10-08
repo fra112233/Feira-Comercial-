@@ -17,7 +17,12 @@ FC.getSession = async function () {
 
 FC.requireAuth = async function (loginPage = 'Portal.html') {
   const session = await FC.getSession();
-  if (!session) { window.location.href = loginPage; return null; }
+  if (!session) {
+    // volta a esta página depois de entrar (ex.: vídeo ou anúncio partilhado)
+    const aqui = (location.pathname.split('/').pop() || 'index.html') + location.search + location.hash;
+    window.location.href = loginPage + (aqui && aqui !== 'index.html' ? '?voltar=' + encodeURIComponent(aqui) : '');
+    return null;
+  }
   return session;
 };
 
