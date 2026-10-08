@@ -1305,7 +1305,7 @@
             <img src="https://picsum.photos/id/1018/800/200" class="cover-photo" alt="Capa" onclick="openLightbox(this)">
             <div class="profile-info-container">
                 <div class="profile-pic-wrapper">
-                    <img src="images/perfil.jpg" id="profileImg" class="profile-pic" alt="Perfil" onclick="openLightbox(this)" onerror="this.src='https://i.pravatar.cc/300?u=user123'">
+                    <img src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E" id="profileImg" class="profile-pic" alt="Perfil" onclick="openLightbox(this)" >
                     <label class="profile-pic-edit" title="Editar Foto">
                         <i class="fas fa-camera"></i>
                         <input type="file" accept="image/*" onchange="updateImage(this, 'profileImg')">
@@ -1392,7 +1392,7 @@
             <!-- CREATE POST -->
             <div class="create-post-card">
                 <div class="create-post-header">
-                    <img src="images/perfil.jpg" class="avatar-sm" alt="Avatar" onerror="this.src='https://i.pravatar.cc/300?u=user123'">
+                    <img src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E" class="avatar-sm" alt="Avatar" >
                     <input type="text" class="create-post-input" placeholder="No que estás a pensar?" onclick="openModal('modalPost')">
                 </div>
                 <div class="create-post-actions">
@@ -1492,7 +1492,7 @@
         </div>
         <div class="modal-body">
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
-                <img src="images/perfil.jpg" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="avatar-sm" alt="Avatar">
+                <img src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E" class="avatar-sm" alt="Avatar">
                 <div>
                     <div style="font-weight: 600; font-size: 14px;" id="modalUserName">Utilizador Pro</div>
                     <div style="font-size: 12px; color: var(--text-tertiary);">Público</div>
@@ -1694,7 +1694,7 @@
 
     function htmlPostFeed(p) {
         const postId = 'post-' + p.id;
-        const avatar = (perfilAtual && perfilAtual.avatar_url) || localStorage.getItem('fc_avatar') || 'images/perfil.jpg';
+        const avatar = (perfilAtual && perfilAtual.avatar_url) || localStorage.getItem('fc_avatar') || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E';
         const nome = (perfilAtual && perfilAtual.full_name) || p.userName || localStorage.getItem('fc_name') || 'Você';
         const hora = new Date(p.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
         const m = (p.media || [])[0];
@@ -1709,7 +1709,7 @@
             <div class="post" id="${postId}">
                 <div class="post-header">
                     <div class="post-author">
-                        <img src="${avatar}" class="avatar-sm" alt="Avatar" onerror="this.src='https://i.pravatar.cc/300?u=user123'">
+                        <img src="${avatar}" class="avatar-sm" alt="Avatar" >
                         <div class="post-author-info">
                             <div class="post-author-name">${nome}</div>
                             <div class="post-time">${hora}</div>
@@ -1739,7 +1739,7 @@
                 <div class="comments-section" id="comments-${postId}">
                     <div class="comments-list" id="comments-list-${postId}"></div>
                     <div class="comment-input-area">
-                        <img src="${avatar}" class="avatar-sm" alt="Avatar" onerror="this.src='https://i.pravatar.cc/300?u=user123'">
+                        <img src="${avatar}" class="avatar-sm" alt="Avatar" >
                         <div class="comment-input-wrapper">
                             <input type="text" class="comment-input" id="comment-input-${postId}" placeholder="Escreve um comentário..." onkeydown="if(event.key==='Enter') submitComment('${postId}', null)">
                             <button class="comment-send-btn" onclick="submitComment('${postId}', null)" title="Enviar comentário">
@@ -2031,7 +2031,7 @@
         comment.id = commentId;
 
         comment.innerHTML = `
-            <img src="${localStorage.getItem('fc_avatar') || 'images/perfil.jpg'}" onerror="this.src='https://i.pravatar.cc/300?u=user123'" class="comment-avatar" alt="Avatar">
+            <img src="${localStorage.getItem('fc_avatar') || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E'}" class="comment-avatar" alt="Avatar">
             <div>
                 <div class="comment-bubble">
                     <div class="comment-author">${localStorage.getItem('fc_name') || 'Tu'}</div>

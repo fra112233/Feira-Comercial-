@@ -233,7 +233,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     flex-shrink: 0; position: relative;
 }
 .reply-bar.show { display: flex; }
-.reply-bar-info { flex: 1; }
+.reply-bar-info { flex: 1; min-width: 0; }
 .reply-bar-name { font-size: 12px; font-weight: 700; color: var(--green); }
 .reply-bar-text { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
 .reply-bar-close { cursor: pointer; color: var(--text-secondary); font-size: 18px; }
@@ -423,11 +423,12 @@ html, body { max-width: 100%; overflow-x: hidden; }
 
             <!-- Reply bar -->
             <div class="reply-bar" id="replyBar">
+                <img id="reply-bar-thumb" alt="" style="display:none;width:42px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;">
                 <div class="reply-bar-info">
                     <div class="reply-bar-name" id="reply-bar-name"></div>
                     <div class="reply-bar-text" id="reply-bar-text"></div>
                 </div>
-                <span class="reply-bar-close" onclick="cancelReply()"><i class="fas fa-times"></i></span>
+                <span class="reply-bar-close" onclick="cancelReply(); refPendente = null;"><i class="fas fa-times"></i></span>
             </div>
 
             <div class="chat-window" id="chatWindow">
@@ -1116,6 +1117,7 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCtx(); 
 // ─── RESPOSTA ────────────────────────────────────────────
 function cancelReply() {
     replyTarget = null;
+    const th = document.getElementById('reply-bar-thumb'); if (th) th.style.display = 'none';
     document.getElementById('replyBar').classList.remove('show');
 }
 
@@ -1125,6 +1127,8 @@ function mostrarRefPendente() {
     replyTarget = { msgId: null, sender: null, text: refPendente.text };
     document.getElementById('reply-bar-name').textContent = refPendente.userName || '';
     document.getElementById('reply-bar-text').textContent = refPendente.text || '📷 Publicação';
+    const th = document.getElementById('reply-bar-thumb');
+    if (refPendente.thumb) { th.src = refPendente.thumb; th.style.display = 'block'; } else th.style.display = 'none';
     document.getElementById('replyBar').classList.add('show');
     setTimeout(() => document.getElementById('msgInput').focus(), 300);
 }
