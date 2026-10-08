@@ -52,7 +52,7 @@
                 <div id="message" style="margin-top: 15px; padding: 12px; border-radius: 6px; display: none; font-size: 14px; text-align: center;"></div>
 
                 <div class="row btn-row" style="margin-top: 20px;">
-                    <a href="password.html" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
+                    <a href="password.html" onclick="const e=document.getElementById('username').value.trim(); if(e) this.href='password.html?email='+encodeURIComponent(e);" class="item-link" style="text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-user-lock fa-shake" style="color: rgb(255, 212, 59);"></i>
                         <strong>Esqueceu-se da palavra-passe</strong>
                     </a>
