@@ -175,6 +175,8 @@ const CAMPOS = 'id, full_name, username, type, sector, bio, city, province, avat
 (async function init(){
   document.getElementById('filtroProvincia').innerHTML = FCP.opcoes(FCP.PROVINCIAS, '', 'Todas as províncias');
   document.getElementById('filtroSetor').innerHTML = FCP.opcoes(FCP.SETORES, '', 'Todos os setores');
+  const q = new URLSearchParams(location.search).get('q');
+  if (q) document.getElementById('searchInput').value = q;
   me = await FC.boot();
   if (!me) return;
   await Promise.all([carregarLigacoes(), carregarPerfis()]);

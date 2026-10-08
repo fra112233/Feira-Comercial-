@@ -15,6 +15,7 @@
 <script src="supabase-config.js"></script>
 <script src="perfil-campos.js"></script>
 <script src="perfil-tipos.js"></script>
+<script src="menu.js"></script>
 
     <style>
         /* ==================== CSS VARIABLES ==================== */
@@ -128,9 +129,15 @@
 
         .header-actions {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
+            margin-left: auto;          /* botões sempre à direita */
         }
+
+        .logo-topo img { height: 40px; width: 40px; border-radius: 10px; object-fit: cover; display: block; background: #000; }
+
+        /* nada pode empurrar a página para os lados no telemóvel */
+        html, body { max-width: 100%; overflow-x: hidden; }
 
         .icon-btn {
             width: 36px;
@@ -201,7 +208,7 @@
         /* ==================== MAIN LAYOUT ==================== */
         .main-container {
             display: grid;
-            grid-template-columns: 280px 1fr 320px;
+            grid-template-columns: 280px minmax(0, 1fr) 320px;
             gap: 20px;
             padding: 20px;
             max-width: 1400px;
@@ -210,7 +217,7 @@
 
         @media (max-width: 1024px) {
             .main-container {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
             }
 
             .sidebar-left, .sidebar-right {
@@ -358,7 +365,8 @@
 
         .profile-meta {
             display: flex;
-            gap: 20px;
+            flex-wrap: wrap;
+            gap: 8px 20px;
             font-size: 13px;
             margin-bottom: 16px;
             color: var(--text-tertiary);
@@ -368,6 +376,8 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .profile-stats {
@@ -440,7 +450,11 @@
             gap: 0;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 20px;
+            overflow-x: auto;           /* em ecrãs estreitos os separadores deslizam, a página não */
+            scrollbar-width: none;
         }
+        .profile-tabs::-webkit-scrollbar { display: none; }
+        .profile-tabs .tab-btn { flex-shrink: 0; white-space: nowrap; }
 
         .tab-btn {
             padding: 12px 16px;
@@ -1187,9 +1201,16 @@
 
         @media (max-width: 768px) {
             .main-container {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
                 padding: 12px;
             }
+
+            header { padding: 10px 12px; gap: 10px; }
+
+            /* morada, site e data uns por baixo dos outros */
+            .profile-meta { flex-direction: column; align-items: flex-start; }
+            .create-post-actions { gap: 2px; }
+            .action-btn { min-width: 0; padding: 8px 4px; font-size: 12px; }
 
             .profile-header {
                 margin-bottom: 16px;
@@ -1226,18 +1247,16 @@
 
 <!-- ==================== HEADER ==================== -->
 <header>
-    <input type="text" class="search-bar" placeholder="Pesquisar pessoas, hashtags...">
+    <a href="index.html" class="logo-topo" title="Feira Comercial"><img src="images/logo.jpg" alt="Feira Comercial"></a>
+    <input type="text" class="search-bar" placeholder="Pesquisar pessoas e empresas..." onkeydown="if(event.key==='Enter'&&this.value.trim())location.href='amigos.html?q='+encodeURIComponent(this.value.trim())">
     <div class="header-actions">
         <a href="index.html" title="Início"><i class="fas fa-home icon-btn" style="color:#ff3344;"></i></a>
         <a href="mensagen.html" title="Mensagens" style="position:relative;display:inline-block;"><i class="fas fa-comment-dots icon-btn"></i><span data-fc-msgs class="fc-msg-badge" style="display:none"></span></a>
         <button class="icon-btn" onclick="toggleTheme()" title="Alternar Tema">
             <i class="fas fa-moon" id="themeIcon"></i>
         </button>
-        <button class="icon-btn" title="Notificações">
-            <i class="fas fa-bell"></i>
-        </button>
-        <button class="profile-avatar-btn" onclick="openModal('modalMenu')">
-            <img id="headerAvatar" src="images/perfil.jpg" alt="Perfil" onerror="this.src='https://i.pravatar.cc/300?u=user123'">
+        <button class="icon-btn" onclick="FCMenu.abrir()" title="Menu" aria-label="Menu">
+            <i class="fas fa-bars"></i>
         </button>
     </div>
 </header>
@@ -1420,7 +1439,7 @@
 
         <!-- TAB CONTENT: INFO -->
         <div id="tab-info" class="tab-content">
-            <div id="infoTipo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start;"></div>
+            <div id="infoTipo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:16px;align-items:start;"></div>
         </div>
     </main>
 
@@ -1516,25 +1535,7 @@
     </div>
 </div>
 
-<!-- MENU MODAL -->
-<div id="modalMenu" class="modal">
-    <div class="modal-content" style="max-width: 300px;">
-        <div class="modal-body" style="padding: 0;">
-            <div style="padding: 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-user"></i> Meu Perfil
-            </div>
-            <div style="padding: 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-cog"></i> Definições
-            </div>
-            <div style="padding: 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'" onclick="toggleTheme()">
-                <i class="fas fa-moon" id="themeMenuIcon"></i> Modo Escuro
-            </div>
-            <div style="padding: 16px; cursor: pointer; transition: all 0.3s ease; color: var(--danger);" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'" onclick="if(window.FC&&FC.signOut){FC.signOut();}else{alert('Logout simulado');closeModals();}">
-                <i class="fas fa-sign-out-alt"></i> Sair
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- ==================== SCRIPTS ==================== -->
 <script>
@@ -1585,6 +1586,7 @@
         renderizarPostsDoFeed();
         carregarMeusPosts();
         contarSeguidores();
+        if (location.hash === '#editar' && !modoVisita) { history.replaceState(null, '', 'perfil.html'); openModal('modalEdit'); }
         if (window.FC && FC.badgeMensagens) FC.badgeMensagens();
     })();
 
