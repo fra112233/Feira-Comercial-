@@ -134,7 +134,8 @@
             margin-left: auto;          /* botões sempre à direita */
         }
 
-        .logo-topo img { height: 40px; width: 40px; border-radius: 10px; object-fit: cover; display: block; background: #000; }
+        .fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;min-width:0}.fc-marca img{width:40px;height:40px;border-radius:10px;display:block;flex-shrink:0}.fc-marca span{font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f3c64e,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}
+        @media (max-width:640px){.fc-marca span{display:none}}
 
         /* nada pode empurrar a página para os lados no telemóvel */
         html, body { max-width: 100%; overflow-x: hidden; }
@@ -1249,7 +1250,7 @@
 
 <!-- ==================== HEADER ==================== -->
 <header>
-    <a href="index.html" class="logo-topo" title="Feira Comercial"><img src="images/logo.jpg" alt="Feira Comercial"></a>
+    <a href="index.html" class="logo-topo fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial"><span>Feira Comercial</span></a>
     <input type="text" class="search-bar" placeholder="Pesquisar pessoas e empresas..." onkeydown="if(event.key==='Enter'&&this.value.trim())location.href='amigos.html?q='+encodeURIComponent(this.value.trim())">
     <div class="header-actions">
         <a href="index.html" title="Início"><i class="fas fa-home icon-btn" style="color:#ff3344;"></i></a>
