@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="perfil-campos.js"></script>
+<script src="menu.js"></script>
 <style>
 :root{ --brand:#2563eb; --pro:#7c3aed; --bg:#0f172a; --surface:#1e293b; --hover:#334155;
   --text:#f8fafc; --sub:#94a3b8; --border:rgba(255,255,255,.1); --ok:#22c55e; --danger:#ef4444; --radius:16px; }
@@ -105,6 +106,8 @@ a.card-top{color:inherit}
   .topbar .logo{font-size:16px}
 }
 .fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:sans-serif;pointer-events:none}
+/* nada empurra a página para os lados no telemóvel */
+html, body { max-width: 100%; overflow-x: hidden; }
 </style>
 
 <base target="_self">
@@ -119,6 +122,7 @@ a.card-top{color:inherit}
     <img data-fc-avatar src="" alt="">
     <span data-fc-name>…</span>
   </a>
+  <button class="icon-btn" onclick="FCMenu.abrir()" title="Menu" aria-label="Menu"><i class="fas fa-bars"></i></button>
 </header>
 
 <main class="main">

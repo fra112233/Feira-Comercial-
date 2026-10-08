@@ -8,22 +8,22 @@ window.FCMenu = (function () {
   var css = [
     '#fcm-fundo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5000;opacity:0;visibility:hidden;transition:.25s}',
     '#fcm-fundo.aberto{opacity:1;visibility:visible}',
-    '#fcm{position:fixed;top:0;right:0;bottom:0;width:min(330px,88vw);z-index:5001;background:var(--bg-secondary,#1e293b);',
-    'color:var(--text-primary,#f1f5f9);transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column;',
+    '#fcm{position:fixed;top:0;right:0;bottom:0;width:min(330px,88vw);z-index:5001;background:var(--bg-secondary,var(--bg-card,var(--surface,#1e293b)));',
+    'color:var(--text-primary,var(--text-main,var(--text,#f1f5f9)));transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column;',
     'box-shadow:-8px 0 30px rgba(0,0,0,.3);font-family:Inter,"Segoe UI",system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}',
     '#fcm.aberto{transform:none}',
-    '#fcm .cab{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-color,#334155)}',
+    '#fcm .cab{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-color,var(--border,#334155))}',
     '#fcm .cab b{font-size:17px}',
-    '#fcm .fechar{width:36px;height:36px;border-radius:50%;border:none;background:var(--bg-tertiary,#334155);color:inherit;font-size:18px;cursor:pointer}',
+    '#fcm .fechar{width:36px;height:36px;border-radius:50%;border:none;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)));color:inherit;font-size:18px;cursor:pointer}',
     '#fcm .corpo{flex:1;overflow-y:auto;padding:8px 0}',
-    '#fcm .eu{display:flex;align-items:center;gap:12px;margin:8px 12px 6px;padding:12px;border-radius:14px;background:var(--bg-tertiary,#334155);text-decoration:none;color:inherit}',
+    '#fcm .eu{display:flex;align-items:center;gap:12px;margin:8px 12px 6px;padding:12px;border-radius:14px;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)));text-decoration:none;color:inherit}',
     '#fcm .eu img{width:48px;height:48px;border-radius:50%;object-fit:cover;background:#475569;flex-shrink:0}',
     '#fcm .eu .n{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '#fcm .eu .t{font-size:12px;opacity:.75}',
     '#fcm .sec{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.6;padding:14px 20px 6px}',
     '#fcm .it{display:flex;align-items:center;gap:14px;width:100%;padding:12px 20px;border:none;background:none;color:inherit;',
     'font:inherit;font-size:15px;text-align:left;cursor:pointer;text-decoration:none}',
-    '#fcm .it:hover,#fcm .it:active{background:var(--bg-tertiary,#334155)}',
+    '#fcm .it:hover,#fcm .it:active{background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))}',
     '#fcm .it i.ic{width:22px;text-align:center;color:var(--primary,#6366f1);font-size:16px}',
     '#fcm .it .dir{margin-left:auto;font-size:12px;opacity:.6}',
     '#fcm .it.perigo,#fcm .it.perigo i.ic{color:#ef4444}',
@@ -36,6 +36,8 @@ window.FCMenu = (function () {
   var montado = false, perfil = null;
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  function temTema() { return typeof window.toggleTheme === 'function' || typeof window.toggleDarkMode === 'function'; }
 
   function temaEscuro() {
     // perfil.html usa body.light-mode; index.html usa body[data-theme="dark"]
@@ -84,7 +86,7 @@ window.FCMenu = (function () {
         item('fa-key', 'Alterar palavra-passe', 'password.html') +
 
         '<div class="sec">Definições</div>' +
-        item(temaEscuro() ? 'fa-moon' : 'fa-sun', 'Modo escuro', 'FCMenu.tema()', '<span class="sw ' + (temaEscuro() ? 'on' : '') + '" id="fcm-sw-tema"></span>') +
+        (temTema() ? item(temaEscuro() ? 'fa-moon' : 'fa-sun', 'Modo escuro', 'FCMenu.tema()', '<span class="sw ' + (temaEscuro() ? 'on' : '') + '" id="fcm-sw-tema"></span>') : '') +
         item('fa-eye', 'Perfil visível na pesquisa', 'FCMenu.visibilidade()', '<span class="sw ' + (publico ? 'on' : '') + '" id="fcm-sw-vis"></span>') +
         item('fa-bell', 'Notificações de mensagens', 'FCMenu.notificacoes()', '<span class="sw ' + (notif ? 'on' : '') + '" id="fcm-sw-not"></span>') +
 

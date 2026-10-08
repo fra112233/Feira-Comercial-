@@ -9,8 +9,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="perfil-campos.js"></script>
+<script src="menu.js"></script>
 <style>
-:root { --primary:#0062ff; --accent:#ff4757; --ouro:#facc15; --bg:#f4f7f6; --text-main:#1e293b; --text-muted:#64748b; --border:#e2e8f0; }
+:root { --bg-card:#ffffff; --hover-bg:#f1f5f9; --primary:#0062ff; --accent:#ff4757; --ouro:#facc15; --bg:#f4f7f6; --text-main:#1e293b; --text-muted:#64748b; --border:#e2e8f0; }
 * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,'Segoe UI',system-ui,sans-serif; }
 body { background:var(--bg); color:var(--text-main); }
 a { color:inherit; text-decoration:none; }
@@ -97,6 +98,8 @@ a { color:inherit; text-decoration:none; }
   .duas { grid-template-columns:1fr; }
   .titulo-nav { display:none; }
 }
+/* nada empurra a página para os lados no telemóvel */
+html, body { max-width: 100%; overflow-x: hidden; }
 </style>
 </head>
 <body>
@@ -107,7 +110,10 @@ a { color:inherit; text-decoration:none; }
     <a href="index.html" class="btn-home"><i class="fa-solid fa-house"></i> Início</a>
     <span class="titulo-nav">Anúncios</span>
   </div>
-  <button class="btn btn-view" id="btnAnunciar" style="display:none" onclick="abrirFormulario()"><i class="fa-solid fa-plus-circle"></i> Anunciar</button>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn btn-view" id="btnAnunciar" style="display:none" onclick="abrirFormulario()"><i class="fa-solid fa-plus-circle"></i> Anunciar</button>
+    <button class="btn btn-claro" onclick="FCMenu.abrir()" title="Menu" aria-label="Menu" style="padding:10px 13px;"><i class="fas fa-bars"></i></button>
+  </div>
 </nav>
 
 <div class="container">

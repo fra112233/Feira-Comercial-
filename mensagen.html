@@ -7,6 +7,7 @@
 <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="menu.js"></script>
 
 <style>
 :root {
@@ -309,6 +310,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     .user-switch-bar { display: none; }
     .emoji-picker { left: 0; right: 0; width: 100%; bottom: 60px; }
 }
+/* nada empurra a página para os lados no telemóvel */
+html, body { max-width: 100%; overflow-x: hidden; }
 </style>
 
 <base target="_self">
@@ -379,6 +382,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
                 <a href="index.html"><i class="fa-solid fa-home icon-btn" style="color: #ff3344;"></i></a>
                 <button class="icon-btn" onclick="toggleTheme()" title="Tema"><i class="fas fa-moon" id="theme-icon"></i></button>
                 <button class="icon-btn" onclick="addNewContact()" title="Nova conversa"><i class="fas fa-pen-to-square"></i></button>
+                <button class="icon-btn" onclick="FCMenu.abrir()" title="Menu" aria-label="Menu"><i class="fas fa-bars"></i></button>
             </div>
         </div>
         <div class="search-bar">

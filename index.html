@@ -13,6 +13,7 @@
 <!-- Importa o Supabase + configuração partilhada -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="menu.js"></script>
 
 
     <style>
@@ -463,6 +464,8 @@
             .mobile-search-btn { display: none !important; }
         }
     .fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:sans-serif;pointer-events:none}
+/* nada empurra a página para os lados no telemóvel */
+html, body { max-width: 100%; overflow-x: hidden; }
 </style>
 
 <base target="_self">
@@ -496,21 +499,7 @@
 <div class="btn-circle mobile-search-btn" onclick="toggleMobileSearch()" title="Pesquisar"><i class="fas fa-search"></i></div>
         <div class="btn-circle" onclick="toggleDarkMode()" title="Tema"><i class="fas fa-moon" id="theme-icon"></i></div>
         
-        <div class="dropdown-wrap">
-            <div class="btn-circle" onclick="toggleDropdown(event)"><i class="fas fa-user-circle fa-lg"></i></div>
-            <div id="myDropdown" class="dropdown-content">
-                <a class="dropdown-item" href="perfil.html"><i class="fas fa-user"></i> Meu Perfil</a>
-                <a class="dropdown-item" href="amigos.html"><i class="fas fa-user-friends"></i> Amigos</a>
-                <a class="dropdown-item" href="anuncio.html"><i class="fas fa-bullhorn"></i> Anúncios</a>
-                <a class="dropdown-item" href="live.html"><i class="fas fa-video"></i> Live</a>
-              <a class="dropdown-item" href="videos.html"><i class="fas fa-play-circle"></i> Vídeos</a>
-              <a class="dropdown-item" href="fotoVidio.html"><i class="fa-solid fa-photo-film"></i> Biblioteca</a>
-              
-                <a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Definições</a>
-                <hr class="dropdown-divider">
-                <a class="dropdown-item" href="#" onclick="FC.signOut(); return false;"><i class="fas fa-sign-out-alt"></i> Sair</a>
-            </div>
-        </div>
+        <div class="btn-circle" onclick="FCMenu.abrir()" title="Menu" aria-label="Menu"><i class="fas fa-bars"></i></div>
     </div>
 </header>
 
@@ -826,10 +815,10 @@ function toggleDarkMode() {
 
 function toggleDropdown(e) {
     e.stopPropagation();
-    document.getElementById('myDropdown').classList.toggle('show');
+    const dd = document.getElementById('myDropdown'); if (dd) dd.classList.toggle('show');
 }
 window.addEventListener('click', () => {
-    document.getElementById('myDropdown').classList.remove('show');
+    const dd = document.getElementById('myDropdown'); if (dd) dd.classList.remove('show');
     document.getElementById('search-results').classList.remove('visible');
 });
 
