@@ -315,6 +315,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
 </style>
 
 <base target="_self">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="images/icone-180.png">
 </head>
 <body data-theme="dark">
 
@@ -630,7 +632,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     localStorage.removeItem('fc_reply_draft');
 
     if (draft && draft.userId && draft.userId !== ME.id) {
-        refPendente = { userName: draft.userName, text: draft.text, thumb: draft.thumb || null };
+        const origem = /^(story|post)-(\d+)$/.exec(draft.refId || '');
+        refPendente = { userName: draft.userName, text: draft.text, thumb: draft.thumb || null,
+                        tipo: origem ? origem[1] : null, id: origem ? Number(origem[2]) : null, userId: draft.userId };
         await openContact(draft.userId);
         mostrarRefPendente();
     } else if (para && para !== ME.id) {
@@ -866,8 +870,9 @@ function buildBubble(msg) {
 
     let inner = '';
     if (msg.ref && !msg.deleted) {
-        inner += `<div class="reply-ref">${msg.ref.thumb ? `<img src="${escAttr(msg.ref.thumb)}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;float:right;margin-left:8px;">` : ''}
-                  <b>${escHtml(msg.ref.userName || '')}</b>${escHtml(msg.ref.text || '')}</div>`;
+        inner += `<div class="reply-ref" style="cursor:pointer;" title="Ver a publicação / status" onclick="abrirReferencia(${msg.id})">${msg.ref.thumb ? `<img src="${escAttr(msg.ref.thumb)}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;float:right;margin-left:8px;">` : ''}
+                  <b>${escHtml(msg.ref.userName || '')}</b>${escHtml(msg.ref.text || '')}
+                  <div style="font-size:11px;opacity:.7;margin-top:2px;"><i class="fas fa-arrow-up-right-from-square"></i> Ver ${msg.ref.tipo === 'post' ? 'publicação' : 'status'}</div></div>`;
     }
     if (msg.reply_to && !msg.deleted) {
         const ref = mensagens.find(m => m.id === msg.reply_to);
@@ -1131,6 +1136,19 @@ function mostrarRefPendente() {
     if (refPendente.thumb) { th.src = refPendente.thumb; th.style.display = 'block'; } else th.style.display = 'none';
     document.getElementById('replyBar').classList.add('show');
     setTimeout(() => document.getElementById('msgInput').focus(), 300);
+}
+
+// ─── ABRIR A PUBLICAÇÃO / STATUS CITADO ──────────────────
+// leva quem recebeu a mensagem ao post ou status original (página inicial)
+function abrirReferencia(msgId) {
+    const m = mensagens.find(x => x.id === msgId);
+    const r = m && m.ref;
+    if (!r) return;
+    if (r.tipo === 'story' && r.id) { location.href = 'index.html?story=' + r.id; return; }
+    if (r.tipo === 'post' && r.id) { location.href = 'index.html?post=' + r.id; return; }
+    // mensagens antigas (sem ligação guardada): mostra pelo menos a foto
+    if (r.thumb) openLightbox(r.thumb);
+    else showToast('Esta mensagem é antiga e não tem ligação ao status original.');
 }
 
 // ─── BLOQUEAR ────────────────────────────────────────────
