@@ -1,75 +1,258 @@
 <!DOCTYPE html>
 <html lang="pt">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles/styles.css" />
-    <script
-      src="https://kit.fontawesome.com/1da7d53075.js"
-      crossorigin="anonymous"
-    ></script>
-    <link
-      rel="stylesheet"
-      media="screen and (max-width: 768px)"
-      href="styles/mobile.css"
-    />
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-    
-    <title>Livro de Reclamações</title>
-  <link rel="icon" href="favicon.ico">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reclamações e sugestões | Feira Comercial</title>
+<meta name="description" content="Envie uma sugestão, reclamação, denúncia ou elogio à equipa da Feira Comercial.">
+<link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="menu.js"></script>
+<style>
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; margin-top: 26px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.tipos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+@media (max-width: 560px) { .tipos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tipo { position: relative; }
+.tipo input { position: absolute; opacity: 0; pointer-events: none; }
+.tipo span { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 12px; cursor: pointer;
+  background: var(--campo); border: 1.5px solid var(--linha); font-size: 12.5px; font-weight: 600; text-align: center; color: var(--sub); transition: .15s; }
+.tipo span i { font-size: 18px; }
+.tipo input:checked + span { border-color: var(--ouro); color: var(--texto); background: rgba(243,198,78,.1); }
+.tipo input:checked + span i { color: var(--ouro); }
+.tipo input:focus-visible + span { outline: 2px solid var(--ouro); outline-offset: 2px; }
+.ajuda-tipo { font-size: 13px; color: var(--sub); margin: -8px 0 16px; min-height: 1.4em; }
+.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--sub); margin: 4px 0 18px; cursor: pointer; }
+.consent input { width: 18px; height: 18px; accent-color: var(--ouro); margin-top: 2px; flex-shrink: 0; }
+.lado h3 { font-size: 15px; margin-bottom: 12px; }
+.passos { list-style: none; display: grid; gap: 14px; }
+.passos li { display: flex; gap: 12px; font-size: 14px; color: var(--sub); }
+.passos li b { color: var(--texto); display: block; }
+.passos .n { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(243,198,78,.12); color: var(--ouro); font-weight: 800; font-size: 13px; }
+.sucesso { display: none; text-align: center; padding: 18px 6px 6px; }
+.sucesso .ic { width: 66px; height: 66px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;
+  background: rgba(74,222,128,.12); color: var(--ok); font-size: 28px; }
+.sucesso h2 { font-size: 22px; }
+.sucesso .num { display: inline-block; margin: 12px 0 6px; font-size: 20px; font-weight: 800; letter-spacing: 1px; color: var(--ouro);
+  background: rgba(243,198,78,.1); border: 1px dashed rgba(243,198,78,.4); padding: 6px 16px; border-radius: 10px; }
+.sucesso p { color: var(--sub); font-size: 14px; max-width: 420px; margin: 8px auto 18px; }
+.pedidos { display: none; }
+.pedido { border: 1px solid var(--linha); border-radius: 14px; padding: 14px 16px; background: var(--cartao); margin-bottom: 10px; }
+.pedido .cab { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pedido .cab b { font-size: 15px; }
+.pedido .meta { font-size: 12.5px; color: var(--sub); margin-top: 2px; }
+.pedido .msg { font-size: 14px; color: #d4d4d8; margin-top: 8px; white-space: pre-wrap; word-break: break-word; }
+.pedido .resp { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(243,198,78,.08); border-left: 3px solid var(--ouro); font-size: 14px; white-space: pre-wrap; }
+.estado { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.e-recebida { background: rgba(96,165,250,.15); color: #93c5fd; }
+.e-em_analise { background: rgba(251,191,36,.15); color: #fcd34d; }
+.e-resolvida { background: rgba(74,222,128,.15); color: #86efac; }
+.e-arquivada { background: rgba(161,161,170,.15); color: #d4d4d8; }
+.vazio { color: var(--sub); font-size: 14px; }
+</style>
 </head>
-  <body>
-    <header>
-      <nav id="navbar">
-        <div class="container">
-          <h1 class="logo">Feira Comercial</a></h1>
-          <ul>
-            
-            
-           
-          </ul>
+<body>
+<header class="topo" data-atual="reclamacao"></header>
+
+<main class="pagina">
+  <span class="etiqueta"><i class="fas fa-comments"></i> Fale connosco</span>
+  <h1 class="titulo">Reclamações e <em>sugestões</em></h1>
+  <p class="intro">Encontrou um problema, tem uma ideia para melhorar ou quer denunciar um perfil? Escreva-nos: cada mensagem é lida pela equipa da Feira Comercial.</p>
+
+  <div class="layout">
+    <section class="cartao">
+      <form id="form" novalidate>
+        <div class="aviso" id="aviso" role="alert"></div>
+
+        <label>Tipo de pedido</label>
+        <div class="tipos" role="radiogroup" aria-label="Tipo de pedido">
+          <label class="tipo"><input type="radio" name="tipo" value="sugestao" checked><span><i class="fas fa-lightbulb"></i>Sugestão</span></label>
+          <label class="tipo"><input type="radio" name="tipo" value="reclamacao"><span><i class="fas fa-face-frown"></i>Reclamação</span></label>
+          <label class="tipo"><input type="radio" name="tipo" value="problema"><span><i class="fas fa-bug"></i>Problema no site</span></label>
+          <label class="tipo"><input type="radio" name="tipo" value="denuncia"><span><i class="fas fa-flag"></i>Denúncia</span></label>
+          <label class="tipo"><input type="radio" name="tipo" value="elogio"><span><i class="fas fa-heart"></i>Elogio</span></label>
         </div>
-      </nav>
-    </header>
+        <p class="ajuda-tipo" id="ajudaTipo"></p>
 
-    <section id="contact-form" class="py-3">
-      <div class="container">
-        <h1 class="titulo-largo"
-          ><span class="texto-primario">Sugestões e Reclamações</span></h1
-        >
-        <p>Por favor preencha o formulário abaixo para nos contactar</p>
-        <form action="processar">
-          <div class="form-group">
-            <label for="name">Nome </label>
-            <input type="text" name="name" id="name" />
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" name="email" id="email" />
-          </div>
-          <div class="form-group">
-            <label for="name">Mensagem</label>
-            <textarea name="message" id="message"></textarea>
-          </div>
-          <button type="submit" class="btn">Enviar</button>
-        </form>
-         <b><a href="Portal.html" class="item-link" style="text-decoration: none; color: inherit;">
-    <i class="fas fa-light fa-person-walking-arrow-right"></i>
-    <strong>Voltar a pagina</strong>
-</a></b>
-     
+        <div class="duas">
+          <div class="campo"><label for="nome">Nome</label><input id="nome" autocomplete="name" maxlength="120" required></div>
+          <div class="campo"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" maxlength="200" required></div>
+        </div>
+        <div class="duas">
+          <div class="campo"><label for="telefone">Telefone <span style="color:var(--sub);font-weight:400">(opcional)</span></label><input id="telefone" type="tel" autocomplete="tel" maxlength="30" placeholder="+258 8X XXX XXXX"></div>
+          <div class="campo"><label for="link">Link da página ou perfil <span style="color:var(--sub);font-weight:400">(opcional)</span></label><input id="link" maxlength="500" placeholder="Cole aqui o endereço"></div>
+        </div>
+        <div class="campo"><label for="assunto">Assunto</label><input id="assunto" maxlength="150" required placeholder="Resumo em poucas palavras"></div>
+        <div class="campo">
+          <label for="mensagem">Mensagem</label>
+          <textarea id="mensagem" maxlength="4000" required placeholder="Conte-nos com detalhe o que aconteceu ou o que sugere."></textarea>
+          <div class="dica"><span id="dicaMsg">Mínimo 10 caracteres.</span><span id="conta">0 / 4000</span></div>
+        </div>
+
+        <label class="consent"><input type="checkbox" id="consent">
+          <span>Aceito que a Feira Comercial use estes dados apenas para responder a este pedido, de acordo com a <a href="politicas.html#privacidade" target="_blank">Política de privacidade</a>.</span></label>
+
+        <button class="btn" id="btnEnviar" style="width:100%"><span class="girar"></span><i class="fas fa-paper-plane"></i><span>Enviar</span></button>
+      </form>
+
+      <div class="sucesso" id="sucesso" aria-live="polite">
+        <div class="ic"><i class="fas fa-check"></i></div>
+        <h2>Recebemos o seu pedido</h2>
+        <div class="num" id="numPedido"></div>
+        <p id="txtSucesso"></p>
+        <button class="btn btn-sec" onclick="novoPedido()"><i class="fas fa-plus"></i> Enviar outro</button>
       </div>
-    
+    </section>
 
-    <footer id="main-footer">
-      <p>
-        <b><a href="politicas.html" class="item-link" style="text-decoration: none; color: inherit;">
-    
-    <span >Termos e Políticas de Segurança|Feira Comercial</span>
-</a></b>
-      </p>
-    </footer>
-  </body>
+    <aside class="cartao lado">
+      <h3>O que acontece a seguir</h3>
+      <ol class="passos">
+        <li><span class="n">1</span><div><b>Recebida</b>A mensagem fica registada com um número.</div></li>
+        <li><span class="n">2</span><div><b>Em análise</b>A equipa lê e, se for preciso, contacta-o por e-mail ou telefone.</div></li>
+        <li><span class="n">3</span><div><b>Resolvida</b>Com conta iniciada, vê a resposta nesta página, em "Os meus pedidos".</div></li>
+      </ol>
+      <p style="font-size:13px;color:var(--sub);margin-top:16px"><i class="fas fa-shield-halved" style="color:var(--ouro)"></i>
+        A plataforma liga pessoas e empresas mas não participa nos negócios entre elas. Ver os <a href="politicas.html#termos">Termos</a>.</p>
+    </aside>
+  </div>
+
+  <section class="secao pedidos" id="secPedidos">
+    <h2>Os meus pedidos</h2>
+    <div id="listaPedidos"><p class="vazio">A carregar…</p></div>
+  </section>
+</main>
+
+<footer class="rodape"></footer>
+<script src="ajuda.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const AJUDA = {
+  sugestao: 'Uma ideia para melhorar a Feira Comercial.',
+  reclamacao: 'Algo correu mal com a plataforma ou com o atendimento.',
+  problema: 'Um erro no site: diga em que página e o que estava a fazer.',
+  denuncia: 'Perfil falso, burla, produto ilegal ou conteúdo ofensivo. Cole o link do perfil ou da publicação.',
+  elogio: 'Gostou de algo? A equipa agradece!'
+};
+const NOMES = { sugestao: 'Sugestão', reclamacao: 'Reclamação', problema: 'Problema no site', denuncia: 'Denúncia', elogio: 'Elogio' };
+const ESTADOS = { recebida: 'Recebida', em_analise: 'Em análise', resolvida: 'Resolvida', arquivada: 'Arquivada' };
+let sessao = null;
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function tipoAtual() { return document.querySelector('input[name=tipo]:checked').value; }
+function aviso(txt, tipo) { const a = $('aviso'); a.className = 'aviso ' + (tipo || 'erro'); a.innerHTML = txt; a.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+function limparAviso() { $('aviso').className = 'aviso'; }
+function numero(id) { return 'FC-' + String(id).padStart(6, '0'); }
+function dataPt(d) { return new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }); }
+
+document.querySelectorAll('input[name=tipo]').forEach(r => r.addEventListener('change', () => { $('ajudaTipo').textContent = AJUDA[tipoAtual()]; }));
+$('mensagem').addEventListener('input', () => {
+  const n = $('mensagem').value.trim().length;
+  $('conta').textContent = $('mensagem').value.length + ' / 4000';
+  $('dicaMsg').textContent = n < 10 ? 'Mínimo 10 caracteres.' : 'Obrigado pelo detalhe.';
+});
+
+// vindo de outra página: reclamacao.html?tipo=denuncia&link=...
+(function () {
+  const q = new URLSearchParams(location.search);
+  const t = q.get('tipo'); if (t && AJUDA[t]) document.querySelector('input[name=tipo][value="' + t + '"]').checked = true;
+  if (q.get('link')) $('link').value = q.get('link').slice(0, 500);
+  if (q.get('assunto')) $('assunto').value = q.get('assunto').slice(0, 150);
+  $('ajudaTipo').textContent = AJUDA[tipoAtual()];
+})();
+
+function traduzir(err) {
+  const m = (err && (err.message || '')) + '';
+  if (m.includes('Demasiados pedidos')) return 'Enviou muitos pedidos seguidos. Tente novamente daqui a uma hora.';
+  if (m.includes('email')) return 'Verifique o e-mail.';
+  if (m.includes('Failed to fetch') || m.includes('NetworkError')) return 'Sem ligação à internet. Verifique a rede e tente outra vez.';
+  if (m.includes('relation') || m.includes('does not exist') || m.includes('schema cache')) return 'O livro de reclamações ainda está a ser preparado. Tente mais tarde.';
+  return 'Não foi possível enviar: ' + esc(m || 'erro desconhecido');
+}
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault(); limparAviso();
+  const dados = {
+    tipo: tipoAtual(),
+    nome: $('nome').value.trim(),
+    email: $('email').value.trim().toLowerCase(),
+    telefone: $('telefone').value.trim() || null,
+    link: $('link').value.trim() || null,
+    assunto: $('assunto').value.trim(),
+    mensagem: $('mensagem').value.trim()
+  };
+  if (dados.nome.length < 2) { aviso('Escreva o seu nome.'); $('nome').focus(); return; }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dados.email)) { aviso('Escreva um e-mail válido para podermos responder.'); $('email').focus(); return; }
+  if (dados.assunto.length < 3) { aviso('Escreva o assunto.'); $('assunto').focus(); return; }
+  if (dados.mensagem.length < 10) { aviso('A mensagem é muito curta (mínimo 10 caracteres).'); $('mensagem').focus(); return; }
+  if (dados.tipo === 'denuncia' && !dados.link) { aviso('Para uma denúncia, cole o link do perfil ou da publicação.'); $('link').focus(); return; }
+  if (!$('consent').checked) { aviso('Marque a caixa de consentimento para enviarmos o pedido.'); return; }
+
+  const btn = $('btnEnviar'); btn.disabled = true; btn.classList.add('carregando');
+  try {
+    let id = null;
+    if (sessao) {
+      dados.user_id = sessao.user.id;
+      const { data, error } = await supabaseClient.from('reclamacoes').insert(dados).select('id').single();
+      if (error) throw error;
+      id = data && data.id;
+    } else {
+      const { error } = await supabaseClient.from('reclamacoes').insert(dados);
+      if (error) throw error;
+    }
+    $('form').style.display = 'none';
+    $('sucesso').style.display = 'block';
+    $('numPedido').style.display = id ? 'inline-block' : 'none';
+    $('numPedido').textContent = id ? 'Pedido nº ' + numero(id) : '';
+    $('txtSucesso').innerHTML = (NOMES[dados.tipo] + ' enviada. ') +
+      (sessao ? 'Pode acompanhar o estado e a resposta em "Os meus pedidos", mais abaixo.'
+              : 'Vamos responder para <b>' + esc(dados.email) + '</b>. Com conta iniciada pode acompanhar o pedido aqui.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (sessao) carregarPedidos();
+  } catch (err) {
+    aviso(traduzir(err));
+  } finally {
+    btn.disabled = false; btn.classList.remove('carregando');
+  }
+});
+
+function novoPedido() {
+  ['assunto', 'mensagem', 'link'].forEach(i => $(i).value = '');
+  $('conta').textContent = '0 / 4000';
+  $('sucesso').style.display = 'none'; $('form').style.display = 'block'; limparAviso();
+}
+
+async function carregarPedidos() {
+  $('secPedidos').style.display = 'block';
+  const { data, error } = await supabaseClient.from('reclamacoes')
+    .select('id,tipo,assunto,mensagem,estado,resposta,respondido_em,created_at')
+    .order('created_at', { ascending: false }).limit(30);
+  const lista = $('listaPedidos');
+  if (error) { lista.innerHTML = '<p class="vazio">Não foi possível carregar os pedidos.</p>'; return; }
+  if (!data || !data.length) { lista.innerHTML = '<p class="vazio">Ainda não enviou nenhum pedido.</p>'; return; }
+  lista.innerHTML = data.map(p =>
+    '<article class="pedido"><div class="cab"><div><b>' + esc(p.assunto) + '</b>' +
+      '<div class="meta">' + numero(p.id) + ' · ' + (NOMES[p.tipo] || p.tipo) + ' · ' + dataPt(p.created_at) + '</div></div>' +
+      '<span class="estado e-' + esc(p.estado) + '">' + (ESTADOS[p.estado] || esc(p.estado)) + '</span></div>' +
+      '<div class="msg">' + esc(p.mensagem.length > 280 ? p.mensagem.slice(0, 280) + '…' : p.mensagem) + '</div>' +
+      (p.resposta ? '<div class="resp"><b style="color:var(--ouro)">Resposta da equipa' + (p.respondido_em ? ' · ' + dataPt(p.respondido_em) : '') + '</b><br>' + esc(p.resposta) + '</div>' : '') +
+    '</article>').join('');
+}
+
+// com sessão: preencher nome e e-mail e mostrar os pedidos anteriores
+FCAjuda.pronto.then(async s => {
+  sessao = s;
+  if (!s) return;
+  const p = await FC.loadMyProfile().catch(() => null);
+  if (!$('nome').value) $('nome').value = (p && p.full_name) || '';
+  if (!$('email').value) $('email').value = s.user.email || '';
+  if (!$('telefone').value && p && p.phone) $('telefone').value = p.phone;
+  carregarPedidos();
+});
+</script>
+</body>
 </html>
