@@ -116,11 +116,62 @@ FC.badgeMensagens = async function () {
     .subscribe();
 };
 
+/* ---------- Mensalidade das empresas ---------- */
+// Devolve { empresa, ativa (paga/em período grátis), pode (pode usar as funções pagas),
+//           ate (Date|null), dias (dias que faltam) }.
+// Contas pessoais: não pagam (ativa e pode = true).
+// Se a configuração 'bloquear_sem_pagamento' não for 'sim', quem não paga só recebe avisos.
+FC._config = FC._config || null;
+FC.carregarConfig = async function () {
+  if (FC._config) return FC._config;
+  try {
+    const { data, error } = await supabaseClient.from('config').select('chave,valor');
+    if (!error && data) { FC._config = {}; data.forEach(r => FC._config[r.chave] = r.valor); }
+  } catch (e) {}
+  return FC._config || {};
+};
+FC.mensalidade = function (me) {
+  me = me || FC.me || {};
+  if (me.type !== 'empresa') return { empresa: false, ativa: true, pode: true, ate: null, dias: null };
+  // sem a coluna ainda (antes da migração 010) não mostramos nada
+  if (!('assinatura_ate' in me)) return { empresa: true, ativa: true, pode: true, ate: null, dias: null };
+  const ate = me.assinatura_ate ? new Date(me.assinatura_ate) : null;
+  const dias = ate ? Math.ceil((ate - Date.now()) / 86400000) : 0;
+  const ativa = !!ate && ate > new Date();
+  const bloqueia = !!(FC._config && FC._config.bloquear_sem_pagamento === 'sim');
+  return { empresa: true, ativa, pode: ativa || !bloqueia, ate, dias };
+};
+
+// Aviso a cada 48 horas às empresas com a mensalidade a terminar (≤3 dias) ou terminada
+FC.lembreteMensalidade = function (me) {
+  const m = FC.mensalidade(me);
+  if (!m.empresa || !m.ate || (m.ativa && m.dias > 3)) return;
+  if (/mensalidade\.html/.test(location.pathname)) return;
+  const chave = 'fc_lembrete_mens_' + me.id;
+  try { if (Date.now() - Number(localStorage.getItem(chave) || 0) < 48 * 3600 * 1000) return; localStorage.setItem(chave, String(Date.now())); } catch (e) { return; }
+  const quando = m.ativa ? (m.dias <= 1 ? 'termina amanhã' : 'termina em ' + m.dias + ' dias') : 'terminou';
+  const el = document.createElement('div');
+  el.id = 'fc-lembrete';
+  el.innerHTML =
+    '<style>#fc-lembrete{position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,"Segoe UI",system-ui,sans-serif}' +
+    '#fc-lembrete .c{background:#16161a;color:#f4f4f5;border:1px solid rgba(243,198,78,.35);border-radius:20px;max-width:380px;width:100%;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}' +
+    '#fc-lembrete .i{font-size:40px}#fc-lembrete h3{margin:8px 0 6px;font-size:19px}#fc-lembrete p{color:#a1a1aa;font-size:14px;line-height:1.5;margin:0 0 18px}' +
+    '#fc-lembrete a,#fc-lembrete button{display:block;width:100%;padding:13px;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;box-sizing:border-box}' +
+    '#fc-lembrete a{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none;margin-bottom:8px}#fc-lembrete button{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
+    '<div class="c" role="dialog" aria-modal="true"><div class="i">💳</div><h3>A mensalidade ' + quando + '</h3>' +
+    '<p>Pague <b style="color:#f3c64e">100 MT</b> por M-Pesa ou e-Mola para a sua empresa <b>não ficar sem acesso</b> a publicações, anúncios e Live.</p>' +
+    '<a href="mensalidade.html">Pagar agora</a><button type="button">Mais tarde</button></div>';
+  el.querySelector('button').onclick = () => el.remove();
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
+  document.body.appendChild(el);
+};
+
 /* ---------- Arranque padrão ---------- */
 FC.boot = async function (opts = {}) {
   const session = await FC.requireAuth(opts.loginPage);
   if (!session) return null;
   const me = await FC.applyIdentity(opts);
   FC.badgeMensagens();
+  if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
   return me;
 };

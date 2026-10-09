@@ -1,279 +1,447 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com">
-    <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-
-
-    <style>
-        /* 1. ESTRUTURA E RESET */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background-color: #202124; color: white; 
-            font-family: 'Segoe UI', sans-serif; height: 100vh;
-            display: flex; flex-direction: column; overflow: hidden;
-        }
-
-        .main-content { display: flex; flex: 1; height: calc(100vh - 70px); position: relative; }
-
-        /* 2. GRID DE VÍDEOS (AJUSTADO PARA MOBILE) */
-        .video-container {
-            flex: 1; display: grid; padding: 10px; gap: 10px;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            align-content: center;
-        }
-
-        .video-card {
-            background-color: #3c4043; border-radius: 8px; aspect-ratio: 16/9;
-            display: flex; align-items: center; justify-content: center;
-            position: relative; overflow: hidden;
-        }
-
-        .avatar-img {
-            width: 100px; height: 100px; border-radius: 50%;
-            object-fit: cover; border: 3px solid transparent; transition: 0.3s;
-        }
-
-        .speaking { border-color: #8ab4f8; animation: pulse 1.5s infinite; }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(138, 180, 248, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(138, 180, 248, 0); }
-        }
-
-        /* BOTÃO DO MODERADOR */
-        .mute-btn {
-            position: absolute; top: 8px; right: 8px;
-            background: rgba(234, 67, 53, 0.9); border: none;
-            color: white; width: 28px; height: 28px; border-radius: 50%;
-            cursor: pointer; z-index: 10; font-size: 12px;
-        }
-
-        /* 3. SIDEBAR (HEADER REDUZIDO) */
-        .sidebar {
-            width: 320px; background: white; margin: 10px; border-radius: 8px;
-            display: flex; flex-direction: column; color: #202124; transition: 0.3s;
-        }
-
-        .sidebar-header { 
-            padding: 8px 10px; /* ESPAÇO REDUZIDO NO TOPO */
-            display: flex; justify-content: space-around; 
-            border-bottom: 1px solid #eee; font-size: 0.85rem;
-        }
-
-        .tab { cursor: pointer; padding: 4px 10px; color: #5f6368; }
-        .tab-active { color: #1a73e8; border-bottom: 2px solid #1a73e8; font-weight: bold; }
-
-        #chatMessages { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-        .msg { background: #f1f3f4; padding: 6px 10px; border-radius: 10px; max-width: 85%; font-size: 0.85rem; align-self: flex-start; }
-        .msg-me { background: #e8f0fe; color: #1967d2; align-self: flex-end; }
-        .time { font-size: 0.65rem; color: #70757a; display: block; margin-top: 2px; text-align: right; }
-
-        /* 4. BARRA INFERIOR */
-        .bottom-bar { height: 70px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; }
-        .btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #3c4043; color: white; cursor: pointer; }
-        .btn-off { background: #ea4335 !important; }
-        .btn-end { background: #ea4335; width: 55px; border-radius: 20px; }
-
-
-
-  .c-btn { 
-            width: 48px; height: 48px; border-radius: 50%; border: none; 
-            background: #3c4043; color: white; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; font-size: 18px;
-        }
-
-    
-/* Estilo base do botão (exemplo) */
-.c-btn {
-  background-color: #3c4043; /* Cinza padrão do Meet */
-  color: #ffffff;
-  border: none;
-  padding: 12px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 18px;
-  transition: background 0.2s;
-  width: 45px;
-  height: 45px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Estado Ativado (Igual ao Google Meet) */
-.c-btn.active {
-  background-color: #ea4335 !important; /* Vermelho do Meet */
-  color: #ffffff !important;
-}
-
-
-
-        /* 5. RESPONSIVIDADE CELULAR */
-        @media (max-width: 768px) {
-            .video-container { grid-template-columns: 1fr; } /* Vídeos um por baixo do outro */
-            .sidebar { 
-                position: absolute; right: 0; top: 0; bottom: 0; 
-                width: 85%; z-index: 100; margin: 5px; display: none; 
-            }
-            .sidebar.active { display: flex; }
-            .info-text { display: none; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Live | Feira Comercial</title>
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="menu.js"></script>
+<style>
+.cab-lista { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.lives { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); margin-top: 22px; }
+.live-card { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--linha); background:
+  radial-gradient(circle at 30% 20%, rgba(243,198,78,.25), transparent 60%), linear-gradient(160deg, #1d1a12, #0b0b0c); aspect-ratio: 4/5;
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; cursor: pointer; text-decoration: none !important; color: var(--texto); transition: transform .15s; }
+.live-card:hover { transform: translateY(-2px); }
+.live-card .av { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 92px; height: 92px; border-radius: 50%;
+  object-fit: cover; border: 3px solid #ef4444; box-shadow: 0 0 0 6px rgba(239,68,68,.18); background: #333; }
+.live-card b { font-size: 16px; display: block; }
+.live-card span { color: var(--sub); font-size: 13px; }
+.selo-live { position: absolute; top: 12px; left: 12px; background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .08em;
+  padding: 4px 9px; border-radius: 6px; display: inline-flex; gap: 6px; align-items: center; }
+.selo-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: piscar 1.2s infinite; }
+@keyframes piscar { 50% { opacity: .2; } }
+.vazio { text-align: center; color: var(--sub); padding: 40px 16px; border: 1px dashed var(--linha); border-radius: 18px; margin-top: 22px; }
+.vazio i { font-size: 34px; color: var(--ouro); margin-bottom: 10px; display: block; }
+.nota { font-size: 13.5px; color: var(--sub); margin-top: 10px; }
+
+/* ── ecrã da live (emissor e espectador) ── */
+#palco { position: fixed; inset: 0; z-index: 4000; background: #000; display: none; color: #fff; }
+#palco.aberto { display: block; }
+#palco video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+@media (min-width: 900px) { #palco video { object-fit: contain; } }
+#palco video.espelho { transform: scaleX(-1); }
+.p-topo { position: absolute; top: 0; left: 0; right: 0; padding: calc(12px + env(safe-area-inset-top)) 14px 30px; display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(rgba(0,0,0,.65), transparent); z-index: 3; }
+.p-topo img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #ef4444; background: #333; }
+.p-topo .nome { min-width: 0; flex: 1; }
+.p-topo .nome b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-topo .nome small { font-size: 12px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.p-topo .selo-live { position: static; }
+.contador { background: rgba(0,0,0,.5); border-radius: 6px; padding: 4px 9px; font-size: 12px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
+.p-btn { width: 42px; height: 42px; border-radius: 50%; border: none; background: rgba(0,0,0,.5); color: #fff; font-size: 17px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.p-btn.off { background: #ef4444; }
+.p-baixo { position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 12px calc(12px + env(safe-area-inset-bottom)); z-index: 3;
+  background: linear-gradient(transparent, rgba(0,0,0,.7)); }
+#chat { max-height: 34vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; padding-right: 60px;
+  mask-image: linear-gradient(transparent, #000 25%); -webkit-mask-image: linear-gradient(transparent, #000 25%); }
+.msg { font-size: 14px; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,.8); word-break: break-word; }
+.msg b { color: var(--ouro); margin-right: 6px; }
+.msg.sistema { opacity: .75; font-style: italic; }
+.p-linha { display: flex; gap: 8px; align-items: center; }
+.p-linha input { flex: 1; min-width: 0; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 999px;
+  padding: 11px 16px; font: inherit; font-size: 15px; outline: none; }
+.p-linha input::placeholder { color: rgba(255,255,255,.65); }
+.coracao { color: #ef4444; }
+#coracoes { position: absolute; right: 18px; bottom: 90px; width: 60px; height: 50vh; pointer-events: none; z-index: 3; }
+.flutua { position: absolute; bottom: 0; right: 10px; font-size: 26px; animation: subir 2.6s ease-out forwards; }
+@keyframes subir { 0% { transform: translate(0, 0) scale(.6); opacity: 1; } 100% { transform: translate(var(--dx), -45vh) scale(1.2); opacity: 0; } }
+.p-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px;
+  padding: 24px; z-index: 2; }
+.p-centro .girar2 { width: 42px; height: 42px; border: 4px solid rgba(255,255,255,.2); border-top-color: var(--ouro); border-radius: 50%; animation: girar .9s linear infinite; }
+.p-centro h2 { font-size: 22px; } .p-centro p { color: rgba(255,255,255,.75); max-width: 340px; }
+#btnSom { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; display: none; }
+.lado-emissor { display: flex; flex-direction: column; gap: 10px; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); z-index: 3; }
+#preparar .preview { width: 100%; aspect-ratio: 3/4; max-height: 52vh; background: #000; border-radius: 16px; object-fit: cover; transform: scaleX(-1); }
+</style>
 </head>
 <body>
-
-    <div class="main-content">
-        <div class="video-container">
-            <!-- Participante -->
-            <div class="video-card">
-                <button class="mute-btn" title="Silenciar participante" onclick="muteUser('p1')"><i class="fas fa-microphone-slash"></i></button>
-                <img src="https://i.pravatar.cc" class="avatar-img speaking" id="p1">
-                <div style="position:absolute; bottom:8px; left:8px; font-size:11px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:4px;">Apresentador</div>
-            </div>
-
-            <!-- Você -->
-            <div class="video-card">
-                <img src="https://i.pravatar.cc" class="avatar-img" id="pMe">
-                <div style="position:absolute; bottom:8px; left:8px; font-size:11px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:4px;">Você</div>
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span id="tC" class="tab tab-active" onclick="switchTab('c')">Chat</span>
-                <span id="tP" class="tab" onclick="switchTab('p')">Pessoas</span>
-            </div>
-            
-            <div id="boxC" style="flex:1; display:flex; flex-direction:column;">
-                <div id="chatMessages"></div>
-                <div style="padding: 10px; border-top:1px solid #eee; display:flex; gap:8px;">
-                    <input type="text" id="mIn" placeholder="Enviar mensagem..." style="flex:1; border:none; background:#f1f3f4; padding:10px; border-radius:18px; outline:none; font-size: 14px;">
-                    <button onclick="sendMsg()" style="border:none; background:none; color:#1a73e8; cursor:pointer;"><i class="fas fa-paper-plane"></i></button>
-                </div>
-            </div>
-
-            <div id="boxP" style="display:none; padding:10px; color:#3c4043; font-size: 0.9rem;">
-                <p><i class="fas fa-circle" style="color:#34a853; font-size:8px;"></i> Você (Moderador)</p>
-                <p style="margin-top:8px;"><i class="fas fa-circle" style="color:#34a853; font-size:8px;"></i> Apresentador</p>
-            </div>
-        </div>
+<header class="topo">
+  <div class="topo-in">
+    <a href="index.html" class="fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial">
+      <span class="fc-marca-txt"><b>Feira Comercial</b><small>Explore, Exiba, Expanda</small></span></a>
+    <div class="acoes" style="margin-left:auto">
+      <a class="entrar" href="index.html"><i class="fas fa-house"></i> Início</a>
+      <button class="menu" style="display:inline-flex;align-items:center;justify-content:center" onclick="FCMenu.abrir()" aria-label="Menu" title="Menu"><i class="fas fa-bars"></i></button>
     </div>
+  </div>
+</header>
 
-    <!-- Barra de Ferramentas -->
-    <div class="bottom-bar">
-        <div class="info-text" style="font-size: 0.8rem;">18:30 | Projeto Final</div>
-        <div class="controls" style="display:flex; gap:10px;">
-            <button class="btn btn-off" id="bM" onclick="toggle('m')"><i class="fas fa-microphone-slash"></i></button>
-            <button class="btn" id="bV" onclick="toggle('v')"><i class="fas fa-video"></i></button>
-            <button class="btn btn-end"><i class="fas fa-phone-slash"></i></button>
-           <button id="btn-mao" class="c-btn" title="Levantar Mão">
-  <i id="icone-mao" class="far fa-hand-paper"></i></button>
-
-
-            <a href="index.html" class="c-btn" title="home"><i class="fas fa-home"></i></a>
-  <!-- BOTÃO MINIATURA (O QUE VOCÊ PEDIU) -->
-            <button class="c-btn" onclick="startMiniMode()" style="background: #1a73e8;" title="Ver em Miniatura e sair">
-                <i class="fas fa-external-link-alt"></i>
-            </button>
-
-
-        </div>
-        <div style="text-align:right;">
-            <button class="btn" style="background:none;" onclick="document.getElementById('sidebar').classList.toggle('active')">
-                <i class="fas fa-comment-alt"></i>
-            </button>
-        </div>
+<main class="pagina">
+  <div class="cab-lista">
+    <div>
+      <span class="etiqueta"><i class="fas fa-tower-broadcast"></i> Live</span>
+      <h1 class="titulo">Ao vivo <em>agora</em></h1>
+      <p class="intro">Veja as empresas em direto, faça perguntas no chat e mande corações.</p>
     </div>
+    <div id="zonaIniciar"></div>
+  </div>
+  <div class="aviso" id="aviso" role="alert" style="margin-top:16px"></div>
+  <div class="lives" id="lista"></div>
+</main>
 
-    <script>
-        // SILENCIAR PARTICIPANTE
-        function muteUser(id) {
-            document.getElementById(id).classList.remove('speaking');
-            alert("Moderador: Participante silenciado.");
-        }
+<!-- preparar a live (emissor) -->
+<div id="preparar" style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.75);padding:16px;overflow-y:auto">
+  <div class="cartao" style="max-width:420px;margin:4vh auto">
+    <h2 style="font-size:20px;margin-bottom:12px">Começar uma live</h2>
+    <video class="preview" id="previewVideo" autoplay muted playsinline></video>
+    <div class="campo" style="margin-top:14px"><label for="tituloLive">Título</label>
+      <input id="tituloLive" maxlength="120" placeholder="Ex.: Novidades da semana na loja"></div>
+    <p class="nota" style="margin-top:-6px;margin-bottom:14px"><i class="fas fa-circle-info" style="color:var(--ouro)"></i>
+      A live vai diretamente do seu telemóvel. Funciona melhor com Wi-Fi e com até cerca de 15 pessoas a ver ao mesmo tempo.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-sec" style="flex:1" onclick="cancelarPreparar()">Cancelar</button>
+      <button class="btn" style="flex:2" id="btnComecar" onclick="comecarLive()"><span class="girar"></span><i class="fas fa-tower-broadcast"></i> Entrar em direto</button>
+    </div>
+  </div>
+</div>
 
-        // TOGGLE MIC/CAM
-        let mStatus = false, vStatus = true;
-        function toggle(t) {
-            if(t === 'm') {
-                mStatus = !mStatus;
-                document.getElementById('bM').className = mStatus ? 'btn' : 'btn btn-off';
-                document.getElementById('bM').innerHTML = `<i class="fas fa-microphone${mStatus?'':'-slash'}"></i>`;
-                document.getElementById('pMe').classList.toggle('speaking', mStatus);
-            } else {
-                vStatus = !vStatus;
-                document.getElementById('bV').className = vStatus ? 'btn' : 'btn btn-off';
-                document.getElementById('bV').innerHTML = `<i class="fas fa-video${vStatus?'':'-slash'}"></i>`;
-                document.getElementById('pMe').style.opacity = vStatus ? '1' : '0.2';
+<!-- palco: live a decorrer -->
+<div id="palco" aria-live="polite">
+  <video id="video" autoplay playsinline muted></video>
+  <div class="p-centro" id="centro"></div>
+  <button class="btn" id="btnSom" onclick="ativarSom()"><i class="fas fa-volume-high"></i> Toque para ouvir</button>
+  <div class="p-topo">
+    <img id="pAvatar" alt="">
+    <div class="nome"><b id="pNome"></b><small id="pTitulo"></small></div>
+    <span class="selo-live">AO VIVO</span>
+    <span class="contador"><i class="fas fa-eye"></i> <span id="pContador">0</span></span>
+    <button class="p-btn" onclick="sairPalco()" aria-label="Sair" title="Sair"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div class="lado-emissor" id="ladoEmissor" style="display:none">
+    <button class="p-btn" id="btnMic" onclick="alternarMic()" title="Microfone" aria-label="Microfone"><i class="fas fa-microphone"></i></button>
+    <button class="p-btn" id="btnCam" onclick="alternarCam()" title="Ligar/desligar câmara" aria-label="Câmara"><i class="fas fa-video"></i></button>
+    <button class="p-btn" onclick="trocarCamara()" title="Trocar câmara" aria-label="Trocar câmara"><i class="fas fa-camera-rotate"></i></button>
+  </div>
+  <div id="coracoes"></div>
+  <div class="p-baixo">
+    <div id="chat"></div>
+    <form class="p-linha" id="formChat">
+      <input id="chatInput" maxlength="200" placeholder="Escreva um comentário…" autocomplete="off" enterkeyhint="send">
+      <button class="p-btn" type="submit" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button>
+      <button class="p-btn coracao" type="button" onclick="mandarCoracao()" aria-label="Coração"><i class="fas fa-heart"></i></button>
+      <button class="p-btn off" type="button" id="btnTerminar" style="display:none;width:auto;border-radius:999px;padding:0 16px;font-weight:700;font-size:14px" onclick="terminarLive()">Terminar</button>
+    </form>
+  </div>
+</div>
 
+<script>
+/* ============================================================
+   LIVE no próprio site (WebRTC).
+   O emissor envia o vídeo diretamente a cada espectador (até MAX_ESPECTADORES).
+   Os sinais (oferta/resposta/ICE), o chat e os corações passam pelo Supabase Realtime.
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const MAX_ESPECTADORES = 15;
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+let me = null, iceServers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+let canal = null, papel = null, liveAtual = null, minhaChave = null;
+let stream = null, frente = true;
+const pcs = {};                 // emissor: uma ligação por espectador
+let pcEsp = null, tentativa = null, ligado = false; // espectador
+let pico = 0, batida = null;
 
-    // 1. Seleciona o botão na página pelo ID
-const botaoMao = document.getElementById('btnLevantarMao');
+function aviso(t, tipo) { const a = $('aviso'); a.className = t ? 'aviso ' + (tipo || 'erro') : 'aviso'; a.innerHTML = t || ''; }
+function avatar(p) { return (p && p.avatar_url) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent((p && p.full_name) || 'L') + '&background=random&color=fff&size=128'); }
+function haQuanto(d) { const m = Math.max(1, Math.round((Date.now() - new Date(d)) / 60000)); return m < 60 ? 'há ' + m + ' min' : 'há ' + Math.floor(m / 60) + ' h'; }
 
-// 2. Define o que acontece quando o botão for clicado
-botaoMao.addEventListener('click', function() {
-    // Escreva aqui a lógica da sua ação
-    alert('Você levantou a mão!'); 
-    
-    // Exemplo: Alternar uma classe visual de ativo/inativo
-    botaoMao.classList.toggle('ativo');
-});
+/* ─── lista "Ao vivo agora" ─── */
+async function carregarLista() {
+  const limite = new Date(Date.now() - 90 * 1000).toISOString();
+  const { data, error } = await supabaseClient.from('lives')
+    .select('id,titulo,started_at,user_id,autor:perfis!lives_user_id_fkey(full_name,avatar_url,type)')
+    .eq('estado', 'ao_vivo').gte('atualizado_em', limite).order('started_at', { ascending: false }).limit(30);
+  const el = $('lista');
+  if (error) { el.innerHTML = '<div class="vazio" style="grid-column:1/-1"><i class="fas fa-tower-broadcast"></i>As lives ainda estão a ser preparadas. Volte daqui a pouco.</div>'; return; }
+  if (!data.length) { el.innerHTML = '<div class="vazio" style="grid-column:1/-1"><i class="fas fa-satellite-dish"></i><b>Nenhuma live agora</b><br>Quando uma empresa entrar em direto, aparece aqui.</div>'; return; }
+  el.innerHTML = data.map(l =>
+    '<a class="live-card" href="live.html?id=' + l.id + '"><span class="selo-live">AO VIVO</span>' +
+    '<img class="av" src="' + esc(avatar(l.autor)) + '" alt="">' +
+    '<b>' + esc((l.autor && l.autor.full_name) || 'Empresa') + '</b><span>' + esc(l.titulo) + ' · ' + haQuanto(l.started_at) + '</span></a>').join('');
+}
 
-            }
-        }
+function desenharIniciar() {
+  const z = $('zonaIniciar');
+  if (me.type !== 'empresa') { z.innerHTML = '<p class="nota" style="max-width:260px"><i class="fas fa-circle-info" style="color:var(--ouro)"></i> As lives são feitas pelas empresas. Pode assistir, comentar e mandar corações.</p>'; return; }
+  if (!FC.mensalidade(me).pode) { z.innerHTML = '<a class="btn" href="mensalidade.html"><i class="fas fa-credit-card"></i> Pagar mensalidade para fazer Live</a>'; return; }
+  z.innerHTML = '<button class="btn" onclick="prepararLive()"><i class="fas fa-tower-broadcast"></i> Iniciar live</button>';
+}
 
-        // CHAT
-        function sendMsg() {
-            const i = document.getElementById('mIn'), b = document.getElementById('chatMessages');
-            if(i.value.trim() !== "") {
-                const h = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                b.innerHTML += `<div class="msg msg-me">${i.value}<span class="time">${h}</span></div>`;
-                i.value = ""; b.scrollTop = b.scrollHeight;
-            }
-        }
+/* ─── câmara ─── */
+async function abrirCamara() {
+  return navigator.mediaDevices.getUserMedia({
+    video: { facingMode: frente ? 'user' : 'environment', width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } },
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+  });
+}
 
-        // ABAS
-        function switchTab(t) {
-            const isC = t==='c';
-            document.getElementById('boxC').style.display = isC ? 'flex' : 'none';
-            document.getElementById('boxP').style.display = isC ? 'none' : 'block';
-            document.getElementById('tC').className = isC ? 'tab tab-active' : 'tab';
-            document.getElementById('tP').className = isC ? 'tab' : 'tab tab-active';
-        }
+async function prepararLive() {
+  aviso('');
+  if (!navigator.mediaDevices || !window.RTCPeerConnection) { aviso('Este navegador não suporta lives. Use o Chrome ou o Safari atualizados.'); return; }
+  try { stream = await abrirCamara(); }
+  catch (e) { aviso(/Permission|NotAllowed/i.test(e.name + e.message) ? 'Autorize o acesso à câmara e ao microfone para fazer a live (cadeado ao lado do endereço).' : 'Não foi possível abrir a câmara: ' + esc(e.message)); return; }
+  $('previewVideo').srcObject = stream;
+  $('tituloLive').value = $('tituloLive').value || ('Live de ' + (me.full_name || 'empresa'));
+  $('preparar').style.display = 'block';
+}
+function cancelarPreparar() { $('preparar').style.display = 'none'; pararCamara(); }
+function pararCamara() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; }
 
-        // ENTER PARA ENVIAR
-        document.getElementById('mIn').addEventListener('keypress', (e) => { if(e.key==='Enter') sendMsg(); });
+/* ─── canal de sinais ─── */
+function enviar(payload) { if (canal) canal.send({ type: 'broadcast', event: 'sinal', payload }); }
 
-const botao = document.getElementById('btn-mao');
-const icone = document.getElementById('icone-mao');
+function abrirCanal(id, aoEntrar) {
+  canal = supabaseClient.channel('live-' + id, { config: { broadcast: { self: false }, presence: { key: minhaChave } } });
+  canal.on('broadcast', { event: 'sinal' }, ({ payload }) => receber(payload));
+  canal.on('presence', { event: 'sync' }, () => {
+    const n = Object.values(canal.presenceState()).filter(l => l[0] && l[0].papel === 'espectador').length;
+    $('pContador').textContent = n;
+    if (papel === 'emissor' && n > pico) pico = n;
+  });
+  canal.subscribe(async estado => {
+    if (estado === 'SUBSCRIBED') { await canal.track({ papel, nome: me.full_name || 'Utilizador' }); aoEntrar && aoEntrar(); }
+  });
+}
 
-botao.addEventListener('click', () => {
-  // 1. Altera a cor do botão (coloca/tira a classe .active)
-  botao.classList.toggle('active');
-  
-  // 2. Altera o ícone entre preenchido (fas) e linha (far)
-  if (botao.classList.contains('active')) {
-    icone.classList.remove('far');
-    icone.classList.add('fas'); // Mão preenchida
-    botao.title = "Abaixar Mão";
-  } else {
-    icone.classList.remove('fas');
-    icone.classList.add('far'); // Mão vazia
-    botao.title = "Levantar Mão";
+function receber(m) {
+  if (m.tipo === 'chat') return mostrarMsg(m.nome, m.texto);
+  if (m.tipo === 'coracao') return coracao();
+  if (papel === 'emissor') {
+    if (m.tipo === 'entrar') return novoEspectador(m.de, m.nome);
+    if (m.tipo === 'resposta' && pcs[m.de]) return pcs[m.de].setRemoteDescription(m.sdp).then(() => despejar(pcs[m.de])).catch(() => {});
+    if (m.tipo === 'ice' && m.para === 'host' && pcs[m.de]) return juntarIce(pcs[m.de], m.c);
+    if (m.tipo === 'sair' && pcs[m.de]) { pcs[m.de].close(); delete pcs[m.de]; }
+  } else if (papel === 'espectador') {
+    if (m.para && m.para !== minhaChave && m.tipo !== 'host-on' && m.tipo !== 'fim') return;
+    if (m.tipo === 'oferta') return aceitarOferta(m.sdp);
+    if (m.tipo === 'ice' && pcEsp) return juntarIce(pcEsp, m.c);
+    if (m.tipo === 'host-on' && !ligado) return pedirEntrada();
+    if (m.tipo === 'cheio') return centro('<h2>A live está cheia</h2><p>Já há ' + MAX_ESPECTADORES + ' pessoas a ver. Tente daqui a pouco.</p>');
+    if (m.tipo === 'fim') return liveTerminou();
   }
+}
+
+function juntarIce(pc, c) {
+  if (!c) return;
+  if (pc.remoteDescription && pc.remoteDescription.type) pc.addIceCandidate(c).catch(() => {});
+  else (pc._fila = pc._fila || []).push(c);
+}
+function despejar(pc) { (pc._fila || []).forEach(c => pc.addIceCandidate(c).catch(() => {})); pc._fila = []; }
+
+/* ─── emissor ─── */
+async function comecarLive() {
+  const titulo = $('tituloLive').value.trim() || 'Live';
+  const btn = $('btnComecar'); btn.disabled = true; btn.classList.add('carregando');
+  const { data, error } = await supabaseClient.from('lives').insert({ user_id: me.id, titulo }).select('id').single();
+  btn.disabled = false; btn.classList.remove('carregando');
+  if (error) {
+    $('preparar').style.display = 'none'; pararCamara();
+    aviso(/row-level security/i.test(error.message) ? 'Só empresas com a mensalidade em dia podem fazer Live. <a href="mensalidade.html">Pagar mensalidade</a>' : 'Não foi possível começar: ' + esc(error.message));
+    return;
+  }
+  liveAtual = { id: data.id, titulo, autor: me };
+  papel = 'emissor'; minhaChave = 'host';
+  $('preparar').style.display = 'none';
+  abrirPalco(); centro('');
+  $('video').srcObject = stream; $('video').classList.toggle('espelho', frente);
+  $('ladoEmissor').style.display = 'flex'; $('btnTerminar').style.display = '';
+  history.replaceState(null, '', 'live.html?id=' + data.id);
+  abrirCanal(data.id, () => { enviar({ tipo: 'host-on' }); mostrarMsg('', 'Está em direto! Partilhe o link para os clientes verem.', true); });
+  batida = setInterval(() => supabaseClient.from('lives').update({ atualizado_em: new Date().toISOString(), pico_espectadores: pico }).eq('id', data.id).then(() => {}), 30000);
+}
+
+async function novoEspectador(de, nome) {
+  if (!de || !stream) return;
+  if (pcs[de]) { pcs[de].close(); delete pcs[de]; }
+  if (Object.keys(pcs).length >= MAX_ESPECTADORES) { enviar({ tipo: 'cheio', para: de }); return; }
+  const pc = new RTCPeerConnection({ iceServers });
+  pcs[de] = pc;
+  stream.getTracks().forEach(t => pc.addTrack(t, stream));
+  pc.onicecandidate = e => { if (e.candidate) enviar({ tipo: 'ice', para: de, de: 'host', c: e.candidate.toJSON() }); };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'connected') limitarQualidade(pc);
+    if (['failed', 'closed'].includes(pc.connectionState)) { pc.close(); if (pcs[de] === pc) delete pcs[de]; }
+  };
+  const oferta = await pc.createOffer();
+  await pc.setLocalDescription(oferta);
+  enviar({ tipo: 'oferta', para: de, sdp: pc.localDescription.toJSON() });
+  if (nome) mostrarMsg('', esc(nome) + ' entrou', true);
+}
+
+function limitarQualidade(pc) {
+  // poupa dados: cada espectador recebe no máximo ~500 kbps de vídeo
+  pc.getSenders().forEach(s => {
+    if (!s.track || s.track.kind !== 'video') return;
+    const p = s.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+    p.encodings[0].maxBitrate = 500000; s.setParameters(p).catch(() => {});
+  });
+}
+
+function alternarMic() {
+  const t = stream && stream.getAudioTracks()[0]; if (!t) return;
+  t.enabled = !t.enabled; $('btnMic').classList.toggle('off', !t.enabled);
+  $('btnMic').innerHTML = t.enabled ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+}
+function alternarCam() {
+  const t = stream && stream.getVideoTracks()[0]; if (!t) return;
+  t.enabled = !t.enabled; $('btnCam').classList.toggle('off', !t.enabled);
+  $('btnCam').innerHTML = t.enabled ? '<i class="fas fa-video"></i>' : '<i class="fas fa-video-slash"></i>';
+}
+async function trocarCamara() {
+  frente = !frente;
+  try {
+    const novo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: frente ? 'user' : 'environment', width: { ideal: 640 }, height: { ideal: 480 } } });
+    const nova = novo.getVideoTracks()[0], velha = stream.getVideoTracks()[0];
+    Object.values(pcs).forEach(pc => pc.getSenders().forEach(s => { if (s.track && s.track.kind === 'video') s.replaceTrack(nova); }));
+    stream.removeTrack(velha); velha.stop(); stream.addTrack(nova);
+    $('video').srcObject = stream; $('video').classList.toggle('espelho', frente);
+  } catch (e) { frente = !frente; mostrarMsg('', 'Este aparelho só tem uma câmara.', true); }
+}
+
+async function terminarLive(semPerguntar) {
+  if (!semPerguntar && !confirm('Terminar a live?')) return;
+  enviar({ tipo: 'fim' });
+  clearInterval(batida);
+  if (liveAtual) await supabaseClient.from('lives').update({ estado: 'terminada', pico_espectadores: pico }).eq('id', liveAtual.id);
+  Object.values(pcs).forEach(pc => pc.close());
+  Object.keys(pcs).forEach(k => delete pcs[k]);
+  pararCamara(); fecharCanal();
+  $('ladoEmissor').style.display = 'none'; $('btnTerminar').style.display = 'none';
+  centro('<h2>Live terminada</h2><p>Obrigado! ' + (pico ? 'Até ' + pico + ' pessoa' + (pico > 1 ? 's' : '') + ' a ver ao mesmo tempo.' : '') + '</p><button class="btn" onclick="sairPalco()">Voltar</button>');
+  papel = null; liveAtual = null;
+}
+
+// fechar a página sem terminar: marca a live como terminada mesmo assim
+window.addEventListener('pagehide', () => {
+  if (papel !== 'emissor' || !liveAtual) return;
+  enviar({ tipo: 'fim' });
+  const s = FC._sessao;
+  if (s) fetch(SUPABASE_URL + '/rest/v1/lives?id=eq.' + liveAtual.id, {
+    method: 'PATCH', keepalive: true,
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado: 'terminada' })
+  });
 });
 
+/* ─── espectador ─── */
+async function verLive(id) {
+  const { data: l, error } = await supabaseClient.from('lives')
+    .select('id,titulo,estado,atualizado_em,user_id,autor:perfis!lives_user_id_fkey(full_name,avatar_url)').eq('id', id).maybeSingle();
+  if (error || !l) { aviso('Esta live não existe.'); return; }
+  liveAtual = l;
+  abrirPalco();
+  if (l.estado !== 'ao_vivo' || Date.now() - new Date(l.atualizado_em) > 90000) return liveTerminou();
+  if (l.user_id === me.id) { centro('<h2>Esta live é sua</h2><p>Ela continua noutra janela ou já terminou.</p><button class="btn" onclick="sairPalco()">Voltar</button>'); return; }
+  papel = 'espectador'; minhaChave = me.id + '-' + Math.random().toString(36).slice(2, 8);
+  centro('<div class="girar2"></div><p>A ligar à live…</p>');
+  abrirCanal(id, pedirEntrada);
+  tentativa = setInterval(() => { if (!ligado) pedirEntrada(); }, 7000);
+}
+function pedirEntrada() { enviar({ tipo: 'entrar', de: minhaChave, nome: me.full_name || 'Alguém' }); }
 
+async function aceitarOferta(sdp) {
+  if (pcEsp) pcEsp.close();
+  const pc = pcEsp = new RTCPeerConnection({ iceServers });
+  pc.ontrack = e => {
+    const v = $('video');
+    if (v.srcObject !== e.streams[0]) { v.srcObject = e.streams[0]; v.muted = true; v.play().catch(() => {}); $('btnSom').style.display = 'inline-flex'; }
+  };
+  pc.onicecandidate = e => { if (e.candidate) enviar({ tipo: 'ice', para: 'host', de: minhaChave, c: e.candidate.toJSON() }); };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'connected') { ligado = true; centro(''); }
+    if (pc.connectionState === 'failed') { ligado = false; centro('<div class="girar2"></div><p>A ligação falhou. A tentar outra vez…</p>'); }
+    if (pc.connectionState === 'disconnected') { ligado = false; }
+  };
+  await pc.setRemoteDescription(sdp);
+  despejar(pc);
+  const resposta = await pc.createAnswer();
+  await pc.setLocalDescription(resposta);
+  enviar({ tipo: 'resposta', de: minhaChave, sdp: pc.localDescription.toJSON() });
+}
+function ativarSom() { const v = $('video'); v.muted = false; v.play().catch(() => {}); $('btnSom').style.display = 'none'; }
+function liveTerminou() {
+  clearInterval(tentativa); if (pcEsp) pcEsp.close(); pcEsp = null; ligado = false; $('btnSom').style.display = 'none';
+  centro('<h2>A live terminou</h2><p>Siga a empresa para não perder a próxima.</p><button class="btn" onclick="sairPalco()">Ver outras lives</button>');
+}
 
-    </script>
+/* ─── chat e corações ─── */
+function mostrarMsg(nome, texto, sistema) {
+  const c = $('chat'), d = document.createElement('div');
+  d.className = 'msg' + (sistema ? ' sistema' : '');
+  d.innerHTML = sistema ? texto : '<b>' + esc(nome) + '</b>' + esc(texto);
+  c.appendChild(d);
+  while (c.children.length > 60) c.firstChild.remove();
+  c.scrollTop = c.scrollHeight;
+}
+$('formChat').addEventListener('submit', e => {
+  e.preventDefault();
+  const t = $('chatInput').value.trim(); if (!t || !canal) return;
+  enviar({ tipo: 'chat', nome: me.full_name || 'Utilizador', texto: t.slice(0, 200) });
+  mostrarMsg(me.full_name || 'Eu', t.slice(0, 200));
+  $('chatInput').value = '';
+});
+function coracao() {
+  const h = document.createElement('div'); h.className = 'flutua';
+  h.textContent = ['❤️', '💛', '🧡', '💖'][Math.floor(Math.random() * 4)];
+  h.style.setProperty('--dx', (Math.random() * 40 - 30) + 'px');
+  $('coracoes').appendChild(h); setTimeout(() => h.remove(), 2700);
+}
+let ultimoCoracao = 0;
+function mandarCoracao() {
+  if (Date.now() - ultimoCoracao < 250) return;
+  ultimoCoracao = Date.now(); coracao(); enviar({ tipo: 'coracao' });
+}
+
+/* ─── palco ─── */
+function centro(html) { $('centro').innerHTML = html; $('centro').style.display = html ? 'flex' : 'none'; }
+function abrirPalco() {
+  const a = liveAtual.autor || {};
+  $('pAvatar').src = avatar(a); $('pNome').textContent = a.full_name || 'Empresa'; $('pTitulo').textContent = liveAtual.titulo || '';
+  $('chat').innerHTML = ''; $('palco').classList.add('aberto'); document.body.style.overflow = 'hidden';
+}
+function fecharCanal() { if (canal) { supabaseClient.removeChannel(canal); canal = null; } }
+function sairPalco() {
+  if (papel === 'emissor') { terminarLive(); return; }
+  if (papel === 'espectador') enviar({ tipo: 'sair', de: minhaChave });
+  clearInterval(tentativa); if (pcEsp) pcEsp.close(); pcEsp = null; ligado = false;
+  fecharCanal(); papel = null; liveAtual = null;
+  $('palco').classList.remove('aberto'); document.body.style.overflow = '';
+  $('video').srcObject = null;
+  history.replaceState(null, '', 'live.html');
+  carregarLista();
+}
+
+/* ─── arranque ─── */
+(async function () {
+  me = await FC.boot();
+  if (!me) return;
+  FC._sessao = await FC.getSession();
+  supabaseClient.auth.onAuthStateChange((_e, s) => { if (s) FC._sessao = s; });
+  const cfg = await FC.carregarConfig();
+  if (cfg.turn_url) iceServers.push({ urls: cfg.turn_url, username: cfg.turn_user || undefined, credential: cfg.turn_pass || undefined });
+  desenharIniciar();
+  const id = new URLSearchParams(location.search).get('id');
+  if (id) verLive(id);
+  carregarLista();
+  setInterval(() => { if (!papel) carregarLista(); }, 30000);
+  supabaseClient.channel('lista-lives').on('postgres_changes', { event: '*', schema: 'public', table: 'lives' }, () => { if (!papel) carregarLista(); }).subscribe();
+})();
+</script>
 </body>
 </html>

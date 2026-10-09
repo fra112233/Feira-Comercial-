@@ -61,6 +61,13 @@ window.FCMenu = (function () {
     return '<' + tag + ' class="it ' + (classe || '') + '" ' + attr + '><i class="fas ' + icone + ' ic"></i>' + texto + (extra || '') + '</' + tag + '>';
   }
 
+  function mensalidadeTxt(p) {
+    if (!window.FC || !FC.mensalidade) return '';
+    var m = FC.mensalidade(p);
+    if (!m.ate) return '';
+    return m.ativa ? '<span class="dir">' + (m.dias <= 5 ? '⚠️ ' : '') + m.dias + ' dias</span>' : '<span class="dir" style="color:#ef4444;opacity:1">Expirada</span>';
+  }
+
   function desenhar() {
     var p = perfil || {};
     var foto = p.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.full_name || 'U') + '&background=random&color=fff&size=128');
@@ -79,7 +86,8 @@ window.FCMenu = (function () {
         item('fa-comment-dots', 'Mensagens', 'mensagen.html') +
         item('fa-play-circle', 'Vídeos', 'videos.html') +
         item('fa-bullhorn', 'Anúncios', 'anuncio.html') +
-        item('fa-photo-film', 'Biblioteca', 'fotoVidio.html') +
+        item('fa-tower-broadcast', 'Live', 'live.html') +
+        (empresa ? item('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
 
         '<div class="sec">Conta</div>' +
         item('fa-pen', 'Editar perfil', 'FCMenu.editarPerfil()') +
