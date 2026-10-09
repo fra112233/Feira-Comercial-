@@ -109,37 +109,37 @@ begin
   perform pg_temp.t('Perfis','… papel e e-mail NÃO mudam', ana, format('select role||''|''||email from perfis where id=%L', ana), 'v=user|ana.teste@exemplo.co.mz');
 
   -- ── 3. Publicações ──
-  perform pg_temp.t('Publicações','Pessoa publica no feed', ana, format('insert into posts(user_id,content,media) values (%L,''Primeira publicação'',''[{"url":"https://x/a.jpg","type":"image"}]'')', ana), 'ok');
-  select max(id) into pid from posts where user_id = ana;
-  perform pg_temp.t('Publicações','Empresa publica no feed', loja, format('insert into posts(user_id,content) values (%L,''Promoção!'')', loja), 'ok');
-  select max(id) into pid2 from posts where user_id = loja;
-  perform pg_temp.t('Publicações','NÃO publica em nome de outra pessoa', carlos, format('insert into posts(user_id,content) values (%L,''falso'')', ana), 'bloqueado');
+  perform pg_temp.t('Publicações','Empresa publica no feed (com foto)', loja, format('insert into posts(user_id,content,media) values (%L,''Primeira publicação'',''[{"url":"https://x/a.jpg","type":"image"}]'')', loja), 'ok');
+  select max(id) into pid from posts where user_id = loja;
+  perform pg_temp.t('Publicações','Pessoa NÃO faz publicações no feed (só stories)', ana, format('insert into posts(user_id,content) values (%L,''Olá'')', ana), 'bloqueado');
+  select max(id) into pid2 from posts where user_id = ana;
+  perform pg_temp.t('Publicações','NÃO publica em nome de outra pessoa', carlos, format('insert into posts(user_id,content) values (%L,''falso'')', loja), 'bloqueado');
   perform pg_temp.t('Publicações','Sem sessão NÃO deve ler publicações (perfis estão protegidos)', null, format('select id from posts where id=%L', pid), 'n=0');
   perform pg_temp.t('Publicações','NÃO edita publicação de outro', carlos, format('update posts set content=''x'' where id=%L', pid), 'bloqueado');
   perform pg_temp.t('Publicações','NÃO apaga publicação de outro', carlos, format('delete from posts where id=%L', pid), 'bloqueado');
-  perform pg_temp.t('Publicações','NÃO deve aceitar publicação vazia (sem texto nem foto)', ana, format('insert into posts(user_id,content,media) values (%L,null,''[]'')', ana), 'bloqueado');
-  perform pg_temp.t('Publicações','NÃO deve aceitar texto gigante (100 000 caracteres)', ana, format('insert into posts(user_id,content) values (%L,repeat(''a'',100000))', ana), 'bloqueado');
+  perform pg_temp.t('Publicações','NÃO deve aceitar publicação vazia (sem texto nem foto)', loja, format('insert into posts(user_id,content,media) values (%L,null,''[]'')', loja), 'bloqueado');
+  perform pg_temp.t('Publicações','NÃO deve aceitar texto gigante (100 000 caracteres)', loja, format('insert into posts(user_id,content) values (%L,repeat(''a'',100000))', loja), 'bloqueado');
 
   -- ── 4. Reações e comentários ──
-  perform pg_temp.t('Reações','Dar gosto', loja, format('insert into likes(post_id,user_id,reaction) values (%s,%L,''Amei'')', pid, loja), 'ok');
-  perform pg_temp.t('Reações','Contador de gostos atualiza sozinho', ana, format('select curtidas_count::text from posts where id=%s', pid), 'v=1');
-  perform pg_temp.t('Reações','NÃO dá dois gostos na mesma publicação', loja, format('insert into likes(post_id,user_id) values (%s,%L)', pid, loja), 'bloqueado');
-  perform pg_temp.t('Reações','Mudar a reação (Amei → Haha)', loja, format('update likes set reaction=''Haha'' where post_id=%s and user_id=%L', pid, loja), 'ok');
+  perform pg_temp.t('Reações','Dar gosto', ana, format('insert into likes(post_id,user_id,reaction) values (%s,%L,''Amei'')', pid, ana), 'ok');
+  perform pg_temp.t('Reações','Contador de gostos atualiza sozinho', loja, format('select curtidas_count::text from posts where id=%s', pid), 'v=1');
+  perform pg_temp.t('Reações','NÃO dá dois gostos na mesma publicação', ana, format('insert into likes(post_id,user_id) values (%s,%L)', pid, ana), 'bloqueado');
+  perform pg_temp.t('Reações','Mudar a reação (Amei → Haha)', ana, format('update likes set reaction=''Haha'' where post_id=%s and user_id=%L', pid, ana), 'ok');
   perform pg_temp.t('Reações','NÃO muda a reação de outro', carlos, format('update likes set reaction=''Triste'' where post_id=%s', pid), 'bloqueado');
-  perform pg_temp.t('Reações','NÃO deve aceitar reação inventada', loja, format('update likes set reaction=''<script>'' where post_id=%s and user_id=%L', pid, loja), 'bloqueado');
-  update likes set reaction = 'Haha' where post_id = pid and user_id = loja;
-  perform pg_temp.t('Reações','Gosto falso em nome de outro', carlos, format('insert into likes(post_id,user_id) values (%s,%L)', pid, ana), 'bloqueado');
-  perform pg_temp.t('Reações','Dono tenta falsificar o contador de gostos', ana, format('update posts set curtidas_count=9999 where id=%s', pid), 'ok');
-  perform pg_temp.t('Reações','… o contador NÃO muda', ana, format('select curtidas_count::text from posts where id=%s', pid), 'v=1');
+  perform pg_temp.t('Reações','NÃO deve aceitar reação inventada', ana, format('update likes set reaction=''<script>'' where post_id=%s and user_id=%L', pid, ana), 'bloqueado');
+  update likes set reaction = 'Haha' where post_id = pid and user_id = ana;
+  perform pg_temp.t('Reações','Gosto falso em nome de outro', carlos, format('insert into likes(post_id,user_id) values (%s,%L)', pid, loja), 'bloqueado');
+  perform pg_temp.t('Reações','Dono tenta falsificar o contador de gostos', loja, format('update posts set curtidas_count=9999 where id=%s', pid), 'ok');
+  perform pg_temp.t('Reações','… o contador NÃO muda', loja, format('select curtidas_count::text from posts where id=%s', pid), 'v=1');
 
-  perform pg_temp.t('Comentários','Comentar', loja, format('insert into comments(post_id,user_id,content) values (%s,%L,''Muito bom'')', pid, loja), 'ok');
+  perform pg_temp.t('Comentários','Comentar', ana, format('insert into comments(post_id,user_id,content) values (%s,%L,''Muito bom'')', pid, ana), 'ok');
   select max(id) into cid from comments where post_id = pid;
-  perform pg_temp.t('Comentários','Responder a um comentário', ana, format('insert into comments(post_id,user_id,content,parent_id) values (%s,%L,''Obrigada'',%s)', pid, ana, cid), 'ok');
-  perform pg_temp.t('Comentários','Contador de comentários = 2', ana, format('select comentarios_count::text from posts where id=%s', pid), 'v=2');
-  perform pg_temp.t('Comentários','NÃO comenta em nome de outro', carlos, format('insert into comments(post_id,user_id,content) values (%s,%L,''x'')', pid, loja), 'bloqueado');
+  perform pg_temp.t('Comentários','Responder a um comentário', loja, format('insert into comments(post_id,user_id,content,parent_id) values (%s,%L,''Obrigada'',%s)', pid, loja, cid), 'ok');
+  perform pg_temp.t('Comentários','Contador de comentários = 2', loja, format('select comentarios_count::text from posts where id=%s', pid), 'v=2');
+  perform pg_temp.t('Comentários','NÃO comenta em nome de outro', carlos, format('insert into comments(post_id,user_id,content) values (%s,%L,''x'')', pid, ana), 'bloqueado');
   perform pg_temp.t('Comentários','NÃO apaga comentário de outro', carlos, format('delete from comments where id=%s', cid), 'bloqueado');
-  perform pg_temp.t('Comentários','Dono da publicação pode apagar comentários ofensivos na sua publicação', ana, format('delete from comments where id=%s', cid), 'ok');
-  perform pg_temp.t('Comentários','NÃO deve aceitar comentário vazio', loja, format('insert into comments(post_id,user_id,content) values (%s,%L,''   '')', pid, loja), 'bloqueado');
+  perform pg_temp.t('Comentários','Dono da publicação pode apagar comentários ofensivos na sua publicação', loja, format('delete from comments where id=%s', cid), 'ok');
+  perform pg_temp.t('Comentários','NÃO deve aceitar comentário vazio', ana, format('insert into comments(post_id,user_id,content) values (%s,%L,''   '')', pid, ana), 'bloqueado');
   perform pg_temp.t('Comentários','Sem sessão NÃO comenta', null, format('insert into comments(post_id,content) values (%s,''anon'')', pid), 'bloqueado');
 
   -- ── 5. Stories ──
