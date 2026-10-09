@@ -561,7 +561,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
         <hr style="margin: 10px 0; border: 0; border-top: 1px solid var(--border);">
         <a href="videos.html" class="item-link"><i class="fas fa-play-circle"></i><span>Vídeos</span></a>
         <a href="live.html" class="item-link"><i class="fas fa-video"></i><span>Live</span></a>
-        <a href="fotoVidio.html" class="item-link"><i class="fa-solid fa-photo-film"></i><span>Biblioteca</span></a>
+        <a href="mensalidade.html" class="item-link" id="link-mensalidade" style="display:none"><i class="fas fa-credit-card"></i><span>Mensalidade</span></a>
     </aside>
 
     <!-- CENTER FEED -->
@@ -586,6 +586,15 @@ html, body { max-width: 100%; overflow-x: hidden; }
                     <span style="color:var(--text-secondary);font-size:13px;">As publicações no feed são feitas pelas empresas. Pode gostar, comentar e enviar mensagens.</span>
                 </div>
                 <button class="publish-btn" style="opacity:1;white-space:nowrap" onclick="document.getElementById('up-story-input').click()">+ Story</button>
+            </div>
+        </div>
+
+        <!-- Empresa com mensalidade a terminar ou terminada -->
+        <div class="post-compose" id="aviso-mensalidade" style="display:none">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="font-size:26px;line-height:1">💳</div>
+                <div style="flex:1;min-width:0;font-size:14px;line-height:1.4;" id="aviso-mensalidade-txt"></div>
+                <a class="publish-btn" style="opacity:1;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center" href="mensalidade.html">Pagar</a>
             </div>
         </div>
 
@@ -723,8 +732,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     const me = await FC.boot();
     if (!me) return;
     currentUser = { id: me.id, name: me.full_name || 'Você', avatar: avatarDe(me.full_name, me.avatar_url), empresa: me.type === 'empresa' };
-    document.getElementById('post-compose').style.display = currentUser.empresa ? '' : 'none';
+    const mens = FC.mensalidade(me);
+    currentUser.podePublicar = currentUser.empresa && mens.pode;
+    document.getElementById('post-compose').style.display = currentUser.podePublicar ? '' : 'none';
     document.getElementById('dica-pessoa').style.display = currentUser.empresa ? 'none' : '';
+    document.getElementById('link-mensalidade').style.display = currentUser.empresa ? '' : 'none';
+    if (currentUser.empresa && (!mens.ativa || (mens.dias !== null && mens.dias <= 5))) {
+        document.getElementById('aviso-mensalidade').style.display = '';
+        document.getElementById('aviso-mensalidade-txt').innerHTML = mens.ativa
+            ? '<b>A mensalidade termina ' + (mens.dias <= 1 ? 'amanhã' : 'em ' + mens.dias + ' dias') + '</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT por M-Pesa ou e-Mola para continuar a publicar.</span>'
+            : '<b>A mensalidade terminou</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT para não ficar sem acesso a publicações, anúncios e Live.</span>';
+    }
     const cav = document.querySelector('.compose-avatar img');
     if (cav) { cav.src = currentUser.avatar; cav.style.display = ''; }
 
@@ -1336,6 +1354,7 @@ async function publishPost() {
     const text = ta.value.trim();
     if ((!text && tempMedia.length === 0) || !currentUser.id) return;
     if (!currentUser.empresa) { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories!'); return; }
+    if (!currentUser.podePublicar) { if (confirm('A mensalidade terminou. Quer pagar agora?')) location.href = 'mensalidade.html'; return; }
 
     btn.disabled = true;
     const original = btn.textContent;
@@ -1363,7 +1382,7 @@ async function publishPost() {
         await carregarPosts();
     } catch (err) {
         document.getElementById('post-preview-area').innerHTML = '';
-        alert(/row-level security/i.test(err.message || '') ? 'Só as contas de empresa podem fazer publicações no feed.' : 'Não foi possível publicar: ' + err.message);
+        alert(/row-level security/i.test(err.message || '') ? 'Só empresas com a mensalidade em dia podem publicar no feed. Veja em Menu → Mensalidade.' : 'Não foi possível publicar: ' + err.message);
         btn.disabled = false;
     } finally {
         btn.textContent = original;

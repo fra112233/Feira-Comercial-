@@ -182,6 +182,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 <script>
 let me = null;
 let souEmpresa = false;
+let mensalidadeAtiva = true;
 let anuncios = [];
 let tipoAtual = 'todos';
 let fotoFicheiro = null;
@@ -201,6 +202,7 @@ function fecharModal(id) { document.getElementById(id).classList.remove('aberto'
   me = await FC.boot();
   if (!me) return;
   souEmpresa = me.type === 'empresa';
+  mensalidadeAtiva = FC.mensalidade(me).pode;
   document.getElementById('btnAnunciar').style.display = souEmpresa ? '' : 'none';
   document.getElementById('tabMeus').style.display = souEmpresa ? '' : 'none';
   document.getElementById('avisoPessoa').style.display = souEmpresa ? 'none' : 'block';
@@ -342,6 +344,7 @@ function ajustarCampos() {
 
 function abrirFormulario() {
   if (!souEmpresa) { toast('Só contas de empresa podem publicar anúncios.'); return; }
+  if (!mensalidadeAtiva) { if (confirm('A mensalidade terminou. Para publicar anúncios, pague 100 MT. Ir para a página de pagamento?')) location.href = 'mensalidade.html'; return; }
   emEdicao = null;
   document.getElementById('adForm').reset();
   fotoFicheiro = null;
