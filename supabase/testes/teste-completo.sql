@@ -201,7 +201,7 @@ begin
   perform pg_temp.t('Anúncios','NÃO aceita tipo inventado', loja, format('insert into vagas_anuncios(empresa_id,titulo,descricao,tipo) values (%L,''x'',''x'',''spam'')', loja), 'bloqueado');
   perform pg_temp.t('Anúncios','Empresa NÃO publica em nome de outra', loja, format('insert into vagas_anuncios(empresa_id,titulo,descricao) values (%L,''x'',''x'')', carlos), 'bloqueado');
   perform pg_temp.t('Anúncios','Pessoas veem os anúncios ativos', ana, format('select id from vagas_anuncios where empresa_id=%L', loja), 'n=3');
-  perform pg_temp.t('Anúncios','Contar visualização', ana, format('select ver_anuncio(%L)::text', aid), 'v=');
+  perform pg_temp.t('Anúncios','Contar visualização', ana, format('select coalesce(ver_anuncio(%L)::text, ''feito'')', aid), 'v=feito');
   perform pg_temp.t('Anúncios','… visualizações = 1', ana, format('select views::text from vagas_anuncios where id=%L', aid), 'v=1');
   perform pg_temp.t('Anúncios','Sem sessão NÃO conta visualizações', null, format('select ver_anuncio(%L)::text', aid), 'bloqueado');
   perform pg_temp.t('Anúncios','Empresa tenta falsificar visualizações', loja, format('update vagas_anuncios set views=99999 where id=%L', aid), 'ok');
@@ -230,7 +230,7 @@ begin
   perform pg_temp.t('Vídeos','Dono do vídeo apaga comentário', ana, format('delete from video_comments where id=%s', vcid), 'ok');
   perform pg_temp.t('Vídeos','Dono tenta falsificar gostos', ana, format('update videos set likes_count=9999, views=9999 where id=%s', vid), 'ok');
   perform pg_temp.t('Vídeos','… e os números NÃO mudam', ana, format('select likes_count||''/''||views from videos where id=%s', vid), 'v=1/0');
-  perform pg_temp.t('Vídeos','Contar visualização', carlos, format('select ver_video(%s)::text', vid), 'v=');
+  perform pg_temp.t('Vídeos','Contar visualização', carlos, format('select coalesce(ver_video(%s)::text, ''feito'')', vid), 'v=feito');
   perform pg_temp.t('Vídeos','Outro NÃO muda a legenda', carlos, format('update videos set caption=''x'' where id=%s', vid), 'bloqueado');
   perform pg_temp.t('Vídeos','Outro NÃO apaga o vídeo', carlos, format('delete from videos where id=%s', vid), 'bloqueado');
 
