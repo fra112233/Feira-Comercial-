@@ -277,6 +277,15 @@
         .pause-overlay i { color: white; font-size: 52px; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
         /* tap/click feedback ring */
         .video-wrapper:active .pause-overlay { opacity: 1; }
+        /* botão de som (os vídeos começam sem som, como no Facebook/Instagram) */
+        .video-wrapper .som-btn { position: absolute; right: 10px; bottom: 10px; z-index: 2; width: 38px; height: 38px; border-radius: 50%;
+            border: none; background: rgba(0,0,0,.62); color: #fff; font-size: 15px; line-height: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+        .video-wrapper .som-btn:active { transform: scale(.92); }
+        .video-wrapper .som-dica { position: absolute; right: 54px; bottom: 16px; z-index: 2; background: rgba(0,0,0,.62); color: #fff;
+            font-size: 12px; line-height: 1; padding: 6px 10px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+            animation: somDica 4s ease forwards; }
+        @keyframes somDica { 0%, 70% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
         /* ── ACTIONS ── */
         .post-actions { display: flex; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 6px; position: relative; }
@@ -1409,6 +1418,7 @@ function renderPostCard(p, isMe) {
                     ? `<div class="video-wrapper" data-postid="${p.id}">
                            <video src="${m.url}" class="media-item" muted loop playsinline preload="metadata"></video>
                            <div class="pause-overlay"><i class="fas fa-pause"></i></div>
+                           <button type="button" class="som-btn" aria-label="Ligar o som" title="Ligar o som"><i class="fas fa-volume-xmark"></i></button>
                        </div>`
                     : `<img src="${m.url}" class="media-item" loading="lazy" onclick="openLightbox(this, ${p.id})">`
                 ).join('')}
@@ -1561,11 +1571,62 @@ async function deleteComment(commentId) {
 // ─────────────────────────────────────
 //  VÍDEOS: só tocam quando estão visíveis (poupa dados e memória)
 // ─────────────────────────────────────
+// SOM: os vídeos começam sem som (o navegador não deixa tocar com som sem um toque).
+// Quando o utilizador liga o som num vídeo, os seguintes também tocam com som
+// (só um de cada vez) até o desligar.
+let somLigado = false;
+try { somLigado = sessionStorage.getItem('fc_som') === '1'; } catch (e) {}
+
+function iconeSom(v) {
+    const w = v.closest('.video-wrapper'); if (!w) return;
+    const b = w.querySelector('.som-btn'); if (!b) return;
+    b.innerHTML = v.muted ? '<i class="fas fa-volume-xmark"></i>' : '<i class="fas fa-volume-high"></i>';
+    b.setAttribute('aria-label', v.muted ? 'Ligar o som' : 'Desligar o som');
+    b.title = b.getAttribute('aria-label');
+}
+function silenciarOutros(v) {
+    document.querySelectorAll('#feed video').forEach(o => { if (o !== v && !o.muted) { o.muted = true; iconeSom(o); } });
+}
+function tocarVideo(v) {
+    if (somLigado) {
+        silenciarOutros(v);
+        v.muted = false;
+        v.play().catch(() => { v.muted = true; iconeSom(v); v.play().catch(() => {}); });  // sem toque prévio: toca sem som
+    } else {
+        v.muted = true;
+        v.play().catch(() => {});
+    }
+    iconeSom(v);
+}
+function alternarSom(wrapper) {
+    const v = wrapper.querySelector('video'); if (!v) return;
+    if (v.muted) {
+        somLigado = true;
+        silenciarOutros(v);
+        v.muted = false;
+        if (v.paused) { v.play().catch(() => {}); wrapper.classList.remove('paused'); const i = wrapper.querySelector('.pause-overlay i'); if (i) i.className = 'fas fa-pause'; }
+    } else {
+        somLigado = false;
+        v.muted = true;
+    }
+    try { sessionStorage.setItem('fc_som', somLigado ? '1' : '0'); } catch (e) {}
+    iconeSom(v);
+}
+function dicaSom() {
+    // na primeira vez, mostra "Toque para ouvir" junto ao botão
+    if (somLigado) return;
+    try { if (sessionStorage.getItem('fc_som_dica')) return; } catch (e) {}
+    const w = document.querySelector('#feed .video-wrapper'); if (!w) return;
+    const d = document.createElement('span'); d.className = 'som-dica'; d.textContent = 'Toque para ouvir';
+    w.appendChild(d); setTimeout(() => d.remove(), 4200);
+    try { sessionStorage.setItem('fc_som_dica', '1'); } catch (e) {}
+}
+
 const _obsVideos = ('IntersectionObserver' in window) ? new IntersectionObserver(entradas => {
     entradas.forEach(e => {
         const v = e.target;
         const wrapper = v.closest('.video-wrapper');
-        if (e.isIntersecting && !(wrapper && wrapper.classList.contains('paused'))) v.play().catch(() => {});
+        if (e.isIntersecting && !(wrapper && wrapper.classList.contains('paused'))) tocarVideo(v);
         else v.pause();
     });
 }, { threshold: 0.5 }) : null;
@@ -1573,6 +1634,7 @@ const _obsVideos = ('IntersectionObserver' in window) ? new IntersectionObserver
 function observarVideos() {
     if (!_obsVideos) return;
     document.querySelectorAll('#feed video').forEach(v => _obsVideos.observe(v));
+    dicaSom();
 }
 
 function toggleVideo(wrapper) {
@@ -1580,7 +1642,7 @@ function toggleVideo(wrapper) {
     const icon  = wrapper.querySelector('.pause-overlay i');
     if (!video) return;
     if (video.paused) {
-        video.play();
+        tocarVideo(video);
         wrapper.classList.remove('paused');
         if (icon) icon.className = 'fas fa-pause';
     } else {
@@ -1595,7 +1657,8 @@ function _videoDelegate(e) {
     if (!wrapper) return;
     e.preventDefault();
     e.stopPropagation();
-    toggleVideo(wrapper);
+    if (e.target.closest('.som-btn')) alternarSom(wrapper);   // botão do som
+    else toggleVideo(wrapper);                                 // resto do vídeo: pausa / continua
 }
 document.addEventListener('click',      _videoDelegate, true);
 document.addEventListener('touchend',   _videoDelegate, { passive: false, capture: true });
