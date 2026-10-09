@@ -1,0 +1,96 @@
+/* ============================================================
+   Feira Comercial — ajuda.css
+   Estilo partilhado das páginas Sobre, Políticas e Reclamações.
+   ============================================================ */
+:root {
+  --ouro: #f3c64e; --ouro-esc: #d9a52e; --fundo: #0b0b0c; --cartao: #16161a; --campo: #1f1f25;
+  --linha: #2c2c34; --texto: #f4f4f5; --sub: #a1a1aa; --ok: #4ade80; --erro: #f87171;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body { max-width: 100%; overflow-x: hidden; }
+body {
+  font-family: Inter, 'Segoe UI', system-ui, sans-serif; color: var(--texto); line-height: 1.6; min-height: 100vh;
+  background: radial-gradient(circle at 50% -10%, rgba(243,198,78,.14), transparent 50%), var(--fundo);
+}
+a { color: var(--ouro); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; }
+
+/* ── topo ── */
+.topo { position: sticky; top: 0; z-index: 50; background: rgba(11,11,12,.86); backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--linha); }
+.topo-in { max-width: 1040px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
+.fc-marca { display: flex; align-items: center; gap: 9px; text-decoration: none !important; min-width: 0; flex-shrink: 1; }
+.fc-marca img { width: 40px; height: 40px; border-radius: 10px; display: block; flex-shrink: 0; }
+.fc-marca-txt { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.fc-marca-txt b { font-size: 17px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap;
+  background: linear-gradient(180deg, #f6cf5f, #c9921f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.fc-marca-txt small { font-size: 10.5px; font-weight: 600; color: #e3a92f; white-space: nowrap; margin-top: 2px; }
+.topo nav { display: flex; gap: 4px; margin-left: auto; }
+.topo nav a { color: var(--sub); font-size: 14px; font-weight: 600; padding: 8px 12px; border-radius: 10px; white-space: nowrap; }
+.topo nav a:hover { color: var(--texto); background: var(--campo); text-decoration: none; }
+.topo nav a.atual { color: var(--ouro); background: rgba(243,198,78,.1); }
+.topo .entrar { background: linear-gradient(135deg, var(--ouro), var(--ouro-esc)); color: #000; font-weight: 700; font-size: 14px;
+  padding: 9px 16px; border-radius: 10px; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
+.topo .entrar:hover { text-decoration: none; filter: brightness(1.05); }
+.topo .menu { width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--campo); color: var(--texto);
+  font-size: 16px; cursor: pointer; display: none; flex-shrink: 0; }
+/* telemóvel: links passam para uma barra por baixo */
+@media (max-width: 720px) {
+  .topo-in { flex-wrap: wrap; row-gap: 6px; }
+  .topo nav { order: 3; width: 100%; margin: 0; justify-content: space-between; overflow-x: auto; }
+  .topo nav a { padding: 6px 10px; font-size: 13px; }
+  .topo .acoes { margin-left: auto; }
+}
+.acoes { display: flex; align-items: center; gap: 8px; }
+
+/* ── conteúdo ── */
+.pagina { max-width: 1040px; margin: 0 auto; padding: 28px 16px 40px; }
+.estreita { max-width: 780px; }
+.titulo { font-size: clamp(26px, 5vw, 38px); line-height: 1.15; font-weight: 800; letter-spacing: -.5px; }
+.titulo em { font-style: normal; background: linear-gradient(180deg, #f6cf5f, #c9921f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.intro { color: var(--sub); font-size: 16px; margin-top: 10px; max-width: 640px; }
+.etiqueta { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ouro); background: rgba(243,198,78,.1); border: 1px solid rgba(243,198,78,.25); padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+.cartao { background: var(--cartao); border: 1px solid var(--linha); border-radius: 18px; padding: 24px; }
+.secao { margin-top: 44px; }
+.secao > h2 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; margin-bottom: 14px; }
+.grelha { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.item { background: var(--cartao); border: 1px solid var(--linha); border-radius: 16px; padding: 18px; }
+.item i.ic { width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(243,198,78,.12); color: var(--ouro); font-size: 18px; margin-bottom: 10px; }
+.item h3 { font-size: 16px; margin-bottom: 4px; }
+.item p { font-size: 14px; color: var(--sub); }
+
+/* ── botões ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 22px; border: none; border-radius: 12px;
+  font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, var(--ouro), var(--ouro-esc)); color: #000; }
+.btn:hover { text-decoration: none; filter: brightness(1.05); }
+.btn:disabled { opacity: .55; cursor: default; filter: none; }
+.btn-sec { background: var(--campo); color: var(--texto); border: 1px solid var(--linha); font-weight: 600; }
+.girar { width: 16px; height: 16px; border: 2.5px solid rgba(0,0,0,.25); border-top-color: #000; border-radius: 50%; animation: girar .8s linear infinite; display: none; }
+.btn.carregando .girar { display: inline-block; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ── formulários ── */
+label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.campo { margin-bottom: 16px; }
+.campo input, .campo textarea, .campo select { width: 100%; padding: 13px 14px; background: var(--campo); border: 1.5px solid var(--linha);
+  border-radius: 12px; color: var(--texto); font: inherit; font-size: 15px; outline: none; transition: border-color .2s; }
+.campo textarea { min-height: 150px; resize: vertical; }
+.campo input:focus, .campo textarea:focus, .campo select:focus { border-color: var(--ouro); }
+.campo .dica { font-size: 12px; color: var(--sub); margin-top: 5px; display: flex; justify-content: space-between; gap: 10px; }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 560px) { .duas { grid-template-columns: 1fr; } }
+.aviso { display: none; padding: 12px 14px; border-radius: 12px; font-size: 14px; margin-bottom: 16px; }
+.aviso.erro { display: block; background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.35); color: #fecaca; }
+.aviso.ok { display: block; background: rgba(74,222,128,.1); border: 1px solid rgba(74,222,128,.35); color: #bbf7d0; }
+
+/* ── rodapé ── */
+.rodape { border-top: 1px solid var(--linha); margin-top: 30px; }
+.rodape-in { max-width: 1040px; margin: 0 auto; padding: 22px 16px 30px; display: flex; flex-wrap: wrap; gap: 10px 22px;
+  align-items: center; justify-content: space-between; font-size: 13px; color: var(--sub); }
+.rodape-in nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.rodape-in nav a { color: var(--sub); }
+.rodape-in nav a:hover { color: var(--ouro); }
