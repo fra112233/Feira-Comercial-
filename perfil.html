@@ -1373,7 +1373,7 @@
                     </button>
                 </div>
                 <div class="profile-actions" id="acoesDono">
-                    <button class="btn btn-primary" onclick="openModal('modalPost')">
+                    <button class="btn btn-primary" id="btnPublicar" onclick="openModal('modalPost')">
                         <i class="fas fa-plus"></i> Publicar
                     </button>
                     <button class="btn btn-secondary" onclick="openModal('modalEdit')">
@@ -1981,6 +1981,7 @@
             return;
         }
         if (!meuId) { alert('Sessão expirada. Entra novamente.'); return; }
+        if (typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type !== 'empresa') { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories, na página inicial.'); return; }
 
         const botao = document.querySelector('[onclick="submitPost()"]');
         if (botao) { botao.disabled = true; botao.textContent = 'A publicar...'; }

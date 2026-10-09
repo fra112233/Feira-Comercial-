@@ -577,8 +577,20 @@ html, body { max-width: 100%; overflow-x: hidden; }
             </div>
         </div>
 
-        <!-- Compose -->
-        <div class="post-compose">
+        <!-- Só empresas fazem publicações no feed; pessoas partilham nos Stories -->
+        <div class="post-compose dica-pessoa" id="dica-pessoa" style="display:none">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="font-size:26px;line-height:1">📸</div>
+                <div style="flex:1;min-width:0;font-size:14px;line-height:1.4;">
+                    <b>Partilhe o seu dia nos Stories</b><br>
+                    <span style="color:var(--text-secondary);font-size:13px;">As publicações no feed são feitas pelas empresas. Pode gostar, comentar e enviar mensagens.</span>
+                </div>
+                <button class="publish-btn" style="opacity:1;white-space:nowrap" onclick="document.getElementById('up-story-input').click()">+ Story</button>
+            </div>
+        </div>
+
+        <!-- Compose (só empresas) -->
+        <div class="post-compose" id="post-compose" style="display:none">
             <div class="compose-top">
                 <div class="compose-avatar"><img src="data:," data-fc-avatar alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user" style="display:none"></i></div>
                 <textarea class="compose-input" id="post-text" maxlength="5000" placeholder="No que você está pensando?"></textarea>
@@ -710,7 +722,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 2) sessão + perfil
     const me = await FC.boot();
     if (!me) return;
-    currentUser = { id: me.id, name: me.full_name || 'Você', avatar: avatarDe(me.full_name, me.avatar_url) };
+    currentUser = { id: me.id, name: me.full_name || 'Você', avatar: avatarDe(me.full_name, me.avatar_url), empresa: me.type === 'empresa' };
+    document.getElementById('post-compose').style.display = currentUser.empresa ? '' : 'none';
+    document.getElementById('dica-pessoa').style.display = currentUser.empresa ? 'none' : '';
     const cav = document.querySelector('.compose-avatar img');
     if (cav) { cav.src = currentUser.avatar; cav.style.display = ''; }
 
@@ -1321,6 +1335,7 @@ async function publishPost() {
     const btn = document.getElementById('publish-btn');
     const text = ta.value.trim();
     if ((!text && tempMedia.length === 0) || !currentUser.id) return;
+    if (!currentUser.empresa) { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories!'); return; }
 
     btn.disabled = true;
     const original = btn.textContent;
@@ -1348,7 +1363,7 @@ async function publishPost() {
         await carregarPosts();
     } catch (err) {
         document.getElementById('post-preview-area').innerHTML = '';
-        alert('Não foi possível publicar: ' + err.message);
+        alert(/row-level security/i.test(err.message || '') ? 'Só as contas de empresa podem fazer publicações no feed.' : 'Não foi possível publicar: ' + err.message);
         btn.disabled = false;
     } finally {
         btn.textContent = original;

@@ -105,6 +105,7 @@ function cartoesPessoa(p) {
 function aplicarPerfil() {
   const p = perfilAtual;
   if (!p) return;
+  ajustarPublicar();
   const e = FCP.esc;
 
   if (modoVisita) {
@@ -323,6 +324,15 @@ function mostrarModoDono() {
   const dono = document.getElementById('acoesDono'); if (dono) dono.style.display = '';
   const visita = document.getElementById('acoesVisita'); if (visita) visita.style.display = 'none';
   document.querySelectorAll('.profile-pic-edit, .create-post-card').forEach(el => el.style.display = '');
+  ajustarPublicar();
+}
+
+// Só as empresas fazem publicações no feed (as pessoas usam os Stories)
+function ajustarPublicar() {
+  if (modoVisita) return;
+  const empresa = ehEmpresa(perfilAtual);
+  const b = document.getElementById('btnPublicar'); if (b) b.style.display = empresa ? '' : 'none';
+  document.querySelectorAll('.create-post-card').forEach(el => el.style.display = empresa ? '' : 'none');
 }
 
 let sigoEste = false;
