@@ -581,7 +581,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
         <div class="post-compose">
             <div class="compose-top">
                 <div class="compose-avatar"><img src="data:," data-fc-avatar alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user" style="display:none"></i></div>
-                <textarea class="compose-input" id="post-text" placeholder="No que você está pensando?"></textarea>
+                <textarea class="compose-input" id="post-text" maxlength="5000" placeholder="No que você está pensando?"></textarea>
             </div>
             <div id="post-preview-area"></div>
             <div class="compose-actions">
@@ -657,7 +657,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
         </div>
         <div class="chat-messages" id="chat-messages"></div>
         <div class="chat-input-row">
-            <input type="text" class="chat-input" id="chat-input" placeholder="Escreve uma mensagem..." onkeypress="if(event.key==='Enter') sendChatMsg()">
+            <input type="text" class="chat-input" id="chat-input" maxlength="5000" placeholder="Escreve uma mensagem..." onkeypress="if(event.key==='Enter') sendChatMsg()">
             <button class="chat-send-btn" onclick="sendChatMsg()"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
@@ -1450,12 +1450,15 @@ function renderPostCard(p, isMe) {
         <div class="comment-section" id="comm-${p.id}">
             <div id="comment-list-${p.id}">${renderComments(p.comments, p.id)}</div>
             <div class="comment-input-row">
-                <input type="text" class="comment-input" id="ci-${p.id}" placeholder="Escreve um comentário..." onkeypress="if(event.key==='Enter') addComment(${p.id})">
+                <input type="text" class="comment-input" id="ci-${p.id}" maxlength="2000" placeholder="Escreve um comentário..." onkeypress="if(event.key==='Enter') addComment(${p.id})">
                 <button class="send-btn" onclick="addComment(${p.id})"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     </div>`;
 }
+
+// o dono da publicação também pode apagar comentários (ex.: ofensivos)
+function donoDoPost(postId) { const p = posts.find(x => x.id === postId); return !!(p && p.userId === currentUser.id); }
 
 function renderComments(comments, postId) {
     return comments.map(c => `
@@ -1466,11 +1469,11 @@ function renderComments(comments, postId) {
                 <div class="comment-meta">
                     <span>${timeAgo(c.timestamp)}</span>
                     <span class="reply-btn" onclick="showReplyBox(${postId}, ${c.id})">Responder</span>
-                    ${c.userId === currentUser.id ? `<span class="reply-btn" onclick="deleteComment(${c.id})">Apagar</span>` : ''}
+                    ${(c.userId === currentUser.id || donoDoPost(postId)) ? `<span class="reply-btn" onclick="deleteComment(${c.id})">Apagar</span>` : ''}
                 </div>
                 ${c.replies && c.replies.length > 0 ? `<div class="replies-wrap">${renderComments(c.replies, postId)}</div>` : ''}
                 <div id="reply-box-${c.id}" style="display:none;margin-top:6px;" class="comment-input-row">
-                    <input type="text" class="comment-input" id="ri-${c.id}" placeholder="Responder..." onkeypress="if(event.key==='Enter') addReply(${postId}, ${c.id})">
+                    <input type="text" class="comment-input" id="ri-${c.id}" maxlength="2000" placeholder="Responder..." onkeypress="if(event.key==='Enter') addReply(${postId}, ${c.id})">
                     <button class="send-btn" onclick="addReply(${postId}, ${c.id})"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
