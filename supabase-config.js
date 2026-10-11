@@ -105,24 +105,153 @@ FC.uploadImage = async function (bucket, file, path) {
 };
 
 /* ---------- Mensagens por ler (bolinha vermelha nos links de Mensagens) ---------- */
+// Número de mensagens por ler: ícones de mensagens, item do menu ☰, ponto no botão ☰
+// e no título do separador "(2) Feira Comercial". Tempo real + verificação de reserva.
+FC._msgsNaoLidas = 0;
 FC.badgeMensagens = async function () {
-  const els = document.querySelectorAll('[data-fc-msgs]');
-  if (!els.length || FC._badgeLigado) return;
+  if (FC._badgeLigado) return;
   const session = await FC.getSession();
   if (!session) return;
   FC._badgeLigado = true;
   const uid = session.user.id;
-  const mostrar = n => els.forEach(el => { el.textContent = n > 99 ? '99+' : n; el.style.display = n ? '' : 'none'; });
-  const contar = async () => {
-    const { count, error } = await supabaseClient.from('messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('receiver_id', uid).is('read_at', null).eq('deleted', false).eq('cleared_by_receiver', false);
-    if (!error) mostrar(count || 0);
+
+  if (!document.getElementById('fc-badge-css')) {
+    const css = document.createElement('style');
+    css.id = 'fc-badge-css';
+    css.textContent =
+      '.fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--bg-card,#18191a)}' +
+      '.fc-menu-ponto{position:absolute;top:4px;right:4px;width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 2px var(--bg-card,#18191a);pointer-events:none}' +
+      '.fc-msg-menu{margin-left:auto;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:#ef4444;color:#fff;font-size:12px;font-weight:700;line-height:22px;text-align:center}';
+    document.head.appendChild(css);
+  }
+
+  const mostrar = n => {
+    FC._msgsNaoLidas = n;
+    const txt = n > 99 ? '99+' : String(n);
+    document.querySelectorAll('[data-fc-msgs]').forEach(el => { el.textContent = txt; el.style.display = n ? '' : 'none'; });
+    document.querySelectorAll('[onclick*="FCMenu.abrir"]').forEach(b => {
+      let d = b.querySelector('.fc-menu-ponto');
+      if (!d) { d = document.createElement('span'); d.className = 'fc-menu-ponto'; if (getComputedStyle(b).position === 'static') b.style.position = 'relative'; b.appendChild(d); }
+      d.style.display = n ? '' : 'none';
+    });
+    const base = document.title.replace(/^\(\d+\+?\) /, '');
+    document.title = n ? '(' + txt + ') ' + base : base;
+    document.dispatchEvent(new CustomEvent('fc:mensagens', { detail: n }));
   };
-  await contar();
+  let aContar = null;
+  const contar = () => {
+    clearTimeout(aContar);
+    aContar = setTimeout(async () => {
+      const { count, error } = await supabaseClient.from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', uid).is('read_at', null).eq('deleted', false).eq('cleared_by_receiver', false);
+      if (!error) mostrar(count || 0);
+    }, 250);
+  };
+  contar();
   supabaseClient.channel('badge-msgs-' + uid)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${uid}` }, contar)
     .subscribe();
+  // reserva: se a ligação em tempo real cair (dados móveis), volta a contar
+  setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 45000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
+  window.addEventListener('focus', contar);
+};
+
+/* ---------- Quem está em direto (Live) ----------
+   Mostra em todas as páginas: uma pílula "🔴 AO VIVO · Loja X está em direto"
+   e um selo nos links/itens "Live". Atualiza em tempo real. */
+FC._livesAgora = [];
+FC.vigiarLives = async function () {
+  if (FC._livesLigado) return;
+  const session = await FC.getSession();
+  if (!session) return;
+  FC._livesLigado = true;
+  const uid = session.user.id;
+  const naPaginaLive = /live\.html/i.test(location.pathname);
+
+  if (!document.getElementById('fc-live-css')) {
+    const css = document.createElement('style');
+    css.id = 'fc-live-css';
+    css.textContent =
+      '#fc-aovivo{position:fixed;left:0;right:0;margin:0 auto;width:max-content;z-index:4500;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 24px);box-sizing:border-box;' +
+      'background:#18181b;color:#f4f4f5;border:1px solid rgba(239,68,68,.45);border-radius:999px;padding:6px 6px 6px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);' +
+      'font:600 13px Inter,"Segoe UI",system-ui,sans-serif;animation:fcAoVivoEntra .25s ease-out}' +
+      '@keyframes fcAoVivoEntra{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}' +
+      '#fc-aovivo a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px;min-width:0}' +
+      '#fc-aovivo .sl{background:#ef4444;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:6px;flex-shrink:0}' +
+      '#fc-aovivo .tx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '#fc-aovivo .vr{color:#f3c64e;flex-shrink:0}' +
+      '#fc-aovivo img{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 0 0 2px #ef4444}' +
+      '#fc-aovivo button{border:none;background:#2c2c34;color:#a1a1aa;width:24px;height:24px;border-radius:50%;cursor:pointer;flex-shrink:0;font-size:14px;line-height:1}' +
+      '.fc-aovivo-ponto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;animation:fcPisca 1.2s infinite}' +
+      '@keyframes fcPisca{50%{opacity:.3}}' +
+      '.fc-aovivo-chip{display:inline-flex;align-items:center;gap:5px;margin-left:auto;background:rgba(239,68,68,.15);color:#ef4444;font-size:11px;font-weight:800;' +
+      'padding:2px 8px;border-radius:999px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}';
+    document.head.appendChild(css);
+  }
+
+  const texto = lista => {
+    const n = lista.map(l => (l.autor && l.autor.full_name) || 'Uma empresa');
+    if (n.length === 1) return n[0] + ' está em direto';
+    if (n.length === 2) return n[0] + ' e ' + n[1] + ' estão em direto';
+    return n[0] + ', ' + n[1] + ' e mais ' + (n.length - 2) + ' estão em direto';
+  };
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+  const posicionar = () => {
+    const el = document.getElementById('fc-aovivo'); if (!el) return;
+    const cab = document.querySelector('header, nav.top-nav, .topbar');
+    const fundo = cab ? cab.getBoundingClientRect().bottom : 0;
+    el.style.top = Math.max(10, fundo + 8) + 'px';
+  };
+  window.addEventListener('scroll', () => requestAnimationFrame(posicionar), { passive: true });
+  window.addEventListener('resize', posicionar);
+
+  const mostrar = lista => {
+    FC._livesAgora = lista;
+    // selos nos links para a Live
+    document.querySelectorAll('a[href="live.html"], a[href^="live.html?"]').forEach(a => {
+      let c = a.querySelector('.fc-aovivo-chip');
+      if (!lista.length) { if (c) c.remove(); return; }
+      if (!c) { c = document.createElement('span'); c.className = 'fc-aovivo-chip'; a.appendChild(c); }
+      c.innerHTML = '<span class="fc-aovivo-ponto"></span>' + (lista.length === 1 ? esc((lista[0].autor && lista[0].autor.full_name) || 'AO VIVO') : lista.length + ' ao vivo');
+    });
+    document.dispatchEvent(new CustomEvent('fc:lives', { detail: lista }));
+    // pílula (não aparece na própria página da Live nem se a pessoa a fechou para estas lives)
+    let el = document.getElementById('fc-aovivo');
+    const chave = lista.map(l => l.id).sort().join(',');
+    let fechada = '';
+    try { fechada = sessionStorage.getItem('fc_aovivo_fechado') || ''; } catch (e) {}
+    if (!lista.length || naPaginaLive || fechada === chave) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'fc-aovivo'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    const l0 = lista[0], a0 = l0.autor || {};
+    const foto = a0.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(a0.full_name || 'L') + '&background=random&color=fff&size=64');
+    el.innerHTML = '<a href="live.html' + (lista.length === 1 ? '?id=' + esc(l0.id) : '') + '"><img src="' + esc(foto) + '" alt=""><span class="sl">AO VIVO</span>' +
+      '<span class="tx">' + esc(texto(lista)) + '</span><span class="vr">Ver ›</span></a>' +
+      '<button type="button" aria-label="Fechar" title="Fechar">×</button>';
+    el.querySelector('button').onclick = () => { try { sessionStorage.setItem('fc_aovivo_fechado', chave); } catch (e) {} el.remove(); };
+    posicionar();
+  };
+
+  let t = null;
+  const carregar = () => {
+    clearTimeout(t);
+    t = setTimeout(async () => {
+      const limite = new Date(Date.now() - 90 * 1000).toISOString();
+      const { data, error } = await supabaseClient.from('lives')
+        .select('id,user_id,titulo,autor:perfis!lives_user_id_fkey(full_name,avatar_url)')
+        .eq('estado', 'ao_vivo').gte('atualizado_em', limite)
+        .order('started_at', { ascending: false }).limit(6);
+      if (!error) mostrar((data || []).filter(l => l.user_id !== uid));
+    }, 300);
+  };
+  carregar();
+  supabaseClient.channel('lives-agora-' + uid)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'lives' }, carregar)
+    .subscribe();
+  setInterval(() => { if (document.visibilityState === 'visible') carregar(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') carregar(); });
 };
 
 /* ---------- Mensalidade das empresas ---------- */
@@ -181,6 +310,7 @@ FC.boot = async function (opts = {}) {
   if (!session) return null;
   const me = await FC.applyIdentity(opts);
   FC.badgeMensagens();
+  FC.vigiarLives();
   if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
   return me;
 };

@@ -19,6 +19,10 @@
   radial-gradient(circle at 30% 20%, rgba(243,198,78,.25), transparent 60%), linear-gradient(160deg, #1d1a12, #0b0b0c); aspect-ratio: 4/5;
   display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; cursor: pointer; text-decoration: none !important; color: var(--texto); transition: transform .15s; }
 .live-card:hover { transform: translateY(-2px); }
+.live-card .lotacao { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.55); color: #fff; font-size: 11.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px; }
+.live-card .lotacao.cheia { background: #f59e0b; color: #18181b; }
+.live-card.cheia .av { filter: grayscale(.4); }
 .live-card .av { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -60%); width: 92px; height: 92px; border-radius: 50%;
   object-fit: cover; border: 3px solid #ef4444; box-shadow: 0 0 0 6px rgba(239,68,68,.18); background: #333; }
 .live-card b { font-size: 16px; display: block; }
@@ -166,15 +170,19 @@ function haQuanto(d) { const m = Math.max(1, Math.round((Date.now() - new Date(d
 async function carregarLista() {
   const limite = new Date(Date.now() - 90 * 1000).toISOString();
   const { data, error } = await supabaseClient.from('lives')
-    .select('id,titulo,started_at,user_id,autor:perfis!lives_user_id_fkey(full_name,avatar_url,type)')
+    .select('*,autor:perfis!lives_user_id_fkey(full_name,avatar_url,type)')
     .eq('estado', 'ao_vivo').gte('atualizado_em', limite).order('started_at', { ascending: false }).limit(30);
   const el = $('lista');
   if (error) { el.innerHTML = '<div class="vazio" style="grid-column:1/-1"><i class="fas fa-tower-broadcast"></i>As lives ainda estão a ser preparadas. Volte daqui a pouco.</div>'; return; }
   if (!data.length) { el.innerHTML = '<div class="vazio" style="grid-column:1/-1"><i class="fas fa-satellite-dish"></i><b>Nenhuma live agora</b><br>Quando uma empresa entrar em direto, aparece aqui.</div>'; return; }
-  el.innerHTML = data.map(l =>
-    '<a class="live-card" href="live.html?id=' + l.id + '"><span class="selo-live">AO VIVO</span>' +
+  el.innerHTML = data.map(l => {
+    const n = typeof l.espectadores === 'number' ? l.espectadores : null;
+    const cheia = n !== null && n >= MAX_ESPECTADORES;
+    return '<a class="live-card' + (cheia ? ' cheia' : '') + '" href="live.html?id=' + l.id + '"><span class="selo-live">AO VIVO</span>' +
+    (n !== null ? '<span class="lotacao' + (cheia ? ' cheia' : '') + '"><i class="fas fa-eye"></i> ' + (cheia ? 'Cheia · ' : '') + n + '/' + MAX_ESPECTADORES + '</span>' : '') +
     '<img class="av" src="' + esc(avatar(l.autor)) + '" alt="">' +
-    '<b>' + esc((l.autor && l.autor.full_name) || 'Empresa') + '</b><span>' + esc(l.titulo) + ' · ' + haQuanto(l.started_at) + '</span></a>').join('');
+    '<b>' + esc((l.autor && l.autor.full_name) || 'Empresa') + '</b><span>' + esc(l.titulo) + ' · ' + haQuanto(l.started_at) + '</span></a>';
+  }).join('');
 }
 
 function desenharIniciar() {
@@ -212,8 +220,11 @@ function abrirCanal(id, aoEntrar) {
   canal.on('broadcast', { event: 'sinal' }, ({ payload }) => receber(payload));
   canal.on('presence', { event: 'sync' }, () => {
     const n = Object.values(canal.presenceState()).filter(l => l[0] && l[0].papel === 'espectador').length;
-    $('pContador').textContent = n;
+    const ligados = papel === 'emissor' ? Object.keys(pcs).length : Math.min(n, MAX_ESPECTADORES);
+    $('pContador').textContent = ligados + '/' + MAX_ESPECTADORES;
+    $('pContador').parentElement.title = ligados + ' a ver · máximo ' + MAX_ESPECTADORES;
     if (papel === 'emissor' && n > pico) pico = n;
+    publicarEspectadores();
   });
   canal.subscribe(async estado => {
     if (estado === 'SUBSCRIBED') { await canal.track({ papel, nome: me.full_name || 'Utilizador' }); aoEntrar && aoEntrar(); }
@@ -227,13 +238,13 @@ function receber(m) {
     if (m.tipo === 'entrar') return novoEspectador(m.de, m.nome);
     if (m.tipo === 'resposta' && pcs[m.de]) return pcs[m.de].setRemoteDescription(m.sdp).then(() => despejar(pcs[m.de])).catch(() => {});
     if (m.tipo === 'ice' && m.para === 'host' && pcs[m.de]) return juntarIce(pcs[m.de], m.c);
-    if (m.tipo === 'sair' && pcs[m.de]) { pcs[m.de].close(); delete pcs[m.de]; }
+    if (m.tipo === 'sair' && pcs[m.de]) { pcs[m.de].close(); delete pcs[m.de]; publicarEspectadores(); }
   } else if (papel === 'espectador') {
     if (m.para && m.para !== minhaChave && m.tipo !== 'host-on' && m.tipo !== 'fim') return;
     if (m.tipo === 'oferta') return aceitarOferta(m.sdp);
     if (m.tipo === 'ice' && pcEsp) return juntarIce(pcEsp, m.c);
     if (m.tipo === 'host-on' && !ligado) return pedirEntrada();
-    if (m.tipo === 'cheio') return centro('<h2>A live está cheia</h2><p>Já há ' + MAX_ESPECTADORES + ' pessoas a ver. Tente daqui a pouco.</p>');
+    if (m.tipo === 'cheio') return liveCheia();
     if (m.tipo === 'fim') return liveTerminou();
   }
 }
@@ -273,11 +284,12 @@ async function novoEspectador(de, nome) {
   if (Object.keys(pcs).length >= MAX_ESPECTADORES) { enviar({ tipo: 'cheio', para: de }); return; }
   const pc = new RTCPeerConnection({ iceServers });
   pcs[de] = pc;
+  publicarEspectadores();
   stream.getTracks().forEach(t => pc.addTrack(t, stream));
   pc.onicecandidate = e => { if (e.candidate) enviar({ tipo: 'ice', para: de, de: 'host', c: e.candidate.toJSON() }); };
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') limitarQualidade(pc);
-    if (['failed', 'closed'].includes(pc.connectionState)) { pc.close(); if (pcs[de] === pc) delete pcs[de]; }
+    if (['failed', 'closed'].includes(pc.connectionState)) { pc.close(); if (pcs[de] === pc) delete pcs[de]; publicarEspectadores(); }
   };
   const oferta = await pc.createOffer();
   await pc.setLocalDescription(oferta);
@@ -343,16 +355,47 @@ window.addEventListener('pagehide', () => {
 /* ─── espectador ─── */
 async function verLive(id) {
   const { data: l, error } = await supabaseClient.from('lives')
-    .select('id,titulo,estado,atualizado_em,user_id,autor:perfis!lives_user_id_fkey(full_name,avatar_url)').eq('id', id).maybeSingle();
+    .select('*,autor:perfis!lives_user_id_fkey(full_name,avatar_url)').eq('id', id).maybeSingle();
   if (error || !l) { aviso('Esta live não existe.'); return; }
   liveAtual = l;
   abrirPalco();
   if (l.estado !== 'ao_vivo' || Date.now() - new Date(l.atualizado_em) > 90000) return liveTerminou();
   if (l.user_id === me.id) { centro('<h2>Esta live é sua</h2><p>Ela continua noutra janela ou já terminou.</p><button class="btn" onclick="sairPalco()">Voltar</button>'); return; }
   papel = 'espectador'; minhaChave = me.id + '-' + Math.random().toString(36).slice(2, 8);
+  if (typeof l.espectadores === 'number') $('pContador').textContent = Math.min(l.espectadores, MAX_ESPECTADORES) + '/' + MAX_ESPECTADORES;
+  if (typeof l.espectadores === 'number' && l.espectadores >= MAX_ESPECTADORES) {
+    abrirCanal(id, null);            // fica a ver o contador e o chat; entra ao tentar outra vez
+    return liveCheia();
+  }
   centro('<div class="girar2"></div><p>A ligar à live…</p>');
   abrirCanal(id, pedirEntrada);
   tentativa = setInterval(() => { if (!ligado) pedirEntrada(); }, 7000);
+}
+// A live atingiu o máximo de participantes: aviso claro + tentar outra vez
+function liveCheia() {
+  if (tentativa) { clearInterval(tentativa); tentativa = null; }
+  centro('<div style="font-size:42px">🙋</div><h2>A live está cheia</h2>' +
+    '<p>Já estão ' + MAX_ESPECTADORES + ' pessoas a ver, o máximo permitido. Assim que alguém sair, pode entrar.</p>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">' +
+    '<button class="btn" onclick="tentarOutraVez()"><i class="fas fa-rotate-right"></i> Tentar outra vez</button>' +
+    '<button class="btn btn-sec" onclick="sairPalco()">Voltar</button></div>');
+}
+function tentarOutraVez() {
+  centro('<div class="girar2"></div><p>A ligar à live…</p>');
+  pedirEntrada();
+  if (!tentativa) tentativa = setInterval(() => { if (!ligado) pedirEntrada(); }, 7000);
+}
+// emissor: guarda quantas pessoas estão a ver (para a lista e para avisar quando está cheia)
+let _espPublicado = -1, _tEsp = null;
+function publicarEspectadores() {
+  if (papel !== 'emissor' || !liveAtual) return;
+  clearTimeout(_tEsp);
+  _tEsp = setTimeout(() => {
+    const n = Object.keys(pcs).length;
+    if (n === _espPublicado) return;
+    _espPublicado = n;
+    supabaseClient.from('lives').update({ espectadores: n }).eq('id', liveAtual.id).then(() => {});
+  }, 2000);
 }
 function pedirEntrada() { enviar({ tipo: 'entrar', de: minhaChave, nome: me.full_name || 'Alguém' }); }
 

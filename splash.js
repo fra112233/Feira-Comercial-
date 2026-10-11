@@ -17,7 +17,7 @@
     '#fc-splash{position:fixed;inset:0;z-index:2147483647;background:#000;display:flex;flex-direction:column;',
     'align-items:center;justify-content:center;gap:6px;font-family:Inter,"Segoe UI",system-ui,sans-serif;',
     'transition:opacity .45s ease,visibility .45s ease}',
-    '#fc-splash.sair{opacity:0;visibility:hidden}',
+    '#fc-splash.sair{opacity:0;visibility:hidden;pointer-events:none}',
     '#fc-splash svg{width:min(62vw,280px);height:auto;overflow:visible}',
     '#fc-splash .ouro{stroke:url(#fcOuro);fill:none;stroke-linecap:round;stroke-linejoin:round}',
     /* globo: as linhas desenham-se */
