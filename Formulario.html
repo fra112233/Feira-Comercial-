@@ -171,6 +171,7 @@
 <base target="_self">
     <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 <script src="splash.js"></script>
@@ -302,7 +303,7 @@
             <label>Foto de perfil <span style="font-weight:400;color:var(--secondary)">(opcional)</span>:</label>
             <div class="avatar-row">
                 <div class="avatar-preview" id="avatar-preview">📷</div>
-                <input type="file" id="foto_perfil" accept="image/*" style="font-size:13px;">
+                <input type="file" id="foto_perfil" accept="image/*" style="font-size:13px;width:100%;max-width:100%;box-sizing:border-box;">
             </div>
         </div>
 

@@ -7,6 +7,7 @@
 <title>Administração | Feira Comercial</title>
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="ajuda.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -140,7 +141,7 @@ async function carregarPagamentos() {
   const { data, error } = await supabaseClient.from('pagamentos')
     .select('id,empresa_id,metodo,meses,valor,codigo_transacao,telefone,estado,nota_admin,comprovativo,created_at,confirmado_em,empresa:perfis!pagamentos_empresa_id_fkey(id,full_name,avatar_url,city,province)')
     .order('created_at', { ascending: false }).limit(300);
-  if (error) { $('listaPag').innerHTML = '<p class="vazio">Erro ao carregar pagamentos: ' + esc(error.message) + '</p>'; return; }
+  if (error) { $('listaPag').innerHTML = '<p class="vazio">Erro ao carregar pagamentos: ' + esc(FC.traduzirErro(error)) + '</p>'; return; }
   pagamentos = data || [];
   const pend = pagamentos.filter(p => p.estado === 'pendente').length;
   $('nPendentes').textContent = pend; $('cPag').textContent = pend;
@@ -195,7 +196,7 @@ async function decidir(id, estado) {
     nota = nota.trim() || null;
   }
   const { error } = await supabaseClient.from('pagamentos').update({ estado, nota_admin: nota }).eq('id', id);
-  if (error) { toast('Erro: ' + esc(error.message)); return; }
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
   toast(estado === 'confirmado' ? '✅ Pagamento confirmado. Mensalidade de ' + esc(nome) + ' renovada.' : 'Pagamento recusado.');
   carregarPagamentos(); carregarAtivas();
 }
@@ -210,7 +211,7 @@ async function carregarReclamacoes() {
   const { data, error } = await supabaseClient.from('reclamacoes')
     .select('id,user_id,nome,email,telefone,tipo,assunto,mensagem,link,estado,resposta,respondido_em,created_at')
     .order('created_at', { ascending: false }).limit(300);
-  if (error) { $('listaRecl').innerHTML = '<p class="vazio">Erro ao carregar: ' + esc(error.message) + '</p>'; return; }
+  if (error) { $('listaRecl').innerHTML = '<p class="vazio">Erro ao carregar: ' + esc(FC.traduzirErro(error)) + '</p>'; return; }
   reclamacoes = data || [];
   const abertas = reclamacoes.filter(r => r.estado === 'recebida' || r.estado === 'em_analise').length;
   $('nRecl').textContent = abertas; $('cRecl').textContent = abertas;
@@ -245,7 +246,7 @@ async function guardarReclamacao(id) {
   const resposta = $('resp-' + id).value.trim() || null;
   const estado = $('est-' + id).value;
   const { error } = await supabaseClient.from('reclamacoes').update({ estado, resposta }).eq('id', id);
-  if (error) { toast('Erro: ' + esc(error.message)); return; }
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
   toast('Guardado.');
   carregarReclamacoes();
 }

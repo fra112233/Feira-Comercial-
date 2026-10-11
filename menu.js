@@ -147,7 +147,7 @@ window.FCMenu = (function () {
     if (!perfil || !window.supabaseClient) return;
     var novo = (perfil.visibility || 'publico') === 'publico' ? 'privado' : 'publico';
     var r = await supabaseClient.from('perfis').update({ visibility: novo }).eq('id', perfil.id);
-    if (r.error) { aviso('Erro: ' + r.error.message); return; }
+    if (r.error) { aviso('Erro: ' + FC.traduzirErro(r.error)); return; }
     perfil.visibility = novo;
     try { var c = JSON.parse(localStorage.getItem('fc_profile') || 'null'); if (c) { c.visibility = novo; localStorage.setItem('fc_profile', JSON.stringify(c)); } } catch (e) {}
     document.getElementById('fcm-sw-vis').classList.toggle('on', novo === 'publico');

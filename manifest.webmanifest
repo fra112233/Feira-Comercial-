@@ -1,0 +1,15 @@
+{
+  "name": "Feira Comercial",
+  "short_name": "Feira Comercial",
+  "description": "A rede social de pessoas e empresas em Moçambique. Explore, Exiba, Expanda.",
+  "lang": "pt",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "icons": [
+    { "src": "/images/icone-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/images/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

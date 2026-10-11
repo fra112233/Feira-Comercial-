@@ -536,6 +536,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 <base target="_self">
     <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body data-theme="dark">
 <script src="splash.js"></script>
@@ -1279,7 +1280,7 @@ async function deleteCurrentStory() {
     if (!s || s.userId !== currentUser.id) return;
     if (!confirm('Apagar este story?')) return;
     const { error } = await supabaseClient.from('stories').delete().eq('id', s.id);
-    if (error) { alert('Não foi possível apagar: ' + error.message); return; }
+    if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
     const g = grupoDe(sIdx);
     const aindaTenho = g && g.fim > g.inicio;
     stories.splice(sIdx, 1);
@@ -1351,7 +1352,7 @@ async function enviarRespostaStory(e) {
             thumb: s.type === 'image' ? s.url : null
         }
     });
-    if (error) { inp.value = texto; alert('Não foi possível enviar: ' + error.message); return; }
+    if (error) { inp.value = texto; alert('Não foi possível enviar: ' + FC.traduzirErro(error)); return; }
     inp.blur();
     avisoStory('Resposta enviada a ' + s.userName + ' ✓');
 }
@@ -1626,7 +1627,7 @@ async function deletePost(id) {
     if (!confirm('Apagar esta publicação?')) return;
     const p = posts.find(x => x.id === id);
     const { error } = await supabaseClient.from('posts').delete().eq('id', id);
-    if (error) { alert('Não foi possível apagar: ' + error.message); return; }
+    if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
     // apagar também as fotos/vídeos do Storage
     if (p && p.media.length) {
         const prefixo = '/storage/v1/object/public/media/';
@@ -1732,7 +1733,7 @@ function toggleComments(id) {
 async function gravarComentario(postId, text, parentId) {
     const { error } = await supabaseClient.from('comments')
         .insert({ post_id: postId, user_id: currentUser.id, content: text, parent_id: parentId || null });
-    if (error) { alert('Não foi possível comentar: ' + error.message); return false; }
+    if (error) { alert('Não foi possível comentar: ' + FC.traduzirErro(error)); return false; }
     await carregarPosts();
     const el = document.getElementById(`comm-${postId}`);
     if (el) el.style.display = 'block';
@@ -1765,7 +1766,7 @@ async function addReply(postId, commentId) {
 async function deleteComment(commentId) {
     if (!confirm('Apagar este comentário?')) return;
     const { error } = await supabaseClient.from('comments').delete().eq('id', commentId);
-    if (error) { alert('Não foi possível apagar: ' + error.message); return; }
+    if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
     await carregarPosts();
 }
 
@@ -1823,11 +1824,16 @@ function dicaSom() {
     try { sessionStorage.setItem('fc_som_dica', '1'); } catch (e) {}
 }
 
+// Poupança de dados ligada (ou rede 2G): os vídeos não tocam sozinhos — toca-se para ver
+function poupaDados() {
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')));
+}
 const _obsVideos = ('IntersectionObserver' in window) ? new IntersectionObserver(entradas => {
     entradas.forEach(e => {
         const v = e.target;
         const wrapper = v.closest('.video-wrapper');
-        if (e.isIntersecting && !(wrapper && wrapper.classList.contains('paused'))) tocarVideo(v);
+        if (e.isIntersecting && !(wrapper && wrapper.classList.contains('paused')) && !poupaDados()) tocarVideo(v);
         else v.pause();
     });
 }, { threshold: 0.5 }) : null;
