@@ -1,19 +1,20 @@
 // Feira Comercial — limpeza automática de conteúdo expirado.
 //
-// As publicações aparecem durante 4 dias e os stories durante 48 horas.
-// Esta função apaga, com margem de segurança:
-//   • publicações com mais de 5 dias e stories com mais de 60 horas
-//     (likes/comentários vão em cascata);
-//   • os ficheiros do espaço "media" com mais de 60 h que nenhuma publicação/story
-//     ainda guardada usa (inclui envios falhados que ficaram perdidos).
+// As publicações aparecem no feed durante 4 dias, mas as suas fotos e vídeos
+// ficam guardados para sempre no separador "Média" do perfil (histórico).
+// Por isso esta função NÃO apaga publicações nem os ficheiros delas.
+// Apaga apenas:
+//   • stories com mais de 60 horas (visíveis 48 h);
+//   • ficheiros do espaço "media" com mais de 60 h que nenhuma publicação
+//     (de qualquer data) nem story recente usa — stories expirados, publicações
+//     apagadas pelo dono e envios falhados que ficaram perdidos.
 // Não toca em fotos de perfil, anúncios, vídeos da página Vídeos, chat nem comprovativos.
 //
 // ?simular=1 → mostra o que seria apagado, sem apagar nada.
 // Corre no máximo uma vez por hora (chamadas a mais são ignoradas).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const HORAS_POST = 5 * 24;   // publicações: visíveis 4 dias → apagadas aos 5
-const HORAS_STORY = 60;      // stories: visíveis 48 h → apagadas às 60 h
+const HORAS_STORY = 60;      // stories: visíveis 48 h → apagados às 60 h
 const BALDE = "media";
 
 const json = (dados: unknown, estado = 200) =>
@@ -38,19 +39,22 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const limitePost = new Date(Date.now() - HORAS_POST * 3600 * 1000).toISOString();
   const limiteStory = new Date(Date.now() - HORAS_STORY * 3600 * 1000).toISOString();
-  const limite = limiteStory;   // ficheiros mais novos do que isto nunca são apagados
 
-  // 1) ficheiros que conteúdo recente ainda usa (nunca apagar)
+  // 1) ficheiros que ainda são usados (nunca apagar):
+  //    todas as publicações (histórico de Média) + stories recentes
   const usar = new Set<string>();
-  const { data: postsRecentes, error: e1 } = await sb.from("posts").select("media,image_url").gte("created_at", limitePost);
-  const { data: storiesRecentes, error: e2 } = await sb.from("stories").select("media_url").gte("created_at", limiteStory);
-  if (e1 || e2) return json({ ok: false, erro: (e1 || e2)!.message }, 500);
-  for (const p of postsRecentes ?? []) {
-    for (const m of (Array.isArray(p.media) ? p.media : [])) { const c = caminhoDe(m?.url); if (c) usar.add(c); }
-    const c = caminhoDe(p.image_url); if (c) usar.add(c);
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await sb.from("posts").select("media,image_url").order("id").range(de, de + 999);
+    if (error) return json({ ok: false, erro: error.message }, 500);
+    for (const p of data ?? []) {
+      for (const m of (Array.isArray(p.media) ? p.media : [])) { const c = caminhoDe(m?.url); if (c) usar.add(c); }
+      const c = caminhoDe(p.image_url); if (c) usar.add(c);
+    }
+    if (!data || data.length < 1000) break;
   }
+  const { data: storiesRecentes, error: e2 } = await sb.from("stories").select("media_url").gte("created_at", limiteStory);
+  if (e2) return json({ ok: false, erro: e2.message }, 500);
   for (const s of storiesRecentes ?? []) { const c = caminhoDe(s.media_url); if (c) usar.add(c); }
 
   // 2) ficheiros antigos do espaço "media" que já ninguém usa
@@ -68,7 +72,7 @@ Deno.serve(async (req: Request) => {
         if (!f.id) continue;
         const caminho = `${pasta.name}/${f.name}`;
         const criado = f.created_at ? Date.parse(f.created_at) : Date.now();
-        if (criado < Date.parse(limite) && !usar.has(caminho)) {
+        if (criado < Date.parse(limiteStory) && !usar.has(caminho)) {
           apagar.push(caminho);
           bytes += Number(f.metadata?.size ?? 0);
         }
@@ -78,14 +82,13 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // 3) linhas antigas
-  const { count: nPosts } = await sb.from("posts").select("id", { count: "exact", head: true }).lt("created_at", limitePost);
+  // 3) stories antigos
   const { count: nStories } = await sb.from("stories").select("id", { count: "exact", head: true }).lt("created_at", limiteStory);
 
   const resumo = {
-    ok: true, simulacao: simular, limitePublicacoes: limitePost, limiteStories: limiteStory,
+    ok: true, simulacao: simular, limiteStories: limiteStory,
     ficheiros: apagar.length, mb: Math.round(bytes / 1048576 * 10) / 10,
-    publicacoes: nPosts ?? 0, stories: nStories ?? 0,
+    publicacoes: 0, stories: nStories ?? 0,
   };
   if (simular) return json({ ...resumo, exemplos: apagar.slice(0, 10) });
 
@@ -94,9 +97,8 @@ Deno.serve(async (req: Request) => {
     const { error } = await sb.storage.from(BALDE).remove(apagar.slice(i, i + 100));
     if (error) return json({ ...resumo, ok: false, erro: "ficheiros: " + error.message }, 500);
   }
-  const { error: e4 } = await sb.from("posts").delete().lt("created_at", limitePost);
   const { error: e5 } = await sb.from("stories").delete().lt("created_at", limiteStory);
-  if (e4 || e5) return json({ ...resumo, ok: false, erro: (e4 || e5)!.message }, 500);
+  if (e5) return json({ ...resumo, ok: false, erro: e5.message }, 500);
 
   await sb.from("config").upsert({ chave: "limpeza_ultima", valor: new Date().toISOString(), descricao: "Última limpeza automática de conteúdo expirado" });
   return json(resumo);
