@@ -26,6 +26,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="atualizacao.js"></script>
+<script src="compressao.js"></script>
 <script src="menu.js"></script>
 
 
@@ -916,8 +917,8 @@ async function comprimirImagem(file, max = 1600, qualidade = 0.82) {
 
 async function enviarFicheiro(file) {
     const tipo = file.type.startsWith('video') ? 'video' : 'image';
-    const f = tipo === 'image' ? await comprimirImagem(file) : file;
-    const ext = (f.name.split('.').pop() || (tipo === 'video' ? 'mp4' : 'jpg')).toLowerCase();
+    const f = await FCMedia.preparar(file, { etiqueta: 'A otimizar o vídeo…' });
+    const ext = ((f.name || '').split('.').pop() || (tipo === 'video' ? 'mp4' : 'jpg')).toLowerCase().replace(/[^a-z0-9]/g, '') || (tipo === 'video' ? 'mp4' : 'jpg');
     const caminho = `${currentUser.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { error } = await supabaseClient.storage.from('media').upload(caminho, f, { contentType: f.type });
     if (error) throw error;
@@ -1035,20 +1036,21 @@ function initCompose() {
     });
 }
 
-const MAX_VIDEO_MB = 30;
-function videoGrande(f) { return f && f.type.startsWith('video/') && f.size > MAX_VIDEO_MB * 1024 * 1024; }
-// mensagens de erro do envio de ficheiros em português claro
-function erroEnvio(err) {
-    const m = (err && err.message) || '';
-    if (/exceeded the maximum allowed size|too large|payload/i.test(m)) return 'o ficheiro é demasiado grande (máximo ' + MAX_VIDEO_MB + ' MB por vídeo). Grave um vídeo mais curto ou em qualidade 720p.';
-    if (/mime type|not supported/i.test(m)) return 'este tipo de ficheiro não é aceite. Use fotos (JPG, PNG) ou vídeos (MP4).';
-    if (/Failed to fetch|NetworkError|network/i.test(m)) return 'sem ligação à internet. Tente outra vez.';
-    return m;
-}
-function previewPostMedia(event) {
+// Fotos até 100 MB e vídeos até 3 minutos: verificados logo ao escolher;
+// a otimização (compressão) acontece ao publicar.
+async function previewPostMedia(event) {
     const escolhidos = Array.from(event.target.files).slice(0, 10);
-    if (escolhidos.some(videoGrande)) alert('Alguns vídeos têm mais de ' + MAX_VIDEO_MB + ' MB e não foram incluídos. Grave vídeos mais curtos ou em qualidade 720p.');
-    tempMedia = escolhidos.filter(f => !videoGrande(f));
+    const aceites = [];
+    let primeiroErro = null, recusados = 0;
+    for (const f of escolhidos) {
+        try { await FCMedia.validar(f); aceites.push(f); }
+        catch (err) { recusados++; if (!primeiroErro) primeiroErro = err; }
+    }
+    tempMedia = aceites;
+    if (primeiroErro) {
+        if (recusados > 1) primeiroErro.texto = primeiroErro.texto + ' (' + recusados + ' ficheiros não foram incluídos.)';
+        FCMedia.mostrarErro(primeiroErro);
+    }
     const btn = document.getElementById('publish-btn');
     btn.disabled = tempMedia.length === 0 && document.getElementById('post-text').value.trim() === '';
     document.getElementById('post-preview-area').innerHTML = tempMedia.length
@@ -1063,15 +1065,15 @@ async function addStory(event) {
     const file = event.target.files[0];
     event.target.value = '';
     if (!file || !currentUser.id) return;
-    if (videoGrande(file)) { alert('O vídeo tem mais de ' + MAX_VIDEO_MB + ' MB. Grave um vídeo mais curto.'); return; }
     try {
+        await FCMedia.validar(file);
         const m = await enviarFicheiro(file);
         const { error } = await supabaseClient.from('stories')
             .insert({ user_id: currentUser.id, media_url: m.url, media_type: m.type });
         if (error) throw error;
         await carregarStories();
     } catch (err) {
-        alert('Não foi possível publicar o story: ' + erroEnvio(err));
+        FCMedia.mostrarErro(err);
     }
 }
 
@@ -1397,7 +1399,7 @@ async function publishPost() {
         const media = [];
         for (let i = 0; i < tempMedia.length; i++) {
             document.getElementById('post-preview-area').innerHTML =
-                `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> A enviar ${i + 1} de ${tempMedia.length}...</p>`;
+                `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> A preparar e enviar ${i + 1} de ${tempMedia.length}...</p>`;
             media.push(await enviarFicheiro(tempMedia[i]));
         }
         const primeiraFoto = media.find(m => m.type === 'image');
@@ -1416,7 +1418,8 @@ async function publishPost() {
         await carregarPosts();
     } catch (err) {
         document.getElementById('post-preview-area').innerHTML = '';
-        alert(/row-level security/i.test(err.message || '') ? 'Só empresas com a mensalidade em dia podem publicar no feed. Veja em Menu → Mensalidade.' : 'Não foi possível publicar: ' + erroEnvio(err));
+        if (/row-level security/i.test(err.message || '')) FCMedia.aviso('Mensalidade em atraso', 'Só empresas com a mensalidade em dia podem publicar no feed. Veja em Menu → Mensalidade.', { erro: true });
+        else FCMedia.mostrarErro(err);
         btn.disabled = false;
     } finally {
         btn.textContent = original;
