@@ -1246,6 +1246,7 @@
 <base target="_self">
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 
@@ -1771,7 +1772,7 @@
     async function deletePostFeed(refId) {
         if (!confirm('Apagar esta publicação?')) return;
         const { error } = await getSB().from('posts').delete().eq('id', refId);
-        if (error) { alert('Não foi possível apagar: ' + error.message); return; }
+        if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
         meusPosts = meusPosts.filter(p => p.id !== refId);
         renderizarPostsDoFeed();
         showToast('Publicação apagada.');
@@ -2008,7 +2009,7 @@
             await carregarMeusPosts();
             showToast('Publicado! Também aparece na página inicial.');
         } catch (err) {
-            alert('Não foi possível publicar: ' + err.message);
+            alert('Não foi possível publicar: ' + FC.traduzirErro(err));
         } finally {
             if (botao) { botao.disabled = false; botao.textContent = 'Publicar'; }
         }

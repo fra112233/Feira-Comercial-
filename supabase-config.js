@@ -158,6 +158,23 @@ FC.badgeMensagens = async function () {
   window.addEventListener('focus', contar);
 };
 
+/* ---------- Erros em português claro (nunca mostrar mensagens técnicas) ---------- */
+FC.traduzirErro = function (err) {
+  const m = String((err && (err.message || err.error_description || err.error)) || err || '');
+  if (err) console.warn('[Feira Comercial]', m);
+  if (/Failed to fetch|NetworkError|Load failed|network|ERR_INTERNET/i.test(m)) return 'Sem ligação à internet. Verifique a ligação e tente outra vez.';
+  if (/JWT|refresh token|not authenticated|session/i.test(m)) return 'A sua sessão terminou. Entre outra vez na sua conta.';
+  if (/row-level security|permission denied|not allowed|forbidden/i.test(m)) return 'Não tem permissão para fazer isto.';
+  if (/duplicate key|already exists|unique/i.test(m)) return 'Isto já existe.';
+  if (/exceeded the maximum allowed size|too large|payload/i.test(m)) return 'O ficheiro é demasiado grande.';
+  if (/mime type|not supported/i.test(m)) return 'Este tipo de ficheiro não é aceite.';
+  if (/value too long|check constraint|violates|invalid input/i.test(m)) return 'Algum dado não é válido (por exemplo, um texto vazio ou demasiado longo).';
+  if (/timeout|timed out|504|503/i.test(m)) return 'O servidor demorou a responder. Tente outra vez.';
+  if (/rate limit|too many/i.test(m)) return 'Muitas tentativas seguidas. Espere um minuto e tente outra vez.';
+  if ((/[áàâãçéêíóôõú]/i.test(m) || /\b(tente|demasiad|aguarde|apenas|empresa|mensalidade)/i.test(m)) && !/[a-z]+_[a-z]+/i.test(m)) return m;   // já vem em português
+  return 'Algo correu mal. Tente outra vez daqui a pouco.';
+};
+
 /* ---------- Quem está em direto (Live) ----------
    Mostra em todas as páginas: uma pílula "🔴 AO VIVO · Loja X está em direto"
    e um selo nos links/itens "Live". Atualiza em tempo real. */

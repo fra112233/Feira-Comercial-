@@ -319,6 +319,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 <base target="_self">
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body data-theme="dark">
 
@@ -1007,7 +1008,7 @@ async function sendMessage(text = null, mediaType = null, fileUrl = null, fileNa
     if (error) {
         if (i >= 0) mensagens.splice(i, 1);
         renderMessages();
-        showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.' : 'Erro ao enviar: ' + error.message);
+        showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.' : 'Erro ao enviar: ' + FC.traduzirErro(error));
         if (text === null && msgText) inputEl.value = msgText;
         return;
     }
@@ -1147,7 +1148,7 @@ function ctxReact() {
 
 async function atualizarMensagem(id, campos) {
     const { data, error } = await supabaseClient.from('messages').update(campos).eq('id', id).select(CAMPOS_MSG).single();
-    if (error) { showToast('Erro: ' + error.message); return; }
+    if (error) { showToast('Erro: ' + FC.traduzirErro(error)); return; }
     aplicarMensagem(data);
 }
 
@@ -1215,13 +1216,13 @@ async function toggleBlock(contactId) {
     const nome = c ? c.name : 'esta conta';
     if (bloqueei.has(contactId)) {
         const { error } = await supabaseClient.from('bloqueios').delete().eq('blocker_id', ME.id).eq('blocked_id', contactId);
-        if (error) { showToast('Erro: ' + error.message); return; }
+        if (error) { showToast('Erro: ' + FC.traduzirErro(error)); return; }
         bloqueei.delete(contactId);
         showToast(`${nome} foi desbloqueado.`);
     } else {
         if (!confirm(`Bloquear ${nome}? Esta conta deixa de te poder enviar mensagens.`)) return;
         const { error } = await supabaseClient.from('bloqueios').insert({ blocker_id: ME.id, blocked_id: contactId });
-        if (error) { showToast('Erro: ' + error.message); return; }
+        if (error) { showToast('Erro: ' + FC.traduzirErro(error)); return; }
         bloqueei.add(contactId);
         showToast(`${nome} foi bloqueado.`);
     }

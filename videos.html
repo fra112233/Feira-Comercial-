@@ -6,6 +6,7 @@
 <title>Vídeos | Feira Comercial</title>
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="preconnect" href="https://bljnkwrhqnpawclybqrw.supabase.co">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -340,14 +341,14 @@ async function alternarGosto(id) {
   if (error && !String(error.message).includes('duplicate')) {
     if (tinha) { gostos.add(id); v.likes_count++; } else { gostos.delete(id); v.likes_count--; }
     btn.classList.toggle('gostei', tinha); btn.querySelector('span').textContent = numero(v.likes_count);
-    toast('Erro: ' + error.message);
+    toast('Erro: ' + FC.traduzirErro(error));
   }
 }
 
 async function seguir(uid, btn) {
   btn.disabled = true;
   const { error } = await supabaseClient.from('followers').insert({ follower_id: me.id, following_id: uid, created_at: Date.now() });
-  if (error && !String(error.message).includes('duplicate')) { btn.disabled = false; toast('Erro: ' + error.message); return; }
+  if (error && !String(error.message).includes('duplicate')) { btn.disabled = false; toast('Erro: ' + FC.traduzirErro(error)); return; }
   seguindo.add(uid);
   document.querySelectorAll('.slide').forEach(s => {
     const v = videos.find(x => x.id === Number(s.dataset.id));
@@ -369,7 +370,7 @@ async function apagarVideo(id) {
   if (!confirm('Apagar este vídeo?')) return;
   const v = videos.find(x => x.id === id);
   const { error } = await supabaseClient.from('videos').delete().eq('id', id);
-  if (error) { toast('Erro: ' + error.message); return; }
+  if (error) { toast('Erro: ' + FC.traduzirErro(error)); return; }
   const caminho = v && v.video_url.split('/storage/v1/object/public/videos/')[1];
   if (caminho) supabaseClient.storage.from('videos').remove([caminho]);
   videos = videos.filter(x => x.id !== id);
@@ -424,14 +425,14 @@ async function enviarComentario(e) {
   if (!texto || !videoComentarios) return;
   inp.value = '';
   const { error } = await supabaseClient.from('video_comments').insert({ video_id: videoComentarios, user_id: me.id, content: texto });
-  if (error) { inp.value = texto; toast('Erro: ' + error.message); return; }
+  if (error) { inp.value = texto; toast('Erro: ' + FC.traduzirErro(error)); return; }
   carregarComentarios();
 }
 
 async function apagarComentario(cid) {
   if (!confirm('Apagar este comentário?')) return;
   const { error } = await supabaseClient.from('video_comments').delete().eq('id', cid);
-  if (error) { toast('Erro: ' + error.message); return; }
+  if (error) { toast('Erro: ' + FC.traduzirErro(error)); return; }
   carregarComentarios();
 }
 

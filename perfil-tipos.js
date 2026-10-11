@@ -273,7 +273,7 @@ async function savePerfil() {
   const { error } = await getSB().from('perfis').update(upd).eq('id', meuId);
   const data = error ? null : (await FC.lerPerfil(meuId)).data;
   if (botao) { botao.disabled = false; botao.textContent = 'Guardar'; }
-  if (error) { alert('Não foi possível guardar: ' + error.message); return; }
+  if (error) { alert('Não foi possível guardar: ' + FC.traduzirErro(error)); return; }
 
   perfilAtual = data || Object.assign({}, p, upd);
   guardarPerfilLocal();
@@ -360,7 +360,7 @@ async function alternarSeguirPerfil() {
     ? await sb.from('followers').delete().eq('follower_id', meuId).eq('following_id', alvoId)
     : await sb.from('followers').insert({ follower_id: meuId, following_id: alvoId, created_at: Date.now() });
   if (b) b.disabled = false;
-  if (error) { alert('Não foi possível: ' + error.message); return; }
+  if (error) { alert('Não foi possível: ' + FC.traduzirErro(error)); return; }
   sigoEste = !sigoEste;
   desenharBotaoSeguir();
   contarSeguidores();

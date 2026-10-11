@@ -6,6 +6,7 @@
 <title>Anúncios | Feira Comercial</title>
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
@@ -442,7 +443,7 @@ async function guardarAnuncio(e) {
     emEdicao = null;
     await carregar();
   } catch (err) {
-    toast('Erro: ' + err.message);
+    toast('Erro: ' + FC.traduzirErro(err));
   } finally {
     btn.disabled = false; btn.textContent = textoBtn;
   }
@@ -450,7 +451,7 @@ async function guardarAnuncio(e) {
 
 async function alternarAtivo(id, ativo) {
   const { error } = await supabaseClient.from('vagas_anuncios').update({ ativo }).eq('id', id);
-  if (error) { toast('Erro: ' + error.message); return; }
+  if (error) { toast('Erro: ' + FC.traduzirErro(error)); return; }
   fecharModal('detailModal');
   toast(ativo ? 'Anúncio reativado' : 'Anúncio pausado (já não aparece aos outros)');
   carregar();
@@ -460,7 +461,7 @@ async function apagarAnuncio(id) {
   if (!confirm('Apagar este anúncio permanentemente?')) return;
   const a = anuncios.find(x => x.id === id);
   const { error } = await supabaseClient.from('vagas_anuncios').delete().eq('id', id);
-  if (error) { toast('Erro: ' + error.message); return; }
+  if (error) { toast('Erro: ' + FC.traduzirErro(error)); return; }
   const caminho = a && a.foto_url && a.foto_url.split('/storage/v1/object/public/ads_media/')[1];
   if (caminho) supabaseClient.storage.from('ads_media').remove([caminho]);
   fecharModal('detailModal');

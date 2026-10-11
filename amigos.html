@@ -114,6 +114,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 <base target="_self">
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 
@@ -315,13 +316,13 @@ async function alternarSeguir(id, btn){
   const u = [...perfis, ...perfisSeguidores, ...perfisSeguindo].find(x => x.id === id);
   if (seguindo.has(id)) {
     const { error } = await supabaseClient.from('followers').delete().eq('follower_id', me.id).eq('following_id', id);
-    if (error) { toast('Erro: ' + error.message); btn.disabled = false; return; }
+    if (error) { toast('Erro: ' + FC.traduzirErro(error)); btn.disabled = false; return; }
     seguindo.delete(id);
     perfisSeguindo = perfisSeguindo.filter(p => p.id !== id);
     toast('Deixaste de seguir ' + (u ? u.full_name : ''));
   } else {
     const { error } = await supabaseClient.from('followers').insert({ follower_id: me.id, following_id: id, created_at: Date.now() });
-    if (error && !String(error.message).includes('duplicate')) { toast('Erro: ' + error.message); btn.disabled = false; return; }
+    if (error && !String(error.message).includes('duplicate')) { toast('Erro: ' + FC.traduzirErro(error)); btn.disabled = false; return; }
     seguindo.add(id);
     if (u && !perfisSeguindo.some(p => p.id === id)) perfisSeguindo.unshift(u);
     toast('Agora segues ' + (u ? u.full_name : ''));
