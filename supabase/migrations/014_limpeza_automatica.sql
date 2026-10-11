@@ -4,9 +4,10 @@
 -- Pode ser corrido mais de uma vez sem problema.
 --
 -- Todas as noites às 03:15 (Maputo) chama a função "limpeza-expirados", que
--- apaga publicações e stories com mais de 48 h (já invisíveis desde as 36 h)
--- e os ficheiros que só elas usavam. Não toca em perfis, anúncios, vídeos,
--- chat nem comprovativos. A chave usada é a chave pública (anon) do site.
+-- apaga publicações com mais de 5 dias (visíveis 4 dias) e stories com mais de
+-- 60 horas (visíveis 48 h), e os ficheiros que só elas usavam. Não toca em
+-- perfis, anúncios, vídeos, chat nem comprovativos.
+-- A chave usada é a chave pública (anon) do site.
 -- ============================================================
 
 create extension if not exists pg_cron;

@@ -724,7 +724,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
 //  (posts, gostos, comentários e stories ficam na base de dados,
 //   fotos e vídeos no Storage, bucket "media")
 // ─────────────────────────────────────
-const TEMPO_VIDA_POST = 36 * 60 * 60 * 1000; // publicações e stories ficam 36 horas
+const TEMPO_VIDA_POST = 4 * 24 * 60 * 60 * 1000;   // publicações ficam 4 dias
+const TEMPO_VIDA_STORY = 48 * 60 * 60 * 1000;      // stories (status) ficam 48 horas
 const CACHE_KEY = 'fc_feed_cache_v1';
 
 let posts = [];
@@ -799,10 +800,10 @@ function abrirDoLink() {
     if (sid) {
         const i = stories.findIndex(x => x.id === sid);
         if (i >= 0) openStory(i);
-        else avisoPagina('Este status já não está disponível (os status duram 36 horas).');
+        else avisoPagina('Este status já não está disponível (os status duram 48 horas).');
     } else {
         if (posts.some(x => x.id === pid)) scrollToPost(pid);
-        else avisoPagina('Esta publicação já não está disponível (as publicações duram 36 horas).');
+        else avisoPagina('Esta publicação já não está disponível (as publicações duram 4 dias).');
     }
 }
 
@@ -825,6 +826,7 @@ function guardarCache() {
 //  CARREGAR DA BASE DE DADOS
 // ─────────────────────────────────────
 function desde() { return new Date(Date.now() - TEMPO_VIDA_POST).toISOString(); }
+function desdeStory() { return new Date(Date.now() - TEMPO_VIDA_STORY).toISOString(); }
 
 async function carregarPosts() {
     const { data, error } = await supabaseClient
@@ -885,7 +887,7 @@ async function carregarStories() {
     const { data, error } = await supabaseClient
         .from('stories')
         .select('id, media_url, media_type, created_at, user_id, autor:perfis!stories_user_id_fkey(full_name, avatar_url)')
-        .gte('created_at', desde())
+        .gte('created_at', desdeStory())
         .order('created_at', { ascending: true });
     if (error) { console.error('Erro ao carregar stories:', error.message); return; }
     stories = (data || []).map(s => {

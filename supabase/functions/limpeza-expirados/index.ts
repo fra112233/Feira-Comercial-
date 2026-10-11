@@ -1,17 +1,19 @@
 // Feira Comercial — limpeza automática de conteúdo expirado.
 //
-// As publicações e stories só aparecem durante 36 horas (feed e perfil).
-// Esta função apaga, com 48 horas de margem:
-//   • as publicações e stories com mais de 48 h (likes/comentários vão em cascata);
-//   • os ficheiros do espaço "media" com mais de 48 h que nenhuma publicação/story
-//     recente usa (inclui envios falhados que ficaram perdidos).
+// As publicações aparecem durante 4 dias e os stories durante 48 horas.
+// Esta função apaga, com margem de segurança:
+//   • publicações com mais de 5 dias e stories com mais de 60 horas
+//     (likes/comentários vão em cascata);
+//   • os ficheiros do espaço "media" com mais de 60 h que nenhuma publicação/story
+//     ainda guardada usa (inclui envios falhados que ficaram perdidos).
 // Não toca em fotos de perfil, anúncios, vídeos da página Vídeos, chat nem comprovativos.
 //
 // ?simular=1 → mostra o que seria apagado, sem apagar nada.
 // Corre no máximo uma vez por hora (chamadas a mais são ignoradas).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const HORAS = 48;
+const HORAS_POST = 5 * 24;   // publicações: visíveis 4 dias → apagadas aos 5
+const HORAS_STORY = 60;      // stories: visíveis 48 h → apagadas às 60 h
 const BALDE = "media";
 
 const json = (dados: unknown, estado = 200) =>
@@ -36,12 +38,14 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const limite = new Date(Date.now() - HORAS * 3600 * 1000).toISOString();
+  const limitePost = new Date(Date.now() - HORAS_POST * 3600 * 1000).toISOString();
+  const limiteStory = new Date(Date.now() - HORAS_STORY * 3600 * 1000).toISOString();
+  const limite = limiteStory;   // ficheiros mais novos do que isto nunca são apagados
 
   // 1) ficheiros que conteúdo recente ainda usa (nunca apagar)
   const usar = new Set<string>();
-  const { data: postsRecentes, error: e1 } = await sb.from("posts").select("media,image_url").gte("created_at", limite);
-  const { data: storiesRecentes, error: e2 } = await sb.from("stories").select("media_url").gte("created_at", limite);
+  const { data: postsRecentes, error: e1 } = await sb.from("posts").select("media,image_url").gte("created_at", limitePost);
+  const { data: storiesRecentes, error: e2 } = await sb.from("stories").select("media_url").gte("created_at", limiteStory);
   if (e1 || e2) return json({ ok: false, erro: (e1 || e2)!.message }, 500);
   for (const p of postsRecentes ?? []) {
     for (const m of (Array.isArray(p.media) ? p.media : [])) { const c = caminhoDe(m?.url); if (c) usar.add(c); }
@@ -75,11 +79,11 @@ Deno.serve(async (req: Request) => {
   }
 
   // 3) linhas antigas
-  const { count: nPosts } = await sb.from("posts").select("id", { count: "exact", head: true }).lt("created_at", limite);
-  const { count: nStories } = await sb.from("stories").select("id", { count: "exact", head: true }).lt("created_at", limite);
+  const { count: nPosts } = await sb.from("posts").select("id", { count: "exact", head: true }).lt("created_at", limitePost);
+  const { count: nStories } = await sb.from("stories").select("id", { count: "exact", head: true }).lt("created_at", limiteStory);
 
   const resumo = {
-    ok: true, simulacao: simular, limite,
+    ok: true, simulacao: simular, limitePublicacoes: limitePost, limiteStories: limiteStory,
     ficheiros: apagar.length, mb: Math.round(bytes / 1048576 * 10) / 10,
     publicacoes: nPosts ?? 0, stories: nStories ?? 0,
   };
@@ -90,8 +94,8 @@ Deno.serve(async (req: Request) => {
     const { error } = await sb.storage.from(BALDE).remove(apagar.slice(i, i + 100));
     if (error) return json({ ...resumo, ok: false, erro: "ficheiros: " + error.message }, 500);
   }
-  const { error: e4 } = await sb.from("posts").delete().lt("created_at", limite);
-  const { error: e5 } = await sb.from("stories").delete().lt("created_at", limite);
+  const { error: e4 } = await sb.from("posts").delete().lt("created_at", limitePost);
+  const { error: e5 } = await sb.from("stories").delete().lt("created_at", limiteStory);
   if (e4 || e5) return json({ ...resumo, ok: false, erro: (e4 || e5)!.message }, 500);
 
   await sb.from("config").upsert({ chave: "limpeza_ultima", valor: new Date().toISOString(), descricao: "Última limpeza automática de conteúdo expirado" });
