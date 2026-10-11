@@ -94,3 +94,7 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .rodape-in nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .rodape-in nav a { color: var(--sub); }
 .rodape-in nav a:hover { color: var(--ouro); }
+.rodape-mail { width: 100%; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; }
+.rodape-mail a { color: var(--sub); display: inline-flex; align-items: center; gap: 7px; }
+.rodape-mail a:hover { color: var(--ouro); }
+.rodape-mail i { color: var(--ouro); }
