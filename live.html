@@ -435,7 +435,9 @@ function sairPalco() {
   FC._sessao = await FC.getSession();
   supabaseClient.auth.onAuthStateChange((_e, s) => { if (s) FC._sessao = s; });
   const cfg = await FC.carregarConfig();
-  if (cfg.turn_url) iceServers.push({ urls: cfg.turn_url, username: cfg.turn_user || undefined, credential: cfg.turn_pass || undefined });
+  // vários endereços TURN separados por vírgula (portos 80/443, UDP/TCP/TLS) → passa nas redes móveis
+  const turnUrls = String(cfg.turn_url || '').split(/[,\s]+/).map(u => u.trim()).filter(u => /^turns?:/i.test(u));
+  if (turnUrls.length) iceServers.push({ urls: turnUrls, username: cfg.turn_user || undefined, credential: cfg.turn_pass || undefined });
   desenharIniciar();
   const id = new URLSearchParams(location.search).get('id');
   if (id) verLive(id);
