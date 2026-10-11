@@ -26,7 +26,9 @@
     rodape.innerHTML =
       '<div class="rodape-in"><span>© ' + new Date().getFullYear() + ' Feira Comercial · Moçambique</span>' +
       '<nav><a href="about.html">Sobre</a><a href="politicas.html">Termos e privacidade</a><a href="reclamacao.html">Reclamações e sugestões</a>' +
-      '<a href="Formulario.html">Criar conta</a></nav></div>';
+      '<a href="Formulario.html">Criar conta</a></nav>' +
+      '<div class="rodape-mail"><a href="mailto:contacto@feira-comercial.com"><i class="fas fa-envelope"></i> contacto@feira-comercial.com</a>' +
+      '<a href="mailto:suporte@feira-comercial.com"><i class="fas fa-life-ring"></i> suporte@feira-comercial.com</a></div></div>';
   }
 
   // Com sessão iniciada: botão "Início" e menu ☰ em vez de "Entrar"
