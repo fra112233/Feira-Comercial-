@@ -1053,9 +1053,24 @@ async function previewPostMedia(event) {
     }
     const btn = document.getElementById('publish-btn');
     btn.disabled = tempMedia.length === 0 && document.getElementById('post-text').value.trim() === '';
-    document.getElementById('post-preview-area').innerHTML = tempMedia.length
-        ? `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-check-circle" style="color:#45bd62;"></i> ${tempMedia.length} ficheiro(s) selecionado(s)</p>`
-        : '';
+    // começa já a otimizar (enquanto escreve o texto), para publicar sem esperar
+    _tarefasMedia = tempMedia.map(f => FCMedia.iniciar(f));
+    _tarefasMedia.forEach(t => t && t.ouvir(estadoMedia));
+    estadoMedia();
+}
+let _tarefasMedia = [];
+function estadoMedia() {
+    const area = document.getElementById('post-preview-area');
+    if (!tempMedia.length) { area.innerHTML = ''; return; }
+    if (document.getElementById('publish-btn').textContent.indexOf('publicar') >= 0 && area.querySelector('.fa-spinner')) return; // a publicar
+    const videos = tempMedia.map((f, i) => ({ f, t: _tarefasMedia[i] })).filter(x => x.f.type.startsWith('video/'));
+    const aPreparar = videos.filter(x => x.t && !x.t.pronto);
+    let extra = '';
+    if (aPreparar.length) {
+        const p = Math.round(100 * aPreparar.reduce((s, x) => s + (x.t.progresso || 0), 0) / aPreparar.length);
+        extra = ` · <i class="fas fa-wand-magic-sparkles" style="color:var(--primary);"></i> a preparar vídeo${aPreparar.length > 1 ? 's' : ''} ${p}%`;
+    } else if (videos.length) extra = ' · vídeo pronto';
+    area.innerHTML = `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-check-circle" style="color:#45bd62;"></i> ${tempMedia.length} ficheiro(s) selecionado(s)${extra}</p>`;
 }
 
 // ─────────────────────────────────────
@@ -1396,12 +1411,12 @@ async function publishPost() {
     const original = btn.textContent;
     btn.textContent = 'A publicar...';
     try {
-        const media = [];
-        for (let i = 0; i < tempMedia.length; i++) {
-            document.getElementById('post-preview-area').innerHTML =
-                `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> A preparar e enviar ${i + 1} de ${tempMedia.length}...</p>`;
-            media.push(await enviarFicheiro(tempMedia[i]));
-        }
+        // todos os ficheiros ao mesmo tempo (a otimização já começou ao escolher)
+        let feitos = 0;
+        const mostrar = () => { document.getElementById('post-preview-area').innerHTML =
+            `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> A enviar ${feitos} de ${tempMedia.length}...</p>`; };
+        mostrar();
+        const media = await Promise.all(tempMedia.map(f => enviarFicheiro(f).then(m => { feitos++; mostrar(); return m; })));
         const primeiraFoto = media.find(m => m.type === 'image');
         const { error } = await supabaseClient.from('posts').insert({
             user_id: currentUser.id,

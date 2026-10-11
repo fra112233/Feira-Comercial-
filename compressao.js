@@ -4,9 +4,10 @@
    dados e espaço sem perder qualidade visível.
 
    • Fotos: até 100 MB à entrada → JPG de alta qualidade (lado maior 2560 px).
-   • Vídeos: até 3 minutos → MP4 (H.264) 1080p (até 1 min) ou 720p, 30 fps,
-     com o som original; o resultado fica sempre abaixo do limite de envio.
-     Vídeos que já são leves (≤ 12 MB) vão como estão.
+   • Vídeos: até 3 minutos → MP4 (H.264) 720p, 30 fps, com o som original;
+     o resultado fica sempre abaixo do limite de envio. Vídeos que já são
+     leves vão como estão. A otimização começa logo ao escolher o vídeo
+     (FCMedia.iniciar) e usa o codificador de hardware do telemóvel.
    • Avisos claros (janela) e barra de progresso.
 
    Usa a biblioteca Mediabunny (WebCodecs, MPL-2.0), carregada só quando
@@ -179,10 +180,33 @@
   }
 
   /* ---------- vídeos ---------- */
+  // Converte uma vez; tenta primeiro o codificador de hardware do telemóvel (muito mais rápido)
+  // e, se o aparelho não o tiver para esta resolução, usa o normal.
+  async function converter(M, file, cfg, aoProgresso) {
+    var modos = ['prefer-hardware', 'no-preference'], ultimoErro = null;
+    for (var i = 0; i < modos.length; i++) {
+      try {
+        var input = new M.Input({ formats: M.ALL_FORMATS, source: new M.BlobSource(file) });
+        var output = new M.Output({ format: new M.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new M.BufferTarget() });
+        var conv = await M.Conversion.init({
+          input: input, output: output,
+          video: { width: cfg.w, height: cfg.h, fit: 'contain', codec: CODEC, quality: new M.Quality({ bitrate: cfg.bitrate }),
+                   frameRate: cfg.frameRate, allowTransformationMetadata: false, hardwareAcceleration: modos[i] }
+          // o som é copiado tal como está quando possível (sem perder qualidade)
+        });
+        if (!conv.isValid) throw new Error('conversão inválida');
+        conv.onProgress = function (p) { aoProgresso(p); };
+        await conv.execute();
+        return output.target.buffer;
+      } catch (e) { ultimoErro = e; aoProgresso(0); }
+    }
+    throw ultimoErro || new Error('conversão falhou');
+  }
+
   async function prepararVideo(file, opcoes) {
     opcoes = opcoes || {};
     await validar(file);
-    if (file.size <= LIMITES.videoLeve) return file;     // já é leve: não mexer na qualidade
+    if (file.size <= LIMITES.videoLeve) return file;     // já é leve: vai já, sem esperar
 
     var aoProgresso = opcoes.aoProgresso || function () {};
     var trava = null;
@@ -197,34 +221,26 @@
       if (dur > LIMITES.videoSegundos + 0.5)
         throw Object.assign(Erro('Vídeo demasiado longo', 'Este vídeo tem ' + tempo(dur) + '. O máximo é 3 minutos.'), { dicas: ['Corte o vídeo na galeria do telemóvel e volte a escolhê-lo.'] });
 
+      // 720p: qualidade ideal para ecrãs de telemóvel e muito mais rápido de processar
       var dw = await vt.getDisplayWidth(), dh = await vt.getDisplayHeight();
-      var ladoMax = dur <= 60 ? 1920 : 1280;                 // vídeos curtos em 1080p, longos em 720p
-      var k = Math.min(1, ladoMax / Math.max(dw, dh));
+      var k = Math.min(1, 1280 / Math.max(dw, dh));
       var w = Math.max(2, Math.round(dw * k / 2) * 2), h = Math.max(2, Math.round(dh * k / 2) * 2);
 
-      var fps = null;
-      try { fps = (await vt.computeFrameRateMetrics()).bestGuessFrameRate; } catch (e) {}
-      var frameRate = fps && fps > 31 ? 30 : undefined;      // 60 fps → 30 fps
-
-      var teto = Math.max(w, h) > 1280 ? 5e6 : 2.6e6;        // boa qualidade para ver no telemóvel
       var orcamento = (LIMITES.alvo * 8) / Math.max(dur, 1) - 192e3;   // cabe sempre no limite
-      var bitrate = Math.max(6e5, Math.min(teto, orcamento));
+      var bitrate = Math.max(6e5, Math.min(2.6e6, orcamento));
+
+      // não vale a pena: já é 720p (ou menos) e leve — vai como está, sem esperar
+      var bitrateOriginal = file.size * 8 / Math.max(dur, 1);
+      if (k === 1 && bitrateOriginal <= bitrate * 1.35 && file.size <= LIMITES.envio) return file;
+
+      var fps = null;
+      try { fps = (await vt.computeFrameRateMetrics({ targetPacketCount: 90 })).bestGuessFrameRate; } catch (e) {}
+      var frameRate = fps && fps > 31 ? 30 : undefined;      // 60 fps → 30 fps (metade do trabalho)
 
       if (!(await M.canEncodeVideo(CODEC, { width: w, height: h, bitrate: bitrate })))
         throw new Error('este navegador não codifica H.264');
 
-      var output = new M.Output({ format: new M.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new M.BufferTarget() });
-      var conv = await M.Conversion.init({
-        input: input, output: output,
-        video: { width: w, height: h, fit: 'contain', codec: CODEC, quality: new M.Quality({ bitrate: bitrate }),
-                 frameRate: frameRate, allowTransformationMetadata: false }
-        // o som é copiado tal como está quando possível (sem perder qualidade)
-      });
-      if (!conv.isValid) throw new Error('conversão inválida');
-      conv.onProgress = function (p) { aoProgresso(p); };
-      await conv.execute();
-
-      var buf = output.target.buffer;
+      var buf = await converter(M, file, { w: w, h: h, bitrate: bitrate, frameRate: frameRate }, aoProgresso);
       var novo = new File([buf], (file.name || 'video').replace(/\.\w+$/, '') + '.mp4', { type: 'video/mp4' });
       if (novo.size >= file.size && file.size <= LIMITES.envio) return file;   // não ficou mais leve
       if (novo.size > LIMITES.envio)
@@ -242,27 +258,53 @@
     }
   }
 
+  /* ---------- trabalho em segundo plano ----------
+     iniciar(ficheiro) começa a otimizar logo ao escolher (enquanto a pessoa escreve);
+     preparar(ficheiro) depois reaproveita esse trabalho. Um vídeo de cada vez. */
+  var tarefas = new WeakMap();
+  var fila = Promise.resolve();
+
+  function iniciar(file) {
+    if (!file) return null;
+    var t = tarefas.get(file);
+    if (t) return t;
+    var tipo = file.type || '';
+    t = { progresso: 0, pronto: false, ouvintes: [] };
+    t.ouvir = function (fn) { t.ouvintes.push(fn); fn(t.progresso, t.pronto); return function () { t.ouvintes = t.ouvintes.filter(function (x) { return x !== fn; }); }; };
+    var avisar = function () { t.ouvintes.forEach(function (fn) { try { fn(t.progresso, t.pronto); } catch (e) {} }); };
+    var trabalho;
+    if (tipo.indexOf('image/') === 0) trabalho = function () { return prepararFoto(file); };
+    else if (tipo.indexOf('video/') === 0) trabalho = function () { return prepararVideo(file, { aoProgresso: function (p) { t.progresso = p; avisar(); } }); };
+    else trabalho = function () { return Promise.resolve(file); };
+    // fotos em paralelo; vídeos em fila (o codificador do telemóvel trabalha melhor um de cada vez)
+    if (tipo.indexOf('video/') === 0) { t.promessa = fila.then(trabalho, trabalho); fila = t.promessa.catch(function () {}); }
+    else t.promessa = trabalho();
+    t.promessa.then(function () { t.progresso = 1; t.pronto = true; avisar(); }, function () { t.pronto = true; avisar(); });
+    t.promessa.catch(function () {});
+    tarefas.set(file, t);
+    return t;
+  }
+
   /* ---------- um só ponto de entrada, com progresso no ecrã ---------- */
   async function preparar(file, opcoes) {
     opcoes = opcoes || {};
+    var t = iniciar(file);
     var tipo = file && file.type || '';
-    if (tipo.indexOf('image/') === 0) return prepararFoto(file);
-    if (tipo.indexOf('video/') !== 0) return file;
-    var barra = null;
+    if (tipo.indexOf('video/') !== 0 || opcoes.semBarra) return t.promessa;
+    var barra = null, parar = null;
     var etiqueta = opcoes.etiqueta || 'A otimizar o vídeo…';
-    try {
-      return await prepararVideo(file, {
-        aoProgresso: function (p) {
-          if (!barra) barra = progresso(etiqueta);
-          barra.atualizar(p);
-          if (opcoes.aoProgresso) opcoes.aoProgresso(p);
-        }
-      });
-    } finally { if (barra) barra.fechar(); }
+    // só mostra a barra se ainda faltar trabalho e demorar mais de meio segundo
+    var temporizador = setTimeout(function () {
+      if (t.pronto) return;
+      barra = progresso(etiqueta);
+      parar = t.ouvir(function (p) { barra.atualizar(p); if (opcoes.aoProgresso) opcoes.aoProgresso(p); });
+    }, 500);
+    try { return await t.promessa; }
+    finally { clearTimeout(temporizador); if (parar) parar(); if (barra) barra.fechar(); }
   }
 
   window.FCMedia = {
-    LIMITES: LIMITES, validar: validar, preparar: preparar, prepararFoto: prepararFoto, prepararVideo: prepararVideo,
+    LIMITES: LIMITES, validar: validar, preparar: preparar, iniciar: iniciar, prepararFoto: prepararFoto, prepararVideo: prepararVideo,
     aviso: aviso, progresso: progresso, mostrarErro: mostrarErro, duracao: duracao, mb: mb
   };
 })();
