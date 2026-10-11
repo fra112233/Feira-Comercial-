@@ -970,6 +970,20 @@
             z-index: 3001;
         }
         video.lightbox-media { max-height: 85vh; background: #000; }
+        .lightbox-apagar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(239, 68, 68, 0.9);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 9px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 3001;
+        }
         body:has(.lightbox.active) #fc-aovivo { display: none !important; }
 
         .media-item-icon {
@@ -1544,6 +1558,9 @@
         <i class="fas fa-chevron-left"></i>
     </button>
     <div class="lightbox-contador" id="lightboxContador"></div>
+    <button class="lightbox-apagar" id="lightboxApagar" onclick="apagarMediaAtual()" style="display:none" title="Apagar do histórico">
+        <i class="fas fa-trash"></i> Apagar
+    </button>
     <div class="lightbox-content">
         <img id="lightboxMedia" class="lightbox-media" alt="Visualização">
         <video id="lightboxVideo" class="lightbox-media" controls playsinline style="display:none"></video>
@@ -1722,10 +1739,36 @@
     let meuId = null;
     let meusPosts = [];
 
+    // Histórico de Média: fotos e vídeos de TODAS as publicações (ficam depois dos 4 dias)
+    let historicoMedia = null;   // [{ id, media:[{data,url,type}], timestamp, content }]
+
     function obterPostsFeed() { return meusPosts; }
+
+    function normalizarMedia(r) {
+        let media = Array.isArray(r.media) ? r.media : [];
+        if (!media.length && r.image_url) media = [{ url: r.image_url, type: 'image' }];
+        return media.filter(m => m && m.url).map(m => ({ data: m.url, url: m.url, type: m.type === 'video' ? 'video' : 'image' }));
+    }
+
+    async function carregarHistoricoMedia() {
+        if (!alvoId) return;
+        const { data, error } = await getSB().from('posts')
+            .select('id, content, media, image_url, created_at')
+            .eq('user_id', alvoId)
+            .order('created_at', { ascending: false })
+            .limit(500);
+        if (error) { console.warn('Erro ao carregar histórico de média:', error.message); return; }
+        historicoMedia = (data || []).map(r => ({
+            id: r.id, content: r.content || '', rawMedia: Array.isArray(r.media) ? r.media : [], image_url: r.image_url,
+            media: normalizarMedia(r), timestamp: new Date(r.created_at).getTime()
+        })).filter(p => p.media.length);
+        updateMediaGallery();
+        updateRecentPhotos();
+    }
 
     async function carregarMeusPosts() {
         if (!alvoId) return;
+        carregarHistoricoMedia();
         const { data, error } = await getSB().from('posts')
             .select('id, content, media, image_url, created_at, likes(user_id), comments(id)')
             .eq('user_id', alvoId)
@@ -1833,6 +1876,7 @@
         const { error } = await getSB().from('posts').delete().eq('id', refId);
         if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
         meusPosts = meusPosts.filter(p => p.id !== refId);
+        if (historicoMedia) historicoMedia = historicoMedia.filter(p => p.id !== refId);
         renderizarPostsDoFeed();
         showToast('Publicação apagada.');
     }
@@ -1920,7 +1964,7 @@
     // lightboxImages: lista de { url, type } (fotos e vídeos)
     function todasAsMedias() {
         const lista = [];
-        obterPostsFeed().forEach(p => (p.media || []).forEach(m => {
+        (historicoMedia || obterPostsFeed()).forEach(p => (p.media || []).forEach(m => {
             if (m && m.data) lista.push({ url: m.data, type: m.type === 'video' ? 'video' : 'image', postId: p.id });
         }));
         return lista;
@@ -1953,6 +1997,7 @@
             img.src = item.url;
         }
         const n = lightboxImages.length;
+        document.getElementById('lightboxApagar').style.display = (!modoVisita && item.postId) ? '' : 'none';
         document.getElementById('lightboxContador').textContent = n > 1 ? `${currentLightboxIndex + 1} / ${n}` : '';
         document.querySelectorAll('.lightbox-nav').forEach(b => b.style.display = n > 1 ? '' : 'none');
     }
@@ -1966,6 +2011,30 @@
     }
 
     function abrirGaleria(indice) { abrirVisualizador(todasAsMedias(), indice); }
+
+    // o dono apaga uma foto/vídeo do histórico (tira-a da publicação; se ficar vazia, apaga a publicação)
+    async function apagarMediaAtual() {
+        const item = lightboxImages[currentLightboxIndex];
+        if (!item || !item.postId || modoVisita) return;
+        const ehVideo = item.type === 'video';
+        if (!confirm(ehVideo ? 'Apagar este vídeo? Não pode ser recuperado.' : 'Apagar esta foto? Não pode ser recuperada.')) return;
+        const post = (historicoMedia || []).find(p => p.id === item.postId) || meusPosts.find(p => p.id === item.postId);
+        if (!post) return;
+        const restantes = (post.rawMedia || post.media.map(m => ({ url: m.url, type: m.type }))).filter(m => m && m.url !== item.url);
+        const texto = post.content !== undefined ? post.content : (post.text || '');
+        let error;
+        if (!restantes.length && !texto.trim()) {
+            ({ error } = await getSB().from('posts').delete().eq('id', item.postId));
+        } else {
+            const novo = { media: restantes };
+            if (post.image_url === item.url || !post.rawMedia) novo.image_url = restantes.find(m => m.type !== 'video')?.url || null;
+            ({ error } = await getSB().from('posts').update(novo).eq('id', item.postId));
+        }
+        if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
+        closeLightbox();
+        showToast(ehVideo ? 'Vídeo apagado.' : 'Foto apagada.');
+        await carregarMeusPosts();
+    }
 
     function openLightbox(element) {
         const lista = todasAsMedias();

@@ -318,7 +318,7 @@ function prepararModoVisita() {
   const visita = document.getElementById('acoesVisita'); if (visita) visita.style.display = '';
   document.querySelectorAll('.profile-pic-edit, .create-post-card').forEach(el => el.style.display = 'none');
   const vazio = document.getElementById('emptyState');
-  if (vazio) vazio.innerHTML = '<p>Sem publicações nos últimos 4 dias.</p>';
+  if (vazio) vazio.innerHTML = '<p>Sem publicações nos últimos 4 dias.<br><small>As fotos e vídeos antigos ficam no separador Média.</small></p>';
 }
 
 function mostrarModoDono() {

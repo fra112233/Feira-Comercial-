@@ -805,7 +805,7 @@ function abrirDoLink() {
         else avisoPagina('Este status já não está disponível (os status duram 48 horas).');
     } else {
         if (posts.some(x => x.id === pid)) scrollToPost(pid);
-        else avisoPagina('Esta publicação já não está disponível (as publicações duram 4 dias).');
+        else avisoPagina('Esta publicação já saiu do feed (as publicações duram 4 dias). As fotos e vídeos continuam no separador Média do perfil.');
     }
 }
 
