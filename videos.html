@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="atualizacao.js"></script>
+<script src="compressao.js"></script>
 <style>
 :root { --ouro:#f3c64e; --vermelho:#fe2c55; --txt:#fff; --sub:rgba(255,255,255,.75); --vidro:rgba(0,0,0,.45); }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -134,7 +135,7 @@ a { color:inherit; text-decoration:none; }
   <div class="publicar">
     <label class="escolher" id="escolher">
       <i class="fas fa-video"></i>
-      Escolher ou gravar vídeo<br><span class="aviso">Vertical de preferência · até 2 minutos · até 30 MB</span>
+      Escolher ou gravar vídeo<br><span class="aviso">Vertical de preferência · até 3 minutos · otimizado automaticamente</span>
       <input type="file" id="ficheiroVideo" accept="video/*" hidden onchange="escolherVideo(event)">
     </label>
     <video class="previa" id="previa" controls playsinline></video>
@@ -436,17 +437,18 @@ async function apagarComentario(cid) {
 // ─── PUBLICAR ───
 function abrirPublicar() { abrirFolha('folhaPub'); }
 
-function escolherVideo(e) {
+async function escolherVideo(e) {
   const f = e.target.files[0];
   if (!f) return;
-  if (!f.type.startsWith('video/')) { toast('Escolhe um ficheiro de vídeo.'); return; }
-  if (f.size > 30 * 1024 * 1024) { toast('O vídeo tem mais de 30 MB. Grava um vídeo mais curto ou em qualidade 720p.'); e.target.value = ''; return; }
+  if (!f.type.startsWith('video/')) { FCMedia.aviso('Escolha um vídeo', 'O ficheiro escolhido não é um vídeo.', { erro: true }); e.target.value = ''; return; }
+  try { await FCMedia.validar(f); }
+  catch (err) { e.target.value = ''; FCMedia.mostrarErro(err); return; }
   const prev = document.getElementById('previa');
   prev.src = URL.createObjectURL(f);
   prev.style.display = 'block';
   prev.onloadedmetadata = () => {
     duracao = prev.duration;
-    if (duracao > 120) { toast('O vídeo tem mais de 2 minutos.'); ficheiro = null; document.getElementById('btnPublicar').disabled = true; return; }
+    if (duracao > 180.5) { FCMedia.aviso('Vídeo demasiado longo', 'O máximo é 3 minutos. Corte o vídeo na galeria e volte a escolhê-lo.', { erro: true }); ficheiro = null; document.getElementById('btnPublicar').disabled = true; return; }
     ficheiro = f;
     document.getElementById('btnPublicar').disabled = false;
   };
@@ -459,9 +461,12 @@ async function publicarVideo() {
   btn.disabled = true; btn.textContent = 'A enviar vídeo...';
   document.getElementById('progresso').style.display = 'block';
   try {
-    const ext = (ficheiro.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+    btn.textContent = 'A otimizar...';
+    const pronto = await FCMedia.preparar(ficheiro, { etiqueta: 'A otimizar o vídeo…' });
+    btn.textContent = 'A enviar vídeo...';
+    const ext = (pronto.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
     const caminho = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error: e1 } = await supabaseClient.storage.from('videos').upload(caminho, ficheiro, { contentType: ficheiro.type || 'video/mp4' });
+    const { error: e1 } = await supabaseClient.storage.from('videos').upload(caminho, pronto, { contentType: pronto.type || 'video/mp4' });
     if (e1) throw e1;
     const url = supabaseClient.storage.from('videos').getPublicUrl(caminho).data.publicUrl;
     const { error: e2 } = await supabaseClient.from('videos').insert({
@@ -479,7 +484,7 @@ async function publicarVideo() {
     fecharFolhas();
     separador = ''; mudarSeparador('todos');
   } catch (err) {
-    toast('Erro ao publicar: ' + err.message);
+    FCMedia.mostrarErro(err);
   } finally {
     btn.textContent = 'Publicar';
     btn.disabled = !ficheiro;

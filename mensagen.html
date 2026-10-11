@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="atualizacao.js"></script>
+<script src="compressao.js"></script>
 <script src="menu.js"></script>
 
 <style>
@@ -1080,9 +1081,14 @@ async function handleFile(e) {
     let file = e.target.files[0];
     e.target.value = '';
     if (!file || !activeContactId) return;
-    if (file.size > 50 * 1024 * 1024) { showToast('Ficheiro demasiado grande (máximo 50 MB).'); return; }
     const tipo = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'doc';
-    if (tipo === 'image') file = await reduzirFoto(file);
+    try {
+        if (tipo === 'doc') {
+            if (file.size > 48 * 1024 * 1024) throw Object.assign(new Error('O ficheiro tem ' + FCMedia.mb(file.size) + '. O máximo para documentos é 50 MB.'), { fc: true, titulo: 'Ficheiro demasiado grande', texto: 'O ficheiro tem ' + FCMedia.mb(file.size) + '. O máximo para documentos é 50 MB.' });
+        } else {
+            file = await FCMedia.preparar(file, { etiqueta: 'A otimizar o vídeo…' });   // fotos até 100 MB, vídeos até 3 min
+        }
+    } catch (err) { FCMedia.mostrarErro(err); return; }
     const size = file.size < 1024 * 1024 ? (file.size / 1024).toFixed(1) + ' KB' : (file.size / 1024 / 1024).toFixed(1) + ' MB';
     showToast('A enviar ficheiro...');
     try {
@@ -1093,7 +1099,7 @@ async function handleFile(e) {
         const url = supabaseClient.storage.from('chat-media').getPublicUrl(caminho).data.publicUrl;
         await sendMessage('', tipo, url, tipo === 'doc' ? file.name : null, tipo === 'doc' ? size : null);
     } catch (err) {
-        showToast('Erro ao enviar ficheiro: ' + err.message);
+        FCMedia.mostrarErro(err);
     }
 }
 

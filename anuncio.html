@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="atualizacao.js"></script>
+<script src="compressao.js"></script>
 <script src="perfil-campos.js"></script>
 <script src="menu.js"></script>
 <style>
@@ -390,21 +391,22 @@ function editarAnuncio(id) {
   abrirModal('formModal');
 }
 
-async function reduzirImagem(file, max = 1200) {
+async function reduzirImagem(file, max = 1600) {
   try {
     const bmp = await createImageBitmap(file);
     const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
     const c = document.createElement('canvas');
     c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
-    return blob ? new File([blob], 'anuncio.jpg', { type: 'image/jpeg' }) : file;
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
+    return blob && blob.size < file.size ? new File([blob], 'anuncio.jpg', { type: 'image/jpeg' }) : file;
   } catch (e) { return file; }
 }
 
 async function previewFoto(e) {
   const f = e.target.files[0];
   if (!f) return;
+  try { await FCMedia.validar(f); } catch (err) { e.target.value = ''; FCMedia.mostrarErro(err); return; }
   fotoFicheiro = await reduzirImagem(f);
   const prev = document.getElementById('fotoPrev');
   prev.src = URL.createObjectURL(fotoFicheiro);
