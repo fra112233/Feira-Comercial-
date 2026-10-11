@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="compressao.js"></script>
 <script src="atualizacao.js"></script>
 <script src="perfil-campos.js"></script>
 <script src="perfil-tipos.js"></script>
@@ -2144,22 +2145,23 @@
         }
     }
 
-    function previewMedia(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            const file = input.files[0];
-            tempType = file.type;
-            tempFile = file;
-            reader.onload = (e) => {
-                tempMedia = e.target.result;
-                const previewDiv = document.getElementById('preView');
-                if (tempType.includes('video')) {
-                    previewDiv.innerHTML = `<video src="${tempMedia}" controls style="width: 100%; border-radius: var(--radius-md); max-height: 300px;"></video>`;
-                } else {
-                    previewDiv.innerHTML = `<img src="${tempMedia}" style="width: 100%; border-radius: var(--radius-md); max-height: 300px; object-fit: cover;">`;
-                }
-            };
-            reader.readAsDataURL(file);
+    async function previewMedia(input) {
+        if (!(input.files && input.files[0])) return;
+        const file = input.files[0];
+        input.value = '';
+        try { await FCMedia.validar(file); }
+        catch (e) { FCMedia.mostrarErro(e); return; }
+        tempType = file.type;
+        tempFile = file;
+        FCMedia.iniciar(file);           // começa já a otimizar enquanto escreve o texto
+        FCMedia.impressao(file);
+        if (tempMedia && String(tempMedia).startsWith('blob:')) URL.revokeObjectURL(tempMedia);
+        tempMedia = URL.createObjectURL(file);
+        const previewDiv = document.getElementById('preView');
+        if (tempType.includes('video')) {
+            previewDiv.innerHTML = `<video src="${tempMedia}" controls playsinline style="width: 100%; border-radius: var(--radius-md); max-height: 300px;"></video>`;
+        } else {
+            previewDiv.innerHTML = `<img src="${tempMedia}" style="width: 100%; border-radius: var(--radius-md); max-height: 300px; object-fit: cover;">`;
         }
     }
 
@@ -2178,12 +2180,8 @@
         try {
             const media = [];
             if (tempFile) {
-                const tipo = tempFile.type.startsWith('video') ? 'video' : 'image';
-                const ext = (tempFile.name.split('.').pop() || (tipo === 'video' ? 'mp4' : 'jpg')).toLowerCase();
-                const caminho = `${meuId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-                const { error: upErr } = await getSB().storage.from('media').upload(caminho, tempFile, { contentType: tempFile.type });
-                if (upErr) throw upErr;
-                media.push({ url: getSB().storage.from('media').getPublicUrl(caminho).data.publicUrl, type: tipo });
+                const m = await FCMedia.enviarMedia(getSB(), meuId, tempFile, { etiqueta: 'A otimizar o vídeo…' });
+                media.push({ url: m.url, type: m.type });
             }
             const foto = media.find(m => m.type === 'image');
             const { error } = await getSB().from('posts').insert({

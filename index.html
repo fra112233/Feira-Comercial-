@@ -932,13 +932,9 @@ async function comprimirImagem(file, max = 1600, qualidade = 0.82) {
 }
 
 async function enviarFicheiro(file) {
-    const tipo = file.type.startsWith('video') ? 'video' : 'image';
-    const f = await FCMedia.preparar(file, { etiqueta: 'A otimizar o vídeo…' });
-    const ext = ((f.name || '').split('.').pop() || (tipo === 'video' ? 'mp4' : 'jpg')).toLowerCase().replace(/[^a-z0-9]/g, '') || (tipo === 'video' ? 'mp4' : 'jpg');
-    const caminho = `${currentUser.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabaseClient.storage.from('media').upload(caminho, f, { contentType: f.type });
-    if (error) throw error;
-    return { url: supabaseClient.storage.from('media').getPublicUrl(caminho).data.publicUrl, type: tipo };
+    // se a mesma foto/vídeo já foi enviada antes, reaproveita (não ocupa espaço outra vez)
+    const m = await FCMedia.enviarMedia(supabaseClient, currentUser.id, file, { etiqueta: 'A otimizar o vídeo…' });
+    return { url: m.url, type: m.type };
 }
 
 // ─────────────────────────────────────
@@ -1632,12 +1628,8 @@ async function deletePost(id) {
     const p = posts.find(x => x.id === id);
     const { error } = await supabaseClient.from('posts').delete().eq('id', id);
     if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
-    // apagar também as fotos/vídeos do Storage
-    if (p && p.media.length) {
-        const prefixo = '/storage/v1/object/public/media/';
-        const caminhos = p.media.map(m => (m.url.split(prefixo)[1] || '')).filter(Boolean);
-        if (caminhos.length) supabaseClient.storage.from('media').remove(caminhos);
-    }
+    // os ficheiros não são apagados aqui: a mesma foto pode estar noutra publicação.
+    // A limpeza automática apaga-os à noite se já nenhuma publicação os usar.
     posts = posts.filter(x => x.id !== id);
     renderPosts();
     guardarCache();
