@@ -83,10 +83,12 @@ window.FCMenu = (function () {
         '<div class="sec">Navegar</div>' +
         item('fa-home', 'Início', 'index.html') +
         item('fa-user-friends', 'Amigos', 'amigos.html') +
-        item('fa-comment-dots', 'Mensagens', 'mensagen.html') +
+        item('fa-comment-dots', 'Mensagens', 'mensagen.html',
+          '<span data-fc-msgs class="fc-msg-menu" style="' + ((window.FC && FC._msgsNaoLidas) ? '' : 'display:none') + '">' + ((window.FC && FC._msgsNaoLidas) > 99 ? '99+' : ((window.FC && FC._msgsNaoLidas) || '')) + '</span>') +
         item('fa-play-circle', 'Vídeos', 'videos.html') +
         item('fa-bullhorn', 'Anúncios', 'anuncio.html') +
-        item('fa-tower-broadcast', 'Live', 'live.html') +
+        item('fa-tower-broadcast', 'Live', 'live.html', (window.FC && FC._livesAgora && FC._livesAgora.length)
+          ? '<span class="fc-aovivo-chip"><span class="fc-aovivo-ponto"></span>' + (FC._livesAgora.length === 1 ? esc((FC._livesAgora[0].autor && FC._livesAgora[0].autor.full_name) || 'AO VIVO') : FC._livesAgora.length + ' ao vivo') + '</span>' : '') +
         (empresa ? item('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
         (p.role === 'admin' ? item('fa-user-shield', 'Administração', 'admin.html') : '') +
 

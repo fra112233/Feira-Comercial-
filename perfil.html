@@ -1604,6 +1604,7 @@
         contarSeguidores();
         if (location.hash === '#editar' && !modoVisita) { history.replaceState(null, '', 'perfil.html'); openModal('modalEdit'); }
         if (window.FC && FC.badgeMensagens) FC.badgeMensagens();
+        if (window.FC && FC.vigiarLives) FC.vigiarLives();
     })();
 
     function setTxt(id, valor) { const el = document.getElementById(id); if (el) el.textContent = valor; }
