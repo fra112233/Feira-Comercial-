@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /mensagen.html
+Disallow: /mensalidade.html
+Disallow: /supabase/
+
+Sitemap: https://www.feira-comercial.com/sitemap.xml

@@ -2,6 +2,7 @@
 <html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
+<meta name="robots" content="noindex">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Feira Comercial">
     <title>Perfil | Feira Comercial </title>
@@ -899,6 +900,7 @@
         .media-item-overlay {
             position: absolute;
             inset: 0;
+            pointer-events: none;
             background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
@@ -910,6 +912,65 @@
         .media-item:hover .media-item-overlay {
             opacity: 1;
         }
+
+        .media-item .media-tipo {
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            background: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            font-size: 12px;
+            padding: 3px 7px;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .post-media-container { position: relative; }
+        .post-media-mais {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+        .post-media-ampliar {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .galeria-vazia {
+            grid-column: 1 / -1;
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 8px 0;
+        }
+        .lightbox-contador {
+            position: absolute;
+            top: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 12px;
+            border-radius: 12px;
+            z-index: 3001;
+        }
+        video.lightbox-media { max-height: 85vh; background: #000; }
+        body:has(.lightbox.active) #fc-aovivo { display: none !important; }
 
         .media-item-icon {
             color: white;
@@ -1469,12 +1530,6 @@
         <div class="info-card">
             <div class="info-card-title">Fotos Recentes</div>
             <div class="gallery-preview" id="recentPhotosGallery">
-                <img src="https://picsum.photos/id/10/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/20/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/30/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/40/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/50/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/60/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
             </div>
         </div>
     </aside>
@@ -1488,8 +1543,10 @@
     <button class="lightbox-nav lightbox-prev" onclick="prevLightbox()">
         <i class="fas fa-chevron-left"></i>
     </button>
+    <div class="lightbox-contador" id="lightboxContador"></div>
     <div class="lightbox-content">
         <img id="lightboxMedia" class="lightbox-media" alt="Visualização">
+        <video id="lightboxVideo" class="lightbox-media" controls playsinline style="display:none"></video>
     </div>
     <button class="lightbox-nav lightbox-next" onclick="nextLightbox()">
         <i class="fas fa-chevron-right"></i>
@@ -1716,11 +1773,13 @@
         const nome = (perfilAtual && perfilAtual.full_name) || p.userName || localStorage.getItem('fc_name') || 'Você';
         const hora = new Date(p.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
         const m = (p.media || [])[0];
+        const nMedia = (p.media || []).length;
         let mediaTag = '';
         if (m) {
+            const mais = nMedia > 1 ? `<button class="post-media-mais" onclick="abrirMediaPost(${p.id}, 1)">+${nMedia - 1}</button>` : '';
             mediaTag = m.type === 'video'
-                ? `<div class="post-media-container"><video src="${m.data}" controls class="post-video"></video></div>`
-                : `<div class="post-media-container"><img src="${m.data}" class="post-image" alt="Publicação" onclick="openLightbox(this)"></div>`;
+                ? `<div class="post-media-container"><video src="${m.data}" controls playsinline preload="metadata" class="post-video"></video><button class="post-media-ampliar" title="Ver em ecrã inteiro" onclick="abrirMediaPost(${p.id}, 0)"><i class="fas fa-expand"></i></button>${mais}</div>`
+                : `<div class="post-media-container"><img src="${m.data}" class="post-image" alt="Publicação" onclick="abrirMediaPost(${p.id}, 0)">${mais}</div>`;
         }
         const nComentarios = (p.comments || []).reduce((n, c) => n + 1 + (c.replies ? c.replies.length : 0), 0);
         return `
@@ -1858,21 +1917,66 @@
     });
 
     // ==================== LIGHTBOX ==================== 
-    function openLightbox(element) {
-        const src = element.src;
-        document.getElementById('lightboxMedia').src = src;
+    // lightboxImages: lista de { url, type } (fotos e vídeos)
+    function todasAsMedias() {
+        const lista = [];
+        obterPostsFeed().forEach(p => (p.media || []).forEach(m => {
+            if (m && m.data) lista.push({ url: m.data, type: m.type === 'video' ? 'video' : 'image', postId: p.id });
+        }));
+        return lista;
+    }
+
+    function abrirVisualizador(lista, indice) {
+        if (!lista || !lista.length) return;
+        lightboxImages = lista;
+        currentLightboxIndex = Math.max(0, Math.min(indice || 0, lista.length - 1));
+        document.querySelectorAll('#feedList video').forEach(v => { try { v.pause(); } catch (e) {} });
         document.getElementById('lightbox').classList.add('active');
         document.body.style.overflow = 'hidden';
+        mostrarNoVisualizador();
+    }
 
-        lightboxImages = [];
-        document.querySelectorAll('.gallery-thumb, .post-image, .post-video').forEach(img => {
-            lightboxImages.push(img.src);
-        });
+    function mostrarNoVisualizador() {
+        const item = lightboxImages[currentLightboxIndex];
+        if (!item) return;
+        const img = document.getElementById('lightboxMedia');
+        const vid = document.getElementById('lightboxVideo');
+        if (item.type === 'video') {
+            img.style.display = 'none'; img.removeAttribute('src');
+            vid.style.display = '';
+            if (vid.getAttribute('src') !== item.url) vid.src = item.url;
+            vid.play().catch(() => {});
+        } else {
+            try { vid.pause(); } catch (e) {}
+            vid.style.display = 'none'; vid.removeAttribute('src'); vid.load();
+            img.style.display = '';
+            img.src = item.url;
+        }
+        const n = lightboxImages.length;
+        document.getElementById('lightboxContador').textContent = n > 1 ? `${currentLightboxIndex + 1} / ${n}` : '';
+        document.querySelectorAll('.lightbox-nav').forEach(b => b.style.display = n > 1 ? '' : 'none');
+    }
 
-        currentLightboxIndex = lightboxImages.indexOf(src);
+    // abre todas as fotos/vídeos do perfil, a começar na publicação/posição pedida
+    function abrirMediaPost(postId, posicao) {
+        const lista = todasAsMedias();
+        let i = lista.findIndex(x => x.postId === postId);
+        if (i < 0) return;
+        abrirVisualizador(lista, i + (posicao || 0));
+    }
+
+    function abrirGaleria(indice) { abrirVisualizador(todasAsMedias(), indice); }
+
+    function openLightbox(element) {
+        const lista = todasAsMedias();
+        const i = lista.findIndex(x => x.url === element.src);
+        if (i >= 0) abrirVisualizador(lista, i);
+        else abrirVisualizador([{ url: element.src, type: 'image' }], 0);
     }
 
     function closeLightbox() {
+        const vid = document.getElementById('lightboxVideo');
+        try { vid.pause(); } catch (e) {}
         document.getElementById('lightbox').classList.remove('active');
         document.body.style.overflow = '';
     }
@@ -1880,14 +1984,28 @@
     function prevLightbox() {
         if (lightboxImages.length === 0) return;
         currentLightboxIndex = (currentLightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
-        document.getElementById('lightboxMedia').src = lightboxImages[currentLightboxIndex];
+        mostrarNoVisualizador();
     }
 
     function nextLightbox() {
         if (lightboxImages.length === 0) return;
         currentLightboxIndex = (currentLightboxIndex + 1) % lightboxImages.length;
-        document.getElementById('lightboxMedia').src = lightboxImages[currentLightboxIndex];
+        mostrarNoVisualizador();
     }
+
+    // deslizar no telemóvel; tocar no fundo fecha
+    (function () {
+        const lb = document.getElementById('lightbox');
+        let x0 = null, y0 = null;
+        lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+        lb.addEventListener('touchend', e => {
+            if (x0 === null) return;
+            const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+            x0 = null;
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { dx < 0 ? nextLightbox() : prevLightbox(); }
+        }, { passive: true });
+        lb.addEventListener('click', e => { if (e.target === lb || e.target.classList.contains('lightbox-content')) closeLightbox(); });
+    })();
 
     document.addEventListener('keydown', (e) => {
         if (document.getElementById('lightbox').classList.contains('active')) {
@@ -2138,27 +2256,27 @@
 
     function updateMediaGallery() {
         const gallery = document.getElementById('mediaGallery');
-        const mediaItems = allPosts.filter(p => p.media);
+        const mediaItems = todasAsMedias();
 
         if (mediaItems.length === 0) {
             gallery.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><i class="fas fa-images"></i><p>Nenhuma foto ou vídeo ainda.</p></div>`;
             return;
         }
 
-        gallery.innerHTML = mediaItems.map(item => {
-            if (item.type.includes('video')) {
+        gallery.innerHTML = mediaItems.map((item, i) => {
+            if (item.type === 'video') {
                 return `
-                    <div class="media-item">
-                        <video src="${item.media}"></video>
-                        <div class="media-item-overlay">
+                    <div class="media-item" onclick="abrirGaleria(${i})" role="button" aria-label="Ver vídeo">
+                        <video src="${item.url}#t=0.5" preload="metadata" muted playsinline></video>
+                        <div class="media-item-overlay" style="opacity:1;background:rgba(0,0,0,0.25)">
                             <div class="media-item-icon"><i class="fas fa-play"></i></div>
                         </div>
                     </div>
                 `;
             } else {
                 return `
-                    <div class="media-item">
-                        <img src="${item.media}" alt="Média" onclick="openLightbox(this)">
+                    <div class="media-item" onclick="abrirGaleria(${i})" role="button" aria-label="Ver foto">
+                        <img src="${item.url}" alt="Foto" loading="lazy">
                         <div class="media-item-overlay">
                             <div class="media-item-icon"><i class="fas fa-search-plus"></i></div>
                         </div>
@@ -2170,22 +2288,16 @@
 
     function updateRecentPhotos() {
         const recentPhotosGallery = document.getElementById('recentPhotosGallery');
-        const photoItems = allPosts.filter(p => p.media && !p.type.includes('video')).slice(0, 6);
+        const todas = todasAsMedias();
+        const photoItems = todas.map((m, i) => ({ ...m, i })).filter(m => m.type === 'image').slice(0, 6);
 
         if (photoItems.length === 0) {
-            recentPhotosGallery.innerHTML = `
-                <img src="https://picsum.photos/id/10/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/20/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/30/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/40/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/50/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-                <img src="https://picsum.photos/id/60/150" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">
-            `;
+            recentPhotosGallery.innerHTML = `<div class="galeria-vazia">Ainda sem fotos.</div>`;
             return;
         }
 
         recentPhotosGallery.innerHTML = photoItems.map(item => {
-            return `<img src="${item.media}" class="gallery-thumb" alt="Foto" onclick="openLightbox(this)">`;
+            return `<img src="${item.url}" class="gallery-thumb" alt="Foto" loading="lazy" onclick="abrirGaleria(${item.i})">`;
         }).join('');
     }
 
