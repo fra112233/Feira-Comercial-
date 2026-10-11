@@ -381,6 +381,12 @@
         .lightbox-nav:hover { background: rgba(255,255,255,0.25); }
         #lb-prev { left: 16px; }
         #lb-next { right: 16px; }
+        .lightbox video.lightbox-img { width: auto; background: #000; }
+        .lb-contador { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,.8); font-size: 14px; font-weight: 600; }
+        @media (max-width: 600px) {
+            .lightbox-img { max-width: 100%; max-height: 82%; border-radius: 0; }
+            .lightbox-nav { top: auto; bottom: 22px; transform: none; padding: 10px 16px; font-size: 22px; }
+        }
 
         /* ── CHAT MODAL ── */
         .chat-modal {
@@ -678,6 +684,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
     <span class="lightbox-close" onclick="closeLightboxDirect()">&times;</span>
     <button class="lightbox-nav" id="lb-prev" onclick="changePhoto(-1)">&#10094;</button>
     <img id="lb-img" class="lightbox-img" src="" alt="">
+    <video id="lb-video" class="lightbox-img" controls playsinline preload="metadata" style="display:none"></video>
+    <span class="lb-contador" id="lb-contador"></span>
     <button class="lightbox-nav" id="lb-next" onclick="changePhoto(1)">&#10095;</button>
 </div>
 
@@ -1029,6 +1037,14 @@ function initCompose() {
 
 const MAX_VIDEO_MB = 30;
 function videoGrande(f) { return f && f.type.startsWith('video/') && f.size > MAX_VIDEO_MB * 1024 * 1024; }
+// mensagens de erro do envio de ficheiros em português claro
+function erroEnvio(err) {
+    const m = (err && err.message) || '';
+    if (/exceeded the maximum allowed size|too large|payload/i.test(m)) return 'o ficheiro é demasiado grande (máximo ' + MAX_VIDEO_MB + ' MB por vídeo). Grave um vídeo mais curto ou em qualidade 720p.';
+    if (/mime type|not supported/i.test(m)) return 'este tipo de ficheiro não é aceite. Use fotos (JPG, PNG) ou vídeos (MP4).';
+    if (/Failed to fetch|NetworkError|network/i.test(m)) return 'sem ligação à internet. Tente outra vez.';
+    return m;
+}
 function previewPostMedia(event) {
     const escolhidos = Array.from(event.target.files).slice(0, 10);
     if (escolhidos.some(videoGrande)) alert('Alguns vídeos têm mais de ' + MAX_VIDEO_MB + ' MB e não foram incluídos. Grave vídeos mais curtos ou em qualidade 720p.');
@@ -1055,7 +1071,7 @@ async function addStory(event) {
         if (error) throw error;
         await carregarStories();
     } catch (err) {
-        alert('Não foi possível publicar o story: ' + err.message);
+        alert('Não foi possível publicar o story: ' + erroEnvio(err));
     }
 }
 
@@ -1400,7 +1416,7 @@ async function publishPost() {
         await carregarPosts();
     } catch (err) {
         document.getElementById('post-preview-area').innerHTML = '';
-        alert(/row-level security/i.test(err.message || '') ? 'Só empresas com a mensalidade em dia podem publicar no feed. Veja em Menu → Mensalidade.' : 'Não foi possível publicar: ' + err.message);
+        alert(/row-level security/i.test(err.message || '') ? 'Só empresas com a mensalidade em dia podem publicar no feed. Veja em Menu → Mensalidade.' : 'Não foi possível publicar: ' + erroEnvio(err));
         btn.disabled = false;
     } finally {
         btn.textContent = original;
@@ -1469,7 +1485,7 @@ function renderPostCard(p, isMe) {
                 ${p.media.slice(0, 4).map(m => m.type === 'video'
                     ? `<div class="video-wrapper" data-postid="${p.id}">
                            <video src="${m.url}" class="media-item" muted loop playsinline preload="metadata"></video>
-                           <div class="pause-overlay"><i class="fas fa-pause"></i></div>
+                           <div class="pause-overlay"><i class="fas fa-expand"></i></div>
                            <button type="button" class="som-btn" aria-label="Ligar o som" title="Ligar o som"><i class="fas fa-volume-xmark"></i></button>
                        </div>`
                     : `<img src="${m.url}" class="media-item" loading="lazy" onclick="openLightbox(this, ${p.id})">`
@@ -1707,13 +1723,25 @@ function toggleVideo(wrapper) {
     }
 }
 
+// Toque no vídeo do feed: abre em ecrã inteiro (com som e controlos).
+// Botão do som: liga/desliga o som sem abrir. Deslizar o feed não conta como toque.
+let _toqueIni = null;
+document.addEventListener('touchstart', e => {
+    const t = e.touches[0]; _toqueIni = { x: t.clientX, y: t.clientY, t: Date.now() };
+}, { passive: true, capture: true });
 function _videoDelegate(e) {
     const wrapper = e.target.closest('.video-wrapper');
     if (!wrapper) return;
+    if (e.type === 'touchend') {
+        const t = e.changedTouches[0];
+        if (!_toqueIni || Math.abs(t.clientX - _toqueIni.x) > 10 || Math.abs(t.clientY - _toqueIni.y) > 10 || Date.now() - _toqueIni.t > 600) return; // foi deslizar
+    }
     e.preventDefault();
     e.stopPropagation();
-    if (e.target.closest('.som-btn')) alternarSom(wrapper);   // botão do som
-    else toggleVideo(wrapper);                                 // resto do vídeo: pausa / continua
+    if (e.target.closest('.som-btn')) { alternarSom(wrapper); return; }
+    const v = wrapper.querySelector('video');
+    const postId = Number(wrapper.dataset.postid);
+    if (v) abrirVisualizador(isNaN(postId) ? wrapper.dataset.postid : postId, v.getAttribute('src'), 'video');
 }
 document.addEventListener('click',      _videoDelegate, true);
 document.addEventListener('touchend',   _videoDelegate, { passive: false, capture: true });
@@ -1778,25 +1806,65 @@ function mobileSearchHandler(valor) {
 // ─────────────────────────────────────
 //  LIGHTBOX
 // ─────────────────────────────────────
-function openLightbox(imgEl, postId) {
+// Visualizador de ecrã inteiro: fotos E vídeos da publicação, com setas / deslizar
+function abrirVisualizador(postId, url, tipo) {
     const p = posts.find(x => x.id === postId);
-    lbImages = p ? p.media.filter(m => m.type === 'image').map(m => m.url) : [imgEl.src];
-    lbIndex = lbImages.indexOf(imgEl.src);
-    if (lbIndex < 0) lbIndex = 0;
-    const lb = document.getElementById('lightbox');
-    document.getElementById('lb-img').src = lbImages[lbIndex];
-    lb.classList.add('open');
-    document.getElementById('lb-prev').style.display = lbImages.length > 1 ? '' : 'none';
-    document.getElementById('lb-next').style.display = lbImages.length > 1 ? '' : 'none';
+    lbImages = p && p.media.length ? p.media.map(m => ({ url: m.url, type: m.type })) : [{ url, type: tipo || 'image' }];
+    lbIndex = Math.max(0, lbImages.findIndex(m => m.url === url));
+    // pára os vídeos do feed enquanto o visualizador está aberto
+    document.querySelectorAll('#feed video').forEach(v => v.pause());
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    const varios = lbImages.length > 1;
+    document.getElementById('lb-prev').style.display = varios ? '' : 'none';
+    document.getElementById('lb-next').style.display = varios ? '' : 'none';
+    mostrarItemLb();
+}
+function openLightbox(imgEl, postId) { abrirVisualizador(postId, imgEl.getAttribute('src'), 'image'); }
+
+function mostrarItemLb() {
+    const m = lbImages[lbIndex]; if (!m) return;
+    const img = document.getElementById('lb-img'), vid = document.getElementById('lb-video');
+    if (m.type === 'video') {
+        img.style.display = 'none'; img.removeAttribute('src');
+        vid.style.display = '';
+        if (vid.getAttribute('src') !== m.url) vid.src = m.url;
+        vid.muted = false;
+        vid.play().catch(() => { vid.muted = true; vid.play().catch(() => {}); });
+    } else {
+        vid.pause(); vid.style.display = 'none';
+        img.style.display = ''; img.src = m.url;
+    }
+    document.getElementById('lb-contador').textContent = lbImages.length > 1 ? (lbIndex + 1) + ' / ' + lbImages.length : '';
 }
 
 function changePhoto(dir) {
+    if (lbImages.length < 2) return;
     lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length;
-    document.getElementById('lb-img').src = lbImages[lbIndex];
+    mostrarItemLb();
 }
 
 function closeLightbox(e) { if (e.target === document.getElementById('lightbox')) closeLightboxDirect(); }
-function closeLightboxDirect() { document.getElementById('lightbox').classList.remove('open'); }
+function closeLightboxDirect() {
+    const vid = document.getElementById('lb-video');
+    vid.pause(); vid.removeAttribute('src'); vid.load();
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+    // retoma os vídeos do feed que estão no ecrã
+    if (_obsVideos) document.querySelectorAll('#feed video').forEach(v => { _obsVideos.unobserve(v); _obsVideos.observe(v); });
+}
+
+// deslizar para o lado no telemóvel muda de foto/vídeo
+(function () {
+    const lb = document.getElementById('lightbox'); let x0 = null, y0 = null;
+    lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    lb.addEventListener('touchend', e => {
+        if (x0 === null) return;
+        const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) changePhoto(dx < 0 ? 1 : -1);
+        x0 = null;
+    }, { passive: true });
+})();
 
 document.addEventListener('keydown', e => {
     if (document.getElementById('lightbox').classList.contains('open')) {
