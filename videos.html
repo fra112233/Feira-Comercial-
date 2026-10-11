@@ -134,7 +134,7 @@ a { color:inherit; text-decoration:none; }
   <div class="publicar">
     <label class="escolher" id="escolher">
       <i class="fas fa-video"></i>
-      Escolher ou gravar vídeo<br><span class="aviso">Vertical de preferência · até 3 minutos · até 50 MB</span>
+      Escolher ou gravar vídeo<br><span class="aviso">Vertical de preferência · até 2 minutos · até 30 MB</span>
       <input type="file" id="ficheiroVideo" accept="video/*" hidden onchange="escolherVideo(event)">
     </label>
     <video class="previa" id="previa" controls playsinline></video>
@@ -440,13 +440,13 @@ function escolherVideo(e) {
   const f = e.target.files[0];
   if (!f) return;
   if (!f.type.startsWith('video/')) { toast('Escolhe um ficheiro de vídeo.'); return; }
-  if (f.size > 50 * 1024 * 1024) { toast('O vídeo tem mais de 50 MB. Grava um vídeo mais curto.'); e.target.value = ''; return; }
+  if (f.size > 30 * 1024 * 1024) { toast('O vídeo tem mais de 30 MB. Grava um vídeo mais curto ou em qualidade 720p.'); e.target.value = ''; return; }
   const prev = document.getElementById('previa');
   prev.src = URL.createObjectURL(f);
   prev.style.display = 'block';
   prev.onloadedmetadata = () => {
     duracao = prev.duration;
-    if (duracao > 180) { toast('O vídeo tem mais de 3 minutos.'); ficheiro = null; document.getElementById('btnPublicar').disabled = true; return; }
+    if (duracao > 120) { toast('O vídeo tem mais de 2 minutos.'); ficheiro = null; document.getElementById('btnPublicar').disabled = true; return; }
     ficheiro = f;
     document.getElementById('btnPublicar').disabled = false;
   };

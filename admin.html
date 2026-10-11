@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Administração | Feira Comercial</title>
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="atualizacao.js"></script>
+<script src="menu.js"></script>
+<style>
+.resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 22px; }
+.num { background: var(--cartao); border: 1px solid var(--linha); border-radius: 16px; padding: 16px; }
+.num span { color: var(--sub); font-size: 13px; display: block; }
+.num b { font-size: 26px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.num.destaque b { color: var(--ouro); }
+.abas { display: flex; gap: 8px; margin: 28px 0 14px; flex-wrap: wrap; }
+.abas button { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--linha); background: var(--campo); color: var(--sub);
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.abas button.sel { color: #000; background: var(--ouro); border-color: var(--ouro); }
+.abas .cont { font-size: 12px; background: rgba(0,0,0,.25); padding: 1px 8px; border-radius: 999px; }
+.filtros { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.filtros button { padding: 7px 12px; border-radius: 10px; border: 1px solid var(--linha); background: transparent; color: var(--sub); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.filtros button.sel { color: var(--texto); border-color: var(--ouro); }
+.lista { display: grid; gap: 12px; }
+.reg { background: var(--cartao); border: 1px solid var(--linha); border-radius: 16px; padding: 16px; }
+.reg .cab { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.reg .quem { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.reg .quem img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--campo); flex-shrink: 0; }
+.reg .quem b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reg .quem small { color: var(--sub); font-size: 12.5px; }
+.reg .valor { font-size: 20px; font-weight: 800; color: var(--ouro); font-variant-numeric: tabular-nums; }
+.det { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; margin: 14px 0 4px; font-size: 14px; }
+.det span { color: var(--sub); font-size: 12px; display: block; }
+.det b { word-break: break-word; font-weight: 600; }
+.acoes { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.acoes .btn { padding: 10px 16px; font-size: 14px; }
+.btn-ok { background: #16a34a; color: #fff; }
+.btn-nao { background: transparent; color: #fca5a5; border: 1px solid rgba(248,113,113,.4); }
+.tag { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.t-pendente, .t-recebida { background: rgba(251,191,36,.15); color: #fcd34d; }
+.t-em_analise { background: rgba(96,165,250,.15); color: #93c5fd; }
+.t-confirmado, .t-resolvida { background: rgba(74,222,128,.15); color: #86efac; }
+.t-rejeitado { background: rgba(248,113,113,.15); color: #fca5a5; }
+.t-arquivada { background: rgba(161,161,170,.15); color: #d4d4d8; }
+.nota { margin-top: 10px; font-size: 13px; color: var(--sub); }
+.msg { white-space: pre-wrap; background: var(--campo); border-radius: 12px; padding: 12px; margin-top: 12px; font-size: 14px; line-height: 1.5; }
+.resp textarea, .resp select { width: 100%; padding: 11px 12px; background: var(--campo); border: 1.5px solid var(--linha); border-radius: 12px; color: var(--texto); font: inherit; font-size: 14px; }
+.resp textarea { min-height: 80px; resize: vertical; margin-top: 10px; }
+.resp .linha { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+.resp select { width: auto; }
+.vazio { color: var(--sub); font-size: 14px; padding: 18px; text-align: center; background: var(--cartao); border: 1px dashed var(--linha); border-radius: 16px; }
+#semAcesso, #conteudo { display: none; }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #18181b; color: #f4f4f5;
+  border: 1px solid var(--linha); padding: 11px 16px; border-radius: 12px; font-size: 14px; z-index: 50; display: none; max-width: calc(100vw - 32px); }
+</style>
+</head>
+<body>
+<header class="topo">
+  <div class="topo-in">
+    <a href="index.html" class="fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial">
+      <span class="fc-marca-txt"><b>Feira Comercial</b><small>Explore, Exiba, Expanda</small></span></a>
+    <div class="acoes" style="margin-left:auto">
+      <a class="entrar" href="index.html"><i class="fas fa-house"></i> Início</a>
+      <button class="menu" style="display:inline-flex;align-items:center;justify-content:center" onclick="FCMenu.abrir()" aria-label="Menu" title="Menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <span class="etiqueta"><i class="fas fa-user-shield"></i> Equipa</span>
+  <h1 class="titulo">Painel de <em>administração</em></h1>
+  <p class="intro" id="intro">A carregar…</p>
+
+  <section class="cartao" id="semAcesso" style="margin-top:22px;text-align:center">
+    <div style="font-size:40px">🔒</div>
+    <h2 style="margin:6px 0">Sem acesso</h2>
+    <p style="color:var(--sub)">Esta página é só para a equipa da Feira Comercial.</p>
+    <a class="btn" href="index.html" style="margin-top:14px"><i class="fas fa-house"></i> Voltar ao início</a>
+  </section>
+
+  <div id="conteudo">
+    <div class="resumo">
+      <div class="num destaque"><span>Pagamentos por confirmar</span><b id="nPendentes">–</b></div>
+      <div class="num"><span>Recebido este mês</span><b id="nMes">–</b></div>
+      <div class="num"><span>Empresas com mensalidade em dia</span><b id="nAtivas">–</b></div>
+      <div class="num"><span>Reclamações por tratar</span><b id="nRecl">–</b></div>
+    </div>
+
+    <div class="abas" role="tablist">
+      <button type="button" class="sel" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
+      <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
+    </div>
+
+    <section id="aba-pagamentos">
+      <div class="filtros" id="filtrosPag">
+        <button type="button" class="sel" data-f="pendente">Por confirmar</button>
+        <button type="button" data-f="confirmado">Confirmados</button>
+        <button type="button" data-f="rejeitado">Recusados</button>
+        <button type="button" data-f="">Todos</button>
+      </div>
+      <div class="lista" id="listaPag"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-reclamacoes" style="display:none">
+      <div class="filtros" id="filtrosRecl">
+        <button type="button" class="sel" data-f="abertas">Por tratar</button>
+        <button type="button" data-f="resolvida">Resolvidas</button>
+        <button type="button" data-f="arquivada">Arquivadas</button>
+        <button type="button" data-f="">Todas</button>
+      </div>
+      <div class="lista" id="listaRecl"><p class="vazio">A carregar…</p></div>
+    </section>
+  </div>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const mt = v => Number(v || 0).toLocaleString('pt-PT') + ' MT';
+const quando = d => new Date(d).toLocaleString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const METODO = { banco: 'Transferência bancária', mpesa: 'M-Pesa', emola: 'e-Mola' };
+const EST_PAG = { pendente: 'Por confirmar', confirmado: 'Confirmado', rejeitado: 'Recusado' };
+const EST_RECL = { recebida: 'Recebida', em_analise: 'Em análise', resolvida: 'Resolvida', arquivada: 'Arquivada' };
+const TIPO_RECL = { sugestao: 'Sugestão', reclamacao: 'Reclamação', problema: 'Problema', denuncia: 'Denúncia', elogio: 'Elogio' };
+let filtroPag = 'pendente', filtroRecl = 'abertas';
+let pagamentos = [], reclamacoes = [];
+
+function toast(t) { const el = $('toast'); el.innerHTML = t; el.style.display = 'block'; clearTimeout(toast._t); toast._t = setTimeout(() => el.style.display = 'none', 3500); }
+const avatar = p => (p && p.avatar_url) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent((p && p.full_name) || 'E') + '&background=random&color=fff&size=96');
+
+// ─── PAGAMENTOS ───
+async function carregarPagamentos() {
+  const { data, error } = await supabaseClient.from('pagamentos')
+    .select('id,empresa_id,metodo,meses,valor,codigo_transacao,telefone,estado,nota_admin,comprovativo,created_at,confirmado_em,empresa:perfis!pagamentos_empresa_id_fkey(id,full_name,avatar_url,city,province)')
+    .order('created_at', { ascending: false }).limit(300);
+  if (error) { $('listaPag').innerHTML = '<p class="vazio">Erro ao carregar pagamentos: ' + esc(error.message) + '</p>'; return; }
+  pagamentos = data || [];
+  const pend = pagamentos.filter(p => p.estado === 'pendente').length;
+  $('nPendentes').textContent = pend; $('cPag').textContent = pend;
+  const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
+  $('nMes').textContent = mt(pagamentos.filter(p => p.estado === 'confirmado' && new Date(p.confirmado_em) >= inicioMes).reduce((s, p) => s + Number(p.valor), 0));
+  desenharPagamentos();
+}
+
+function desenharPagamentos() {
+  const lista = pagamentos.filter(p => !filtroPag || p.estado === filtroPag);
+  if (!lista.length) { $('listaPag').innerHTML = '<p class="vazio">' + (filtroPag === 'pendente' ? '🎉 Nenhum pagamento por confirmar.' : 'Nada para mostrar.') + '</p>'; return; }
+  $('listaPag').innerHTML = lista.map(p => {
+    const e = p.empresa || {};
+    return '<article class="reg" id="pag-' + p.id + '">' +
+      '<div class="cab"><a class="quem" href="perfil.html?id=' + esc(p.empresa_id) + '" style="color:inherit"><img src="' + esc(avatar(e)) + '" alt=""><div style="min-width:0"><b>' + esc(e.full_name || 'Empresa') + '</b>' +
+        '<small>' + esc([e.city, e.province].filter(Boolean).join(', ') || 'Empresa') + ' · ref. FC-' + esc(String(p.empresa_id).replace(/-/g, '').slice(0, 6).toUpperCase()) + '</small></div></a>' +
+        '<div style="text-align:right"><div class="valor">' + mt(p.valor) + '</div><span class="tag t-' + esc(p.estado) + '">' + (EST_PAG[p.estado] || esc(p.estado)) + '</span></div></div>' +
+      '<div class="det">' +
+        '<div><span>Método</span><b>' + esc(METODO[p.metodo] || p.metodo) + '</b></div>' +
+        '<div><span>Meses</span><b>' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + '</b></div>' +
+        '<div><span>' + (p.metodo === 'banco' ? 'N.º da operação' : 'Código da transação') + '</span><b>' + esc(p.codigo_transacao) + '</b></div>' +
+        '<div><span>Telefone</span><b><a href="tel:' + esc(String(p.telefone).replace(/\s/g, '')) + '">' + esc(p.telefone) + '</a></b></div>' +
+        '<div><span>Enviado</span><b>' + quando(p.created_at) + '</b></div>' +
+        (p.confirmado_em ? '<div><span>Confirmado</span><b>' + quando(p.confirmado_em) + '</b></div>' : '') +
+      '</div>' +
+      (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') +
+      '<div class="acoes">' +
+        (p.comprovativo ? '<button type="button" class="btn btn-sec" onclick="verComprovativo(\'' + esc(p.comprovativo) + '\')"><i class="fas fa-file-invoice"></i> Ver comprovativo</button>' : '') +
+        (p.estado === 'pendente' ?
+          '<button type="button" class="btn btn-ok" onclick="decidir(' + p.id + ', \'confirmado\')"><i class="fas fa-check"></i> Confirmar</button>' +
+          '<button type="button" class="btn btn-nao" onclick="decidir(' + p.id + ', \'rejeitado\')"><i class="fas fa-xmark"></i> Recusar</button>' : '') +
+      '</div></article>';
+  }).join('');
+}
+
+async function verComprovativo(caminho) {
+  const janela = window.open('', '_blank');
+  const { data, error } = await supabaseClient.storage.from('comprovativos').createSignedUrl(caminho, 600);
+  if (error || !data) { if (janela) janela.close(); toast('Não foi possível abrir o comprovativo.'); return; }
+  if (janela) janela.location = data.signedUrl; else location.href = data.signedUrl;
+}
+
+async function decidir(id, estado) {
+  const p = pagamentos.find(x => x.id === id); if (!p) return;
+  const nome = (p.empresa && p.empresa.full_name) || 'a empresa';
+  let nota = null;
+  if (estado === 'confirmado') {
+    if (!confirm('Confirmar o pagamento de ' + mt(p.valor) + ' de ' + nome + '?\n\nA mensalidade é estendida por ' + p.meses * 30 + ' dias.')) return;
+  } else {
+    nota = prompt('Porque está a recusar este pagamento? (a empresa vai ver esta mensagem)', 'Não encontrámos esta transferência na conta. Verifique o número da operação.');
+    if (nota === null) return;
+    nota = nota.trim() || null;
+  }
+  const { error } = await supabaseClient.from('pagamentos').update({ estado, nota_admin: nota }).eq('id', id);
+  if (error) { toast('Erro: ' + esc(error.message)); return; }
+  toast(estado === 'confirmado' ? '✅ Pagamento confirmado. Mensalidade de ' + esc(nome) + ' renovada.' : 'Pagamento recusado.');
+  carregarPagamentos(); carregarAtivas();
+}
+
+async function carregarAtivas() {
+  const { data, error } = await supabaseClient.rpc('admin_empresas_em_dia');
+  $('nAtivas').textContent = error ? '–' : (data == null ? '–' : data);
+}
+
+// ─── RECLAMAÇÕES ───
+async function carregarReclamacoes() {
+  const { data, error } = await supabaseClient.from('reclamacoes')
+    .select('id,user_id,nome,email,telefone,tipo,assunto,mensagem,link,estado,resposta,respondido_em,created_at')
+    .order('created_at', { ascending: false }).limit(300);
+  if (error) { $('listaRecl').innerHTML = '<p class="vazio">Erro ao carregar: ' + esc(error.message) + '</p>'; return; }
+  reclamacoes = data || [];
+  const abertas = reclamacoes.filter(r => r.estado === 'recebida' || r.estado === 'em_analise').length;
+  $('nRecl').textContent = abertas; $('cRecl').textContent = abertas;
+  desenharReclamacoes();
+}
+
+function desenharReclamacoes() {
+  const lista = reclamacoes.filter(r => !filtroRecl ? true : filtroRecl === 'abertas' ? (r.estado === 'recebida' || r.estado === 'em_analise') : r.estado === filtroRecl);
+  if (!lista.length) { $('listaRecl').innerHTML = '<p class="vazio">' + (filtroRecl === 'abertas' ? '🎉 Nenhuma reclamação por tratar.' : 'Nada para mostrar.') + '</p>'; return; }
+  $('listaRecl').innerHTML = lista.map(r =>
+    '<article class="reg">' +
+      '<div class="cab"><div style="min-width:0"><b>' + esc(r.assunto) + '</b><div style="color:var(--sub);font-size:13px">' + esc(TIPO_RECL[r.tipo] || r.tipo) + ' · ' + quando(r.created_at) + '</div></div>' +
+        '<span class="tag t-' + esc(r.estado) + '">' + (EST_RECL[r.estado] || esc(r.estado)) + '</span></div>' +
+      '<div class="det">' +
+        '<div><span>Nome</span><b>' + (r.user_id ? '<a href="perfil.html?id=' + esc(r.user_id) + '">' + esc(r.nome) + '</a>' : esc(r.nome)) + '</b></div>' +
+        '<div><span>E-mail</span><b><a href="mailto:' + esc(r.email) + '?subject=' + encodeURIComponent('Re: ' + r.assunto) + '">' + esc(r.email) + '</a></b></div>' +
+        (r.telefone ? '<div><span>Telefone</span><b><a href="tel:' + esc(String(r.telefone).replace(/\s/g, '')) + '">' + esc(r.telefone) + '</a></b></div>' : '') +
+        (r.link ? '<div><span>Link</span><b><a href="' + esc(/^https?:\/\//i.test(r.link) ? r.link : '#') + '" target="_blank" rel="noopener">abrir</a></b></div>' : '') +
+      '</div>' +
+      '<div class="msg">' + esc(r.mensagem) + '</div>' +
+      '<div class="resp">' +
+        '<textarea id="resp-' + r.id + '" maxlength="2000" placeholder="Resposta (a pessoa vê-a na página de reclamações)">' + esc(r.resposta || '') + '</textarea>' +
+        '<div class="linha"><select id="est-' + r.id + '">' +
+          Object.keys(EST_RECL).map(k => '<option value="' + k + '"' + (k === r.estado ? ' selected' : '') + '>' + EST_RECL[k] + '</option>').join('') +
+        '</select><button type="button" class="btn" style="padding:10px 16px;font-size:14px" onclick="guardarReclamacao(' + r.id + ')"><i class="fas fa-floppy-disk"></i> Guardar</button>' +
+        (r.respondido_em ? '<span style="color:var(--sub);font-size:12.5px">Respondida a ' + quando(r.respondido_em) + '</span>' : '') +
+        '</div></div>' +
+    '</article>').join('');
+}
+
+async function guardarReclamacao(id) {
+  const resposta = $('resp-' + id).value.trim() || null;
+  const estado = $('est-' + id).value;
+  const { error } = await supabaseClient.from('reclamacoes').update({ estado, resposta }).eq('id', id);
+  if (error) { toast('Erro: ' + esc(error.message)); return; }
+  toast('Guardado.');
+  carregarReclamacoes();
+}
+
+// ─── navegação ───
+document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
+  $('aba-pagamentos').style.display = b.dataset.aba === 'pagamentos' ? '' : 'none';
+  $('aba-reclamacoes').style.display = b.dataset.aba === 'reclamacoes' ? '' : 'none';
+});
+document.querySelectorAll('#filtrosPag button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#filtrosPag button').forEach(x => x.classList.toggle('sel', x === b));
+  filtroPag = b.dataset.f; desenharPagamentos();
+});
+document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#filtrosRecl button').forEach(x => x.classList.toggle('sel', x === b));
+  filtroRecl = b.dataset.f; desenharReclamacoes();
+});
+
+(async function () {
+  const me = await FC.boot();
+  if (!me) return;
+  if (me.role !== 'admin') { $('intro').textContent = ''; $('semAcesso').style.display = 'block'; return; }
+  $('intro').textContent = 'Confirme pagamentos das empresas e responda a reclamações.';
+  $('conteudo').style.display = 'block';
+  carregarPagamentos(); carregarReclamacoes(); carregarAtivas();
+  // novos pagamentos aparecem sozinhos
+  supabaseClient.channel('admin-pagamentos')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pagamentos' }, () => { toast('💰 Novo pagamento recebido.'); carregarPagamentos(); })
+    .subscribe();
+})();
+</script>
+</body>
+</html>

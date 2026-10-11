@@ -33,11 +33,21 @@
   font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; line-height: 1.2; }
 .meses button small { display: block; font-weight: 500; color: var(--sub); font-size: 11.5px; }
 .meses button.sel { border-color: var(--ouro); background: rgba(243,198,78,.1); }
-.metodos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.metodos { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 16px; }
 .metodos button { padding: 12px; border-radius: 12px; border: 1.5px solid var(--linha); background: var(--campo); color: var(--texto);
   font: inherit; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .metodos button.sel { border-color: var(--ouro); background: rgba(243,198,78,.1); }
-.metodos .mp { color: #e11d48; } .metodos .em { color: #f97316; }
+.metodos .bc { color: #60a5fa; } .metodos .mp { color: #e11d48; } .metodos .em { color: #f97316; }
+.dados-banco { display: grid; gap: 10px; margin: 10px 0 12px; }
+.dado { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--cartao); border: 1px solid var(--linha); flex-wrap: wrap; }
+.dado span { color: var(--sub); font-size: 12.5px; display: block; }
+.dado b { font-size: 15.5px; letter-spacing: .5px; word-break: break-all; }
+.dado b.grande { font-size: 18px; color: var(--ouro); font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) { .dado b.grande { font-size: 16px; letter-spacing: .2px; } }
+.ficheiro { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1.5px dashed var(--linha); border-radius: 12px; background: var(--campo); cursor: pointer; font-size: 14px; }
+.ficheiro i { color: var(--ouro); font-size: 20px; }
+.ficheiro.tem { border-color: var(--ok); border-style: solid; }
+.ficheiro input { display: none; }
 .instr { background: var(--campo); border: 1px dashed rgba(243,198,78,.4); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; }
 .instr ol { margin: 6px 0 0 18px; display: grid; gap: 6px; color: #d4d4d8; }
 .numero { display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; flex-wrap: wrap; }
@@ -111,21 +121,26 @@
           <button type="button" data-m="12">12<small>meses</small></button>
         </div>
 
-        <label>Como vai pagar?</label>
-        <div class="metodos">
-          <button type="button" data-metodo="mpesa" class="sel"><i class="fas fa-mobile-screen mp"></i> M-Pesa</button>
-          <button type="button" data-metodo="emola"><i class="fas fa-mobile-screen em"></i> e-Mola</button>
-        </div>
+        <label id="lblMetodo">Como vai pagar?</label>
+        <div class="metodos" id="metodos"></div>
 
         <div class="instr" id="instr"></div>
 
         <form id="form" novalidate>
-          <div class="campo"><label for="telefone">Número de onde enviou o dinheiro</label>
+          <div class="campo"><label for="telefone" id="lblTelefone">Telefone de contacto</label>
             <input id="telefone" type="tel" inputmode="tel" maxlength="20" placeholder="84 123 4567" autocomplete="tel"></div>
-          <div class="campo"><label for="codigo">Código da transação (vem na SMS)</label>
-            <input id="codigo" maxlength="40" placeholder="Ex.: 8KJ2HG4LM1" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:1px"></div>
+          <div class="campo"><label for="codigo" id="lblCodigo">Número da operação (vem no comprovativo)</label>
+            <input id="codigo" maxlength="40" placeholder="Ex.: 202610110001234" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:1px"></div>
+          <div class="campo" id="campoComprovativo">
+            <label>Comprovativo da transferência</label>
+            <label class="ficheiro" id="caixaFicheiro">
+              <i class="fas fa-file-arrow-up"></i>
+              <span id="nomeFicheiro">Escolher foto ou PDF do comprovativo (até 5 MB)</span>
+              <input id="comprovativo" type="file" accept="image/jpeg,image/png,image/webp,application/pdf">
+            </label>
+          </div>
           <div class="total"><span>Total a pagar</span><b id="totalTxt">100 MT</b></div>
-          <button class="btn" id="btnEnviar" style="width:100%"><span class="girar"></span><i class="fas fa-paper-plane"></i><span>Já paguei, enviar código</span></button>
+          <button class="btn" id="btnEnviar" style="width:100%"><span class="girar"></span><i class="fas fa-paper-plane"></i><span>Já paguei, enviar</span></button>
           <p style="color:var(--sub);font-size:12.5px;margin-top:10px;text-align:center">A equipa confirma o pagamento e a mensalidade é renovada. Recebe a confirmação nesta página.</p>
         </form>
       </section>
@@ -143,7 +158,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let me = null, cfg = {}, meses = 1, metodo = 'mpesa', preco = 100;
+let me = null, cfg = {}, meses = 1, metodo = 'banco', preco = 100;
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dataPt = d => new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
 const mt = v => Number(v).toLocaleString('pt-PT') + ' MT';
@@ -166,62 +181,151 @@ function desenharEstado() {
   }
 }
 
+const METODOS = {
+  banco: { nome: 'Transferência bancária', ic: 'fa-building-columns bc' },
+  mpesa: { nome: 'M-Pesa', ic: 'fa-mobile-screen mp' },
+  emola: { nome: 'e-Mola', ic: 'fa-mobile-screen em' }
+};
+const nomeMetodo = m => (METODOS[m] || { nome: m }).nome;
+const referencia = () => 'FC-' + String(me.id).replace(/-/g, '').slice(0, 6).toUpperCase();
+const nibBonito = n => { const d = String(n).replace(/\D/g, ''); return d.slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ') + (d.length > 16 ? ' ' + d.slice(16) : ''); };
+
+function metodosDisponiveis() {
+  const lista = [];
+  if ((cfg.banco_nib || '').trim()) lista.push('banco');
+  if ((cfg.mpesa_numero || '').trim()) lista.push('mpesa');
+  if ((cfg.emola_numero || '').trim()) lista.push('emola');
+  return lista;
+}
+
+function desenharMetodos() {
+  const lista = metodosDisponiveis();
+  if (!lista.includes(metodo)) metodo = lista[0] || 'banco';
+  const caixa = $('metodos');
+  caixa.style.display = lista.length > 1 ? '' : 'none';
+  $('lblMetodo').style.display = lista.length > 1 ? '' : 'none';
+  caixa.innerHTML = lista.map(m => '<button type="button" data-metodo="' + m + '" class="' + (m === metodo ? 'sel' : '') + '">' +
+    '<i class="fas ' + METODOS[m].ic + '"></i> ' + METODOS[m].nome + '</button>').join('');
+  caixa.querySelectorAll('button').forEach(b => b.onclick = () => { metodo = b.dataset.metodo; desenharMetodos(); desenharInstrucoes(); });
+}
+
+function linhaDado(rotulo, valor, copiarValor, grande) {
+  return '<div class="dado"><div><span>' + rotulo + '</span><b' + (grande ? ' class="grande"' : '') + '>' + esc(valor) + '</b></div>' +
+    (copiarValor ? '<button type="button" class="copiar" data-copiar="' + esc(copiarValor) + '" data-rotulo="' + esc(rotulo) + '"><i class="fas fa-copy"></i> Copiar</button>' : '') + '</div>';
+}
+
 function desenharInstrucoes() {
-  const num = (cfg[metodo + '_numero'] || '').trim();
-  const nome = (cfg[metodo + '_nome'] || '').trim();
   const total = preco * meses;
   $('totalTxt').textContent = mt(total);
-  const app = metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola';
-  if (!num) {
-    $('instr').innerHTML = '<b><i class="fas fa-circle-info" style="color:var(--ouro)"></i> O pagamento por ' + app + ' ainda não está disponível.</b><br><span style="color:var(--sub)">A equipa está a configurar o número. Escolha outro método ou volte mais tarde.</span>';
+  const banco = metodo === 'banco';
+  $('campoComprovativo').style.display = banco ? '' : 'none';
+  $('lblTelefone').textContent = banco ? 'Telefone de contacto' : 'Número de onde enviou o dinheiro';
+  $('lblCodigo').textContent = banco ? 'Número da operação (vem no comprovativo)' : 'Código da transação (vem na SMS)';
+  $('codigo').placeholder = banco ? 'Ex.: 202610110001234' : 'Ex.: 8KJ2HG4LM1';
+
+  if (!metodosDisponiveis().length) {
+    $('instr').innerHTML = '<b><i class="fas fa-circle-info" style="color:var(--ouro)"></i> Os pagamentos ainda não estão disponíveis.</b><br><span style="color:var(--sub)">A equipa está a configurar os dados de pagamento. Volte mais tarde.</span>';
     $('btnEnviar').disabled = true;
     return;
   }
   $('btnEnviar').disabled = false;
-  $('instr').innerHTML =
-    '<b>Como pagar por ' + app + '</b>' +
-    '<div class="numero"><b>' + esc(num) + '</b><button type="button" class="copiar" onclick="copiar(\'' + esc(num.replace(/\s/g, '')) + '\')"><i class="fas fa-copy"></i> Copiar</button></div>' +
-    (nome ? '<div style="color:var(--sub);font-size:13px;margin-bottom:6px">Em nome de: <b style="color:var(--texto)">' + esc(nome) + '</b></div>' : '') +
-    '<ol><li>Envie <b>' + mt(total) + '</b> para o número acima pelo ' + app + '.</li>' +
-    '<li>Vai receber uma SMS com o <b>código da transação</b>.</li>' +
-    '<li>Escreva aqui o seu número e esse código e carregue em "Já paguei".</li></ol>';
+
+  if (banco) {
+    $('instr').innerHTML =
+      '<b><i class="fas fa-building-columns" style="color:#60a5fa"></i> Transferência bancária</b>' +
+      '<div class="dados-banco">' +
+        linhaDado('Banco', cfg.banco_nome || 'Standard Bank') +
+        (cfg.banco_titular ? linhaDado('Titular da conta', cfg.banco_titular) : '') +
+        linhaDado('NIB', nibBonito(cfg.banco_nib), String(cfg.banco_nib).replace(/\D/g, ''), true) +
+        linhaDado('Valor a transferir', mt(total)) +
+        linhaDado('Descritivo / referência', referencia(), referencia(), true) +
+      '</div>' +
+      '<ol><li>Faça a transferência de <b>' + mt(total) + '</b> para o NIB acima (balcão, app ou internet banking).</li>' +
+      '<li>No descritivo, escreva a referência <b>' + referencia() + '</b> para identificarmos a sua empresa.</li>' +
+      '<li>Envie aqui o número da operação e a foto ou PDF do comprovativo.</li></ol>';
+  } else {
+    const num = (cfg[metodo + '_numero'] || '').trim();
+    const nome = (cfg[metodo + '_nome'] || '').trim();
+    const app = nomeMetodo(metodo);
+    $('instr').innerHTML =
+      '<b>Como pagar por ' + app + '</b>' +
+      '<div class="dados-banco">' + linhaDado('Número', num, num.replace(/\s/g, ''), true) +
+      (nome ? linhaDado('Em nome de', nome) : '') + '</div>' +
+      '<ol><li>Envie <b>' + mt(total) + '</b> para o número acima pelo ' + app + '.</li>' +
+      '<li>Vai receber uma SMS com o <b>código da transação</b>.</li>' +
+      '<li>Escreva aqui o seu número e esse código e carregue em "Já paguei".</li></ol>';
+  }
+  $('instr').querySelectorAll('[data-copiar]').forEach(b => b.onclick = () => copiar(b.dataset.copiar, b.dataset.rotulo));
 }
 
-function copiar(t) {
+function copiar(t, rotulo) {
   (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(
-    () => aviso('Número copiado: ' + esc(t), 'ok'), () => aviso('Número: ' + esc(t), 'ok'));
+    () => aviso((rotulo || 'Valor') + ' copiado: <b>' + esc(t) + '</b>', 'ok'), () => aviso((rotulo || 'Valor') + ': <b>' + esc(t) + '</b>', 'ok'));
 }
 
 document.querySelectorAll('#meses button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#meses button').forEach(x => x.classList.toggle('sel', x === b));
   meses = Number(b.dataset.m); desenharInstrucoes();
 });
-document.querySelectorAll('[data-metodo]').forEach(b => b.onclick = () => {
-  document.querySelectorAll('[data-metodo]').forEach(x => x.classList.toggle('sel', x === b));
-  metodo = b.dataset.metodo; desenharInstrucoes();
+
+$('comprovativo').addEventListener('change', () => {
+  const f = $('comprovativo').files[0];
+  $('caixaFicheiro').classList.toggle('tem', !!f);
+  $('nomeFicheiro').textContent = f ? f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)' : 'Escolher foto ou PDF do comprovativo (até 5 MB)';
 });
 
 function traduzir(err) {
   const m = (err && err.message) || '';
-  if (/duplicate|pagamentos_codigo_unico/i.test(m)) return 'Este código de transação já foi enviado. Verifique o código na SMS.';
+  if (/duplicate|pagamentos_codigo_unico/i.test(m)) return 'Este número de operação já foi enviado. Verifique o número no comprovativo.';
   if (/3 pagamentos/.test(m)) return 'Já tem 3 pagamentos à espera de confirmação. Aguarde a confirmação da equipa.';
   if (/row-level security/i.test(m)) return 'Só contas de empresa podem enviar pagamentos.';
-  if (/check constraint/i.test(m)) return 'Verifique o número e o código da transação.';
+  if (/check constraint/i.test(m)) return 'Verifique o telefone e o número da operação.';
+  if (/exceeded|too large|maximum allowed size/i.test(m)) return 'O comprovativo tem mais de 5 MB. Envie uma foto mais pequena ou o PDF.';
+  if (/mime|not supported/i.test(m)) return 'O comprovativo tem de ser uma foto (JPG, PNG) ou um PDF.';
   if (/Failed to fetch|NetworkError/i.test(m)) return 'Sem ligação à internet. Tente outra vez.';
   return 'Não foi possível enviar: ' + esc(m);
 }
 
+// fotos grandes do telemóvel → JPG mais leve (o PDF vai como está)
+async function prepararComprovativo(f) {
+  if (!f || !/^image\//.test(f.type) || f.size < 1.2 * 1024 * 1024) return f;
+  try {
+    const img = await createImageBitmap(f);
+    const escala = Math.min(1, 1800 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * escala); c.height = Math.round(img.height * escala);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+    return blob && blob.size < f.size ? new File([blob], 'comprovativo.jpg', { type: 'image/jpeg' }) : f;
+  } catch (e) { return f; }
+}
+
 $('form').addEventListener('submit', async e => {
   e.preventDefault();
+  const banco = metodo === 'banco';
   const telefone = $('telefone').value.replace(/[^\d+ ]/g, '').trim();
-  const codigo = $('codigo').value.trim().toUpperCase();
-  if (telefone.replace(/\D/g, '').length < 9) { aviso('Escreva o número de onde enviou o dinheiro (9 dígitos).'); $('telefone').focus(); return; }
-  if (!/^[A-Z0-9.\-]{4,40}$/.test(codigo)) { aviso('Escreva o código da transação que veio na SMS (letras e números).'); $('codigo').focus(); return; }
+  const codigo = $('codigo').value.trim().toUpperCase().replace(/\s+/g, '');
+  let ficheiro = $('comprovativo').files[0];
+  if (telefone.replace(/\D/g, '').length < 9) { aviso(banco ? 'Escreva um telefone de contacto (9 dígitos).' : 'Escreva o número de onde enviou o dinheiro (9 dígitos).'); $('telefone').focus(); return; }
+  if (!/^[A-Z0-9.\-\/]{4,40}$/.test(codigo)) { aviso(banco ? 'Escreva o número da operação que vem no comprovativo.' : 'Escreva o código da transação que veio na SMS (letras e números).'); $('codigo').focus(); return; }
+  if (banco && !ficheiro) { aviso('Junte a foto ou o PDF do comprovativo da transferência.'); return; }
   const btn = $('btnEnviar'); btn.disabled = true; btn.classList.add('carregando');
   try {
-    const { error } = await supabaseClient.from('pagamentos').insert({ empresa_id: me.id, metodo, meses, telefone, codigo_transacao: codigo });
-    if (error) throw error;
-    $('codigo').value = '';
+    let comprovativo = null;
+    if (banco && ficheiro) {
+      ficheiro = await prepararComprovativo(ficheiro);
+      if (ficheiro.size > 5 * 1024 * 1024) throw new Error('too large');
+      const ext = ficheiro.type === 'application/pdf' ? 'pdf' : (ficheiro.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+      comprovativo = me.id + '/' + Date.now() + '.' + ext;
+      const up = await supabaseClient.storage.from('comprovativos').upload(comprovativo, ficheiro, { contentType: ficheiro.type });
+      if (up.error) throw up.error;
+    }
+    const { error } = await supabaseClient.from('pagamentos').insert({ empresa_id: me.id, metodo, meses, telefone, codigo_transacao: codigo, comprovativo });
+    if (error) {
+      if (comprovativo) supabaseClient.storage.from('comprovativos').remove([comprovativo]);
+      throw error;
+    }
+    $('codigo').value = ''; $('comprovativo').value = ''; $('comprovativo').dispatchEvent(new Event('change'));
     aviso('<b>Recebido!</b> O pagamento de ' + mt(preco * meses) + ' está à espera de confirmação. Assim que a equipa confirmar, a mensalidade é renovada.', 'ok');
     carregarHistorico();
   } catch (err) { aviso(traduzir(err)); }
@@ -231,14 +335,15 @@ $('form').addEventListener('submit', async e => {
 async function carregarHistorico() {
   const { data, error } = await supabaseClient.from('pagamentos')
     .select('id,metodo,meses,valor,codigo_transacao,estado,nota_admin,created_at,confirmado_em')
+    .eq('empresa_id', me.id)
     .order('created_at', { ascending: false }).limit(50);
   const h = $('hist');
   if (error) { h.innerHTML = '<p class="vazio">Os pagamentos ainda não estão disponíveis.</p>'; return; }
   if (!data.length) { h.innerHTML = '<p class="vazio">Ainda não fez nenhum pagamento.</p>'; return; }
   const NOMES = { pendente: 'À espera de confirmação', confirmado: 'Confirmado', rejeitado: 'Recusado' };
   h.innerHTML = data.map(p =>
-    '<div class="pg"><div><b>' + mt(p.valor) + '</b> · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + (p.metodo === 'mpesa' ? 'M-Pesa' : 'e-Mola') +
-      '<div class="m">Código ' + esc(p.codigo_transacao) + ' · ' + dataPt(p.created_at) + (p.confirmado_em ? ' · confirmado a ' + dataPt(p.confirmado_em) : '') + '</div></div>' +
+    '<div class="pg"><div><b>' + mt(p.valor) + '</b> · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + esc(nomeMetodo(p.metodo)) +
+      '<div class="m">' + (p.metodo === 'banco' ? 'Operação ' : 'Código ') + esc(p.codigo_transacao) + ' · ' + dataPt(p.created_at) + (p.confirmado_em ? ' · confirmado a ' + dataPt(p.confirmado_em) : '') + '</div></div>' +
       '<span class="tag t-' + esc(p.estado) + '">' + (NOMES[p.estado] || esc(p.estado)) + '</span>' +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') + '</div>').join('');
 }
@@ -261,6 +366,7 @@ async function carregarHistorico() {
     const n = Number(b.dataset.m); b.querySelector('small').textContent = mt(preco * n);
   });
   desenharEstado();
+  desenharMetodos();
   desenharInstrucoes();
   carregarHistorico();
   // quando a equipa confirma, a página atualiza sozinha

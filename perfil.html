@@ -1583,7 +1583,7 @@
             if (!modoVisita) mostrarModoDono();
             if (perfilAtual && perfilAtual.id !== alvoId) perfilAtual = null;
 
-            const { data: profile, error } = await client.from('perfis').select('*').eq('id', alvoId).maybeSingle();
+            const { data: profile, error } = await FC.lerPerfil(alvoId);
             if (error) throw error;
             if (profile) {
                 perfilAtual = profile;
