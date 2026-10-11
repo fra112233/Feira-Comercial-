@@ -140,6 +140,7 @@ a { color:inherit; text-decoration:none; }
     </label>
     <video class="previa" id="previa" controls playsinline></video>
     <textarea id="legenda" maxlength="500" placeholder="Escreve uma legenda... #promoção #maputo"></textarea>
+    <p id="estadoVideo" style="display:none;margin:6px 0 0;font-size:13px;color:var(--sub)"></p>
     <div class="progresso" id="progresso"><i></i></div>
     <button class="btn-ouro" id="btnPublicar" onclick="publicarVideo()" disabled>Publicar</button>
   </div>
@@ -443,6 +444,12 @@ async function escolherVideo(e) {
   if (!f.type.startsWith('video/')) { FCMedia.aviso('Escolha um vídeo', 'O ficheiro escolhido não é um vídeo.', { erro: true }); e.target.value = ''; return; }
   try { await FCMedia.validar(f); }
   catch (err) { e.target.value = ''; FCMedia.mostrarErro(err); return; }
+  // começa já a otimizar enquanto escreve a legenda
+  const est = document.getElementById('estadoVideo');
+  FCMedia.iniciar(f).ouvir((p, pronto) => {
+    est.style.display = '';
+    est.textContent = pronto ? '✓ Vídeo pronto a publicar' : 'A preparar o vídeo… ' + Math.round(p * 100) + '%';
+  });
   const prev = document.getElementById('previa');
   prev.src = URL.createObjectURL(f);
   prev.style.display = 'block';
