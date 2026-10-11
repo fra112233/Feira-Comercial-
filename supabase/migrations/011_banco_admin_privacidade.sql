@@ -3,6 +3,8 @@
 -- privacidade dos perfis (parte 1), chat privado (parte 1),
 -- visualizações únicas e otimizações da base de dados.
 --
+-- Correr no Supabase: SQL Editor → New query → colar tudo → Run
+--
 -- Esta parte só ACRESCENTA coisas: não quebra o site antigo.
 -- A parte 2 (012) fecha os acessos antigos depois de o site novo estar no ar.
 -- Pode ser corrido mais de uma vez sem problema.
@@ -12,7 +14,7 @@
 insert into public.config (chave, valor, descricao) values
   ('banco_nome', 'Standard Bank', 'Banco que recebe as mensalidades'),
   ('banco_nib', '000301050961722101829', 'NIB da conta que recebe as mensalidades'),
-  ('banco_titular', '', 'Nome do titular da conta bancária')
+  ('banco_titular', 'Feira Comercial', 'Nome do titular da conta bancária')
 on conflict (chave) do nothing;
 
 -- 2) Pagamentos: método "banco" e comprovativo
