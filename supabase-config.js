@@ -32,6 +32,19 @@ FC.signOut = async function () {
   window.location.href = 'Portal.html';
 };
 
+/* ---------- Ler um perfil com os campos que posso ver ----------
+   O próprio vê tudo; dos outros só vêm os dados públicos (e os contactos
+   comerciais, se for empresa). NUIT, e-mail e celular pessoais ficam privados. */
+FC.lerPerfil = async function (id) {
+  const r = await supabaseClient.rpc('perfil_completo', { pid: id });
+  if (!r.error) return { data: r.data || null, error: null };
+  // base de dados ainda sem a função (antes da migração 011)
+  if (/perfil_completo|function|schema cache/i.test(r.error.message || '')) {
+    return await supabaseClient.from('perfis').select('*').eq('id', id).maybeSingle();
+  }
+  return { data: null, error: r.error };
+};
+
 /* ---------- Perfil (tabela "perfis", com cache local) ---------- */
 FC.loadMyProfile = async function () {
   const session = await FC.getSession();
@@ -46,11 +59,7 @@ FC.loadMyProfile = async function () {
     } catch (e) {}
   }
 
-  const { data, error } = await supabaseClient
-    .from('perfis')
-    .select('*')
-    .eq('id', session.user.id)
-    .maybeSingle();
+  const { data, error } = await FC.lerPerfil(session.user.id);
 
   if (!error && data) {
     FC.me = { ...data, email: session.user.email };

@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>pagina</title>
+    <title>Feira Comercial — Explore, Exiba, Expanda</title>
+<meta name="description" content="Feira Comercial — a rede social de pessoas e empresas em Moçambique. Descubra lojas e serviços, veja promoções e fale diretamente com as empresas.">
+<meta name="theme-color" content="#0b0b0c">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Feira Comercial">
+<meta property="og:locale" content="pt_PT">
+<meta property="og:title" content="Feira Comercial — Explore, Exiba, Expanda">
+<meta property="og:description" content="Feira Comercial — a rede social de pessoas e empresas em Moçambique. Descubra lojas e serviços, veja promoções e fale diretamente com as empresas.">
+<meta property="og:url" content="https://www.feira-comercial.com/">
+<meta property="og:image" content="https://www.feira-comercial.com/images/partilha.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
     <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
    
 
@@ -1015,8 +1027,12 @@ function initCompose() {
     });
 }
 
+const MAX_VIDEO_MB = 30;
+function videoGrande(f) { return f && f.type.startsWith('video/') && f.size > MAX_VIDEO_MB * 1024 * 1024; }
 function previewPostMedia(event) {
-    tempMedia = Array.from(event.target.files).slice(0, 10);
+    const escolhidos = Array.from(event.target.files).slice(0, 10);
+    if (escolhidos.some(videoGrande)) alert('Alguns vídeos têm mais de ' + MAX_VIDEO_MB + ' MB e não foram incluídos. Grave vídeos mais curtos ou em qualidade 720p.');
+    tempMedia = escolhidos.filter(f => !videoGrande(f));
     const btn = document.getElementById('publish-btn');
     btn.disabled = tempMedia.length === 0 && document.getElementById('post-text').value.trim() === '';
     document.getElementById('post-preview-area').innerHTML = tempMedia.length
@@ -1031,6 +1047,7 @@ async function addStory(event) {
     const file = event.target.files[0];
     event.target.value = '';
     if (!file || !currentUser.id) return;
+    if (videoGrande(file)) { alert('O vídeo tem mais de ' + MAX_VIDEO_MB + ' MB. Grave um vídeo mais curto.'); return; }
     try {
         const m = await enviarFicheiro(file);
         const { error } = await supabaseClient.from('stories')

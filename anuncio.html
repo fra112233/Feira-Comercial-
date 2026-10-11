@@ -229,7 +229,7 @@ async function carregar() {
   const prov = document.getElementById('filtroProvincia').value;
 
   let q = supabaseClient.from('vagas_anuncios')
-    .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, phone, whatsapp, province, city, sector, website)')
+    .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, province, city, sector, website)')
     .order('data_publicacao', { ascending: false })
     .limit(60);
   if (tipoAtual === 'meus') q = q.eq('empresa_id', me.id);
@@ -246,7 +246,22 @@ async function carregar() {
   anuncios = (data || []).filter(a =>
     (tipoAtual === 'meus' || !a.validade || a.validade >= hoje) &&     // esconde os que já expiraram
     (!prov || (a.empresa && a.empresa.province === prov)));
+  await juntarContactos(anuncios);
   render();
+}
+
+// telefone e WhatsApp das empresas (vêm por uma função segura, não da tabela de perfis)
+const contactosCache = {};
+async function juntarContactos(lista) {
+  const faltam = [...new Set(lista.map(a => a.empresa_id).filter(id => id && !(id in contactosCache)))];
+  if (faltam.length) {
+    const { data, error } = await supabaseClient.rpc('contactos_empresas', { ids: faltam });
+    if (!error) {
+      faltam.forEach(id => { contactosCache[id] = {}; });
+      (data || []).forEach(c => { contactosCache[c.id] = { phone: c.phone, whatsapp: c.whatsapp }; });
+    }
+  }
+  lista.forEach(a => { if (a.empresa && contactosCache[a.empresa_id]) Object.assign(a.empresa, contactosCache[a.empresa_id]); });
 }
 
 function render() {
@@ -283,9 +298,10 @@ async function mostrarDetalhes(id) {
   let a = anuncios.find(x => x.id === id);
   if (!a) {
     const { data } = await supabaseClient.from('vagas_anuncios')
-      .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, phone, whatsapp, province, city, sector, website)')
+      .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, province, city, sector, website)')
       .eq('id', id).maybeSingle();
     a = data;
+    if (a) await juntarContactos([a]);
   }
   if (!a) { toast('Este anúncio já não existe.'); return; }
   if (!vistos.has(a.id) && a.empresa_id !== me.id) { vistos.add(a.id); supabaseClient.rpc('ver_anuncio', { aid: a.id }); }

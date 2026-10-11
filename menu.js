@@ -88,6 +88,7 @@ window.FCMenu = (function () {
         item('fa-bullhorn', 'Anúncios', 'anuncio.html') +
         item('fa-tower-broadcast', 'Live', 'live.html') +
         (empresa ? item('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
+        (p.role === 'admin' ? item('fa-user-shield', 'Administração', 'admin.html') : '') +
 
         '<div class="sec">Conta</div>' +
         item('fa-pen', 'Editar perfil', 'FCMenu.editarPerfil()') +

@@ -80,7 +80,7 @@ function cartoesEmpresa(p, completo) {
     <div class="info-card">
       <div class="info-card-title"><i class="fas fa-building"></i> Sobre a empresa</div>
       ${linhaInfo('fa-industry', 'Setor', e(p.sector))}
-      ${linhaInfo('fa-id-card', 'NUIT', e(p.nuit))}
+      ${modoVisita ? '' : linhaInfo('fa-id-card', 'NUIT <small style="opacity:.7">(só você vê)</small>', e(p.nuit))}
       ${p.bio ? `<p style="font-size:13px;color:var(--text-secondary);margin-top:10px;line-height:1.5;">${e(p.bio)}</p>` : ''}
     </div>` : '';
 
@@ -97,6 +97,7 @@ function cartoesPessoa(p) {
       ${linhaInfo('fa-mobile-alt', 'Celular', e(p.phone))}
       ${linhaInfo('fa-envelope', 'E-mail', e(p.email))}
       ${linhaInfo('fa-home', 'Morada', e(moradaCompleta(p)))}
+      ${modoVisita ? '' : `<p style="font-size:12px;color:var(--text-secondary);margin-top:10px;"><i class="fas fa-lock"></i> O seu celular, e-mail e morada só são visíveis para si.</p>`}
       ${botoesContacto(p)}
     </div>`;
 }
@@ -269,7 +270,8 @@ async function savePerfil() {
 
   const botao = document.querySelector('#modalEdit .btn-primary');
   if (botao) { botao.disabled = true; botao.textContent = 'A guardar...'; }
-  const { data, error } = await getSB().from('perfis').update(upd).eq('id', meuId).select().maybeSingle();
+  const { error } = await getSB().from('perfis').update(upd).eq('id', meuId);
+  const data = error ? null : (await FC.lerPerfil(meuId)).data;
   if (botao) { botao.disabled = false; botao.textContent = 'Guardar'; }
   if (error) { alert('Não foi possível guardar: ' + error.message); return; }
 
