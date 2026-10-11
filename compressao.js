@@ -303,8 +303,61 @@
     finally { clearTimeout(temporizador); if (parar) parar(); if (barra) barra.fechar(); }
   }
 
+  /* ---------- não guardar a mesma foto/vídeo duas vezes ----------
+     Calcula uma "impressão digital" do ficheiro original (tamanho + início, meio e fim).
+     O ficheiro é guardado com esse nome; se a empresa voltar a enviar exatamente o mesmo
+     ficheiro, reaproveita-se o que já está guardado (não ocupa espaço nem tempo de envio). */
+  var impressoes = new WeakMap();
+  async function impressao(file) {
+    if (!file || !window.crypto || !crypto.subtle) return null;
+    if (impressoes.has(file)) return impressoes.get(file);
+    var p = (async function () {
+      var BLOCO = 1024 * 1024, partes = [];
+      if (file.size <= 4 * BLOCO) partes.push(file);
+      else partes.push(file.slice(0, BLOCO), file.slice(Math.floor(file.size / 2) - BLOCO / 2, Math.floor(file.size / 2) + BLOCO / 2), file.slice(file.size - BLOCO));
+      var dados = new Blob([String(file.size) + '|'].concat(partes));
+      var buf = await dados.arrayBuffer();
+      var h = new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
+      var s = '';
+      for (var i = 0; i < 16; i++) s += h[i].toString(16).padStart(2, '0');
+      return s;
+    })().catch(function () { return null; });
+    impressoes.set(file, p);
+    return p;
+  }
+
+  async function jaExiste(url) {
+    try {
+      var r = await fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 'v=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+      return r.ok;
+    } catch (e) { return false; }
+  }
+
+  // envia para o espaço "media" (pasta do utilizador) e devolve { url, type, repetido }
+  async function enviarMedia(sb, userId, file, opcoes) {
+    var tipo = (file.type || '').indexOf('video') === 0 ? 'video' : 'image';
+    var balde = sb.storage.from('media');
+    var h = await impressao(file);
+    var caminho = h ? (userId + '/h-' + h + (tipo === 'video' ? '.mp4' : '.jpg')) : null;
+    var url = caminho ? balde.getPublicUrl(caminho).data.publicUrl : null;
+    if (url && await jaExiste(url)) return { url: url, type: tipo, repetido: true };
+    var f = await preparar(file, opcoes);
+    if (!caminho) {
+      var ext = ((f.name || '').split('.').pop() || (tipo === 'video' ? 'mp4' : 'jpg')).toLowerCase().replace(/[^a-z0-9]/g, '') || (tipo === 'video' ? 'mp4' : 'jpg');
+      caminho = userId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      url = balde.getPublicUrl(caminho).data.publicUrl;
+    }
+    var res = await balde.upload(caminho, f, { contentType: f.type || file.type });
+    if (res.error) {
+      var msg = String(res.error.message || res.error.error || '') + ' ' + String(res.error.statusCode || '');
+      if (!/duplicate|already exists|409/i.test(msg)) throw res.error;   // já lá estava: reaproveita
+    }
+    return { url: url, type: tipo, repetido: !!res.error };
+  }
+
   window.FCMedia = {
     LIMITES: LIMITES, validar: validar, preparar: preparar, iniciar: iniciar, prepararFoto: prepararFoto, prepararVideo: prepararVideo,
-    aviso: aviso, progresso: progresso, mostrarErro: mostrarErro, duracao: duracao, mb: mb
+    aviso: aviso, progresso: progresso, mostrarErro: mostrarErro, duracao: duracao, mb: mb,
+    impressao: impressao, enviarMedia: enviarMedia
   };
 })();
