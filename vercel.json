@@ -1,0 +1,18 @@
+{
+  "buildCommand": "echo \"{\\\"versao\\\":\\\"${VERCEL_GIT_COMMIT_SHA:-$(date +%s)}\\\"}\" > version.json",
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
+    {
+      "source": "/(.*)\\.(html|js|css)",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+    },
+    {
+      "source": "/",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+    }
+  ]
+}
