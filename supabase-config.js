@@ -141,6 +141,8 @@ FC.badgeMensagens = async function () {
     });
     const base = document.title.replace(/^\(\d+\+?\) /, '');
     document.title = n ? '(' + txt + ') ' + base : base;
+    // número no ícone da aplicação instalada (onde o telemóvel/computador o suporta)
+    try { if (navigator.setAppBadge) { n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } } catch (e) {}
     document.dispatchEvent(new CustomEvent('fc:mensagens', { detail: n }));
   };
   let aContar = null;
@@ -161,6 +163,18 @@ FC.badgeMensagens = async function () {
   setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 45000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
   window.addEventListener('focus', contar);
+};
+
+/* ---------- Instalar a aplicação (sem APK, sem aviso de risco) ----------
+   O Chrome instala o site como aplicação: ícone no ecrã, abre em ecrã inteiro e
+   atualiza-se sozinha. */
+FC._instalar = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); FC._instalar = e; document.dispatchEvent(new CustomEvent('fc:instalavel')); });
+window.addEventListener('appinstalled', () => { FC._instalar = null; });
+FC.appInstalada = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+FC.instalarApp = async function () {
+  if (FC._instalar) { FC._instalar.prompt(); try { await FC._instalar.userChoice; } catch (e) {} FC._instalar = null; return; }
+  alert('Para instalar: no Chrome, toque nos 3 pontos (⋮) em cima à direita e escolha "Instalar aplicação" ou "Adicionar ao ecrã principal".');
 };
 
 /* ---------- Erros em português claro (nunca mostrar mensagens técnicas) ---------- */
