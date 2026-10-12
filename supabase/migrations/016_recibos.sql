@@ -47,7 +47,8 @@ insert into public.config (chave, valor, descricao) values
   ('recibo_email',    'contacto@feira-comercial.com',  'Email nos recibos'),
   ('iva_ativo',       'nao',                           'sim = emitir Factura/Recibo com IVA'),
   ('iva_taxa',        '17',                            'Taxa de IVA em %'),
-  ('iva_incluido',    'sim',                           'sim = o valor da mensalidade já inclui IVA')
+  ('iva_incluido',    'sim',                           'sim = o valor da mensalidade já inclui IVA'),
+  ('carimbo_cor',     'azul',                          'Cor do carimbo nos recibos: azul ou dourado')
 on conflict (chave) do nothing;
 
 -- 2b) Assinatura (imagem) — guardada à parte; só sai dentro do recibo
@@ -92,7 +93,7 @@ begin
       'provincia', e.province, 'telefone', coalesce(e.phone, e.whatsapp), 'email', e.email),
     'emissor', (select jsonb_object_agg(chave, valor) from config
                 where chave in ('recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email',
-                                'iva_ativo','iva_taxa','iva_incluido','banco_nome','banco_nib','banco_titular')),
+                                'iva_ativo','iva_taxa','iva_incluido','carimbo_cor','banco_nome','banco_nib','banco_titular')),
     'assinatura', (select nullif(dados, '') from recibo_imagens where chave = 'assinatura')
   ) into r
   from pagamentos p join perfis e on e.id = p.empresa_id
@@ -109,7 +110,7 @@ returns void language plpgsql security definer set search_path = public as $$
 begin
   if not sou_admin() then raise exception 'só o administrador'; end if;
   if p_chave not in ('recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email',
-                     'iva_ativo','iva_taxa','iva_incluido') then
+                     'iva_ativo','iva_taxa','iva_incluido','carimbo_cor') then
     raise exception 'chave não permitida';
   end if;
   update config set valor = left(coalesce(p_valor, ''), 300) where chave = p_chave;

@@ -131,6 +131,7 @@
           <label>IVA<select name="iva_ativo"><option value="nao">Desligado (recibo sem IVA)</option><option value="sim">Ligado (factura/recibo com IVA)</option></select></label>
           <label>Taxa de IVA (%)<input name="iva_taxa" maxlength="5" inputmode="decimal"></label>
           <label>A mensalidade já inclui IVA?<select name="iva_incluido"><option value="sim">Sim (o IVA sai dos 100 MT)</option><option value="nao">Não (o IVA soma-se ao valor)</option></select></label>
+          <label>Cor do carimbo<select name="carimbo_cor"><option value="azul">Azul (carimbo clássico)</option><option value="dourado">Dourado (cor da marca)</option></select></label>
           <button class="btn btn-ok" type="submit"><i class="fas fa-floppy-disk"></i> Guardar</button>
         </form>
         <div class="assin-box">
@@ -300,7 +301,7 @@ document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
 });
 
 // ─── Dados dos recibos ───
-const CHAVES_RECIBO = ['recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email','iva_ativo','iva_taxa','iva_incluido'];
+const CHAVES_RECIBO = ['recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email','iva_ativo','iva_taxa','iva_incluido','carimbo_cor'];
 let dadosReciboOrig = {};
 async function carregarDadosRecibo() {
   const { data } = await supabaseClient.from('config').select('chave,valor').in('chave', CHAVES_RECIBO);
