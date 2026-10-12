@@ -9,6 +9,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.FC = window.FC || {};
 
+/* Poupança de tráfego (plano grátis do Supabase: 5 GB/mês de fotos e vídeos vistos).
+   true  = os vídeos do feed não tocam sozinhos (toca-se para ver) e não se pré-carrega o vídeo seguinte.
+   Mudar para false depois de passar ao plano Pro. */
+FC.POUPAR_TRAFEGO = true;
+
 /* ---------- Sessão ---------- */
 FC.getSession = async function () {
   const { data: { session } } = await supabaseClient.auth.getSession();

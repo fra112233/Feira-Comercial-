@@ -1822,6 +1822,7 @@ function dicaSom() {
 
 // Poupança de dados ligada (ou rede 2G): os vídeos não tocam sozinhos — toca-se para ver
 function poupaDados() {
+    if (window.FC && FC.POUPAR_TRAFEGO) return true;
     const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')));
 }
@@ -1842,6 +1843,13 @@ document.addEventListener('visibilitychange', () => {
 function observarVideos() {
     if (!_obsVideos) return;
     document.querySelectorAll('#feed video').forEach(v => _obsVideos.observe(v));
+    if (poupaDados()) {   // não toca sozinho: mostra o botão ▶ (toca-se para ver)
+        document.querySelectorAll('#feed .video-wrapper').forEach(w => {
+            w.classList.add('paused');
+            const i = w.querySelector('.pause-overlay i'); if (i) i.className = 'fas fa-play';
+        });
+        return;
+    }
     dicaSom();
 }
 

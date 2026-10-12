@@ -425,7 +425,7 @@ async function guardarAnuncio(e) {
     let foto_url = emEdicao ? emEdicao.foto_url : null;
     if (fotoFicheiro) {
       const caminho = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-      const { error } = await supabaseClient.storage.from('ads_media').upload(caminho, fotoFicheiro, { contentType: 'image/jpeg' });
+      const { error } = await supabaseClient.storage.from('ads_media').upload(caminho, fotoFicheiro, { contentType: 'image/jpeg', cacheControl: '31536000' });
       if (error) throw error;
       foto_url = supabaseClient.storage.from('ads_media').getPublicUrl(caminho).data.publicUrl;
     }
