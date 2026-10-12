@@ -9,6 +9,14 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.FC = window.FC || {};
 
+/* URL segura para pôr em src/href: só https, imagens embutidas, blob e caminhos do próprio site;
+   aspas e < > escapadas (impede que um endereço malicioso guardado na base de dados injete código). */
+FC.u = function (u) {
+  u = String(u == null ? '' : u).trim();
+  if (!/^(https:\/\/|data:image\/|blob:|\/|images\/)/i.test(u)) return '';
+  return u.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+};
+
 /* Poupança de tráfego (plano grátis do Supabase: 5 GB/mês de fotos e vídeos vistos).
    true  = os vídeos do feed não tocam sozinhos (toca-se para ver) e não se pré-carrega o vídeo seguinte.
    Mudar para false depois de passar ao plano Pro. */
@@ -407,7 +415,7 @@ FC.lembreteMensalidade = function (me) {
     '#fc-lembrete a,#fc-lembrete button{display:block;width:100%;padding:13px;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;box-sizing:border-box}' +
     '#fc-lembrete a{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none;margin-bottom:8px}#fc-lembrete button{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
     '<div class="c" role="dialog" aria-modal="true"><div class="i">💳</div><h3>A mensalidade ' + quando + '</h3>' +
-    '<p>Pague <b style="color:#f3c64e">100 MT</b> por transferência bancária, M-Pesa ou e-Mola para a sua empresa <b>não ficar sem acesso</b> a publicações, anúncios e Live.</p>' +
+    '<p>Pague <b style="color:#f3c64e">100 MT</b> por transferência bancária para a sua empresa <b>não ficar sem acesso</b> a publicações, anúncios e Live.</p>' +
     '<a href="mensalidade.html">Pagar agora</a><button type="button">Mais tarde</button></div>';
   el.querySelector('button').onclick = () => el.remove();
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
