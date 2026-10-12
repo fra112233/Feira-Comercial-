@@ -413,10 +413,10 @@ html, body { max-width: 100%; overflow-x: hidden; }
             <div class="chat-header">
                 <div class="chat-header-left">
                     <i class="fas fa-arrow-left back-btn" onclick="goBackToList()"></i>
-                    <div class="chat-peer-avatar" id="peer-avatar" onclick="openPeerProfile()">
+                    <div class="chat-peer-avatar" id="peer-avatar" onclick="irParaPerfil()" style="cursor:pointer" title="Ver perfil">
                         <i class="fas fa-user"></i>
                     </div>
-                    <div class="chat-peer-info">
+                    <div class="chat-peer-info" onclick="irParaPerfil()" style="cursor:pointer" title="Ver perfil">
                         <div class="peer-name" id="peer-name">Contacto</div>
                         <div class="peer-status" id="peer-status">online</div>
                     </div>
@@ -1250,6 +1250,11 @@ async function clearChat() {
 }
 
 // ─── PERFIL DO CONTACTO ──────────────────────────────────
+// tocar na foto ou no nome → abre logo a página do perfil (os 3 pontos mostram as opções)
+function irParaPerfil() {
+    if (!activeContactId) return;
+    window.location.href = 'perfil.html?id=' + encodeURIComponent(activeContactId);
+}
 function openPeerProfile() {
     const id = activeContactId;
     if (!id) return;
