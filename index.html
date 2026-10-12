@@ -1834,6 +1834,11 @@ const _obsVideos = ('IntersectionObserver' in window) ? new IntersectionObserver
     });
 }, { threshold: 0.5 }) : null;
 
+// separador escondido ou ecrã desligado: parar todos os vídeos (não gastar dados à toa)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) document.querySelectorAll('video').forEach(v => { try { v.pause(); } catch (e) {} });
+});
+
 function observarVideos() {
     if (!_obsVideos) return;
     document.querySelectorAll('#feed video').forEach(v => _obsVideos.observe(v));
@@ -2027,14 +2032,17 @@ function initRollingFeed() {
         const container = document.getElementById(id);
         if (!container) return;
 
+        // só fotos (os vídeos aqui gastavam muitos dados: cada troca descarregava um vídeo inteiro)
         function update() {
-            const mp = posts.filter(p => p.media.length > 0);
+            if (document.hidden) return;                       // separador escondido: não descarrega nada
+            const mp = posts.filter(p => p.media.some(m => m.type !== 'video'));
             if (mp.length === 0) {
                 container.innerHTML = `<p style="padding:16px;text-align:center;color:var(--text-secondary);font-size:12px;">Sem conteúdo ainda</p>`;
                 return;
             }
             const p = mp[Math.floor(Math.random() * mp.length)];
-            const m = p.media[Math.floor(Math.random() * p.media.length)];
+            const fotos = p.media.filter(m => m.type !== 'video');
+            const m = fotos[Math.floor(Math.random() * fotos.length)];
 
             const item = document.createElement('div');
             item.className = 'rolling-item active';
@@ -2053,7 +2061,7 @@ function initRollingFeed() {
         }
 
         update();
-        setInterval(update, 7000 + idx * 1800);
+        setInterval(update, 9000 + idx * 2500);
     });
 }
 </script>

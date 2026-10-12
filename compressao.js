@@ -206,7 +206,10 @@
   async function prepararVideo(file, opcoes) {
     opcoes = opcoes || {};
     await validar(file);
-    if (file.size <= LIMITES.videoLeve) return file;     // já é leve: vai já, sem esperar
+    if (file.size <= LIMITES.videoLeve) {                // já é leve (e com bitrate baixo): vai já, sem esperar
+      var dLeve = await duracao(file);
+      if (!dLeve || file.size * 8 / dLeve <= 1.9e6) return file;
+    }
 
     var aoProgresso = opcoes.aoProgresso || function () {};
     var trava = null;
@@ -227,7 +230,7 @@
       var w = Math.max(2, Math.round(dw * k / 2) * 2), h = Math.max(2, Math.round(dh * k / 2) * 2);
 
       var orcamento = (LIMITES.alvo * 8) / Math.max(dur, 1) - 192e3;   // cabe sempre no limite
-      var bitrate = Math.max(6e5, Math.min(2.6e6, orcamento));
+      var bitrate = Math.max(6e5, Math.min(1.5e6, orcamento));   // 720p a 1,5 Mbps: nítido no telemóvel e leve para quem vê
 
       // não vale a pena: já é 720p (ou menos) e leve — vai como está, sem esperar
       var bitrateOriginal = file.size * 8 / Math.max(dur, 1);
