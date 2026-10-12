@@ -25,6 +25,7 @@
 .estado.fim { border-color: rgba(248,113,113,.35); }
 .estado b { font-size: 18px; display: block; }
 .estado span { color: var(--sub); font-size: 14px; }
+.recibo-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 12px; border-radius: 10px; background: rgba(243,198,78,.14); color: #f3c64e; border: 1px solid rgba(243,198,78,.35); font-weight: 700; font-size: 13px; text-decoration: none; }
 .preco { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .preco small { font-size: 16px; color: var(--sub); font-weight: 600; letter-spacing: 0; }
 .inclui { list-style: none; display: grid; gap: 9px; margin-top: 14px; }
@@ -347,6 +348,7 @@ async function carregarHistorico() {
     '<div class="pg"><div><b>' + mt(p.valor) + '</b> · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + esc(nomeMetodo(p.metodo)) +
       '<div class="m">' + (p.metodo === 'banco' ? 'Operação ' : 'Código ') + esc(p.codigo_transacao) + ' · ' + dataPt(p.created_at) + (p.confirmado_em ? ' · confirmado a ' + dataPt(p.confirmado_em) : '') + '</div></div>' +
       '<span class="tag t-' + esc(p.estado) + '">' + (NOMES[p.estado] || esc(p.estado)) + '</span>' +
+      (p.estado === 'confirmado' ? '<a class="recibo-btn" href="recibo.html?id=' + p.id + '"><i class="fas fa-file-invoice"></i> Recibo</a>' : '') +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') + '</div>').join('');
 }
 

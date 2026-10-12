@@ -29,6 +29,16 @@
 .filtros button { padding: 7px 12px; border-radius: 10px; border: 1px solid var(--linha); background: transparent; color: var(--sub); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .filtros button.sel { color: var(--texto); border-color: var(--ouro); }
 .lista { display: grid; gap: 12px; }
+.form-recibo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
+.form-recibo label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--sub); font-weight: 600; }
+.form-recibo input, .form-recibo select { padding: 11px 12px; border-radius: 10px; border: 1px solid var(--linha); background: rgba(255,255,255,.04); color: inherit; font: inherit; font-size: 15px; }
+.form-recibo select option { color: #000; }
+.form-recibo .btn { align-self: end; }
+.assin-box { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--linha); }
+.assin-box p { margin: 6px 0 10px; color: var(--sub); font-size: 13.5px; line-height: 1.5; }
+.assin-prev { background: #fff; border-radius: 12px; min-height: 90px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; padding: 10px; }
+.assin-prev img { max-width: 100%; max-height: 120px; }
+.assin-prev span { color: #888; font-size: 13px; }
 .reg { background: var(--cartao); border: 1px solid var(--linha); border-radius: 16px; padding: 16px; }
 .reg .cab { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .reg .quem { display: flex; gap: 10px; align-items: center; min-width: 0; }
@@ -96,6 +106,7 @@
     <div class="abas" role="tablist">
       <button type="button" class="sel" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
+      <button type="button" data-aba="recibos"><i class="fas fa-receipt"></i> Dados dos recibos</button>
     </div>
 
     <section id="aba-pagamentos">
@@ -106,6 +117,34 @@
         <button type="button" data-f="">Todos</button>
       </div>
       <div class="lista" id="listaPag"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-recibos" style="display:none">
+      <div class="reg" style="display:block">
+        <p style="margin:0 0 12px;color:var(--sub);font-size:14px;line-height:1.5">Estes dados aparecem no cabeçalho dos recibos. Enquanto não houver NUIT e o IVA estiver desligado, o documento sai como <b>RECIBO</b> sem IVA. Com NUIT e IVA ligado, sai como <b>FACTURA/RECIBO</b> com IVA.</p>
+        <form id="formRecibo" class="form-recibo" onsubmit="guardarRecibo(event)">
+          <label>Nome legal<input name="recibo_nome" maxlength="120" placeholder="Feira Comercial, Lda"></label>
+          <label>NUIT<input name="recibo_nuit" maxlength="20" inputmode="numeric" placeholder="9 dígitos"></label>
+          <label>Morada<input name="recibo_morada" maxlength="200" placeholder="Rua, n.º, bairro, cidade"></label>
+          <label>Telefone<input name="recibo_telefone" maxlength="30" placeholder="+258 …"></label>
+          <label>Email<input name="recibo_email" maxlength="120" type="email"></label>
+          <label>IVA<select name="iva_ativo"><option value="nao">Desligado (recibo sem IVA)</option><option value="sim">Ligado (factura/recibo com IVA)</option></select></label>
+          <label>Taxa de IVA (%)<input name="iva_taxa" maxlength="5" inputmode="decimal"></label>
+          <label>A mensalidade já inclui IVA?<select name="iva_incluido"><option value="sim">Sim (o IVA sai dos 100 MT)</option><option value="nao">Não (o IVA soma-se ao valor)</option></select></label>
+          <label>Cor do carimbo<select name="carimbo_cor"><option value="azul">Azul (carimbo clássico)</option><option value="dourado">Dourado (cor da marca)</option></select></label>
+          <button class="btn btn-ok" type="submit"><i class="fas fa-floppy-disk"></i> Guardar</button>
+        </form>
+        <div class="assin-box">
+          <b>Assinatura nos recibos</b>
+          <p>Assine numa folha branca com caneta azul ou preta, tire uma foto de perto e escolha-a aqui. O fundo, sombras e dedos são retirados automaticamente. O carimbo da Feira Comercial já sai sempre.</p>
+          <div class="assin-prev" id="assinPrev"><span>Sem assinatura</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <label class="btn btn-sec" style="cursor:pointer"><i class="fas fa-signature"></i> Escolher foto da assinatura<input type="file" accept="image/*" id="assinFicheiro" hidden onchange="prepararAssinatura(this)"></label>
+            <button type="button" class="btn btn-ok" id="assinGuardar" style="display:none" onclick="guardarAssinatura()"><i class="fas fa-floppy-disk"></i> Guardar assinatura</button>
+            <button type="button" class="btn btn-nao" id="assinRemover" style="display:none" onclick="removerAssinatura()"><i class="fas fa-trash"></i> Remover</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="aba-reclamacoes" style="display:none">
@@ -169,6 +208,7 @@ function desenharPagamentos() {
       '</div>' +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') +
       '<div class="acoes">' +
+        (p.estado === 'confirmado' ? '<a class="btn btn-sec" href="recibo.html?id=' + p.id + '" target="_blank"><i class="fas fa-receipt"></i> Recibo</a>' : '') +
         (p.comprovativo ? '<button type="button" class="btn btn-sec" onclick="verComprovativo(\'' + esc(p.comprovativo) + '\')"><i class="fas fa-file-invoice"></i> Ver comprovativo</button>' : '') +
         (p.estado === 'pendente' ?
           '<button type="button" class="btn btn-ok" onclick="decidir(' + p.id + ', \'confirmado\')"><i class="fas fa-check"></i> Confirmar</button>' +
@@ -256,7 +296,96 @@ document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
   $('aba-pagamentos').style.display = b.dataset.aba === 'pagamentos' ? '' : 'none';
   $('aba-reclamacoes').style.display = b.dataset.aba === 'reclamacoes' ? '' : 'none';
+  $('aba-recibos').style.display = b.dataset.aba === 'recibos' ? '' : 'none';
+  if (b.dataset.aba === 'recibos') { carregarDadosRecibo(); carregarAssinatura(); }
 });
+
+// ─── Dados dos recibos ───
+const CHAVES_RECIBO = ['recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email','iva_ativo','iva_taxa','iva_incluido','carimbo_cor'];
+let dadosReciboOrig = {};
+async function carregarDadosRecibo() {
+  const { data } = await supabaseClient.from('config').select('chave,valor').in('chave', CHAVES_RECIBO);
+  dadosReciboOrig = {};
+  (data || []).forEach(r => { dadosReciboOrig[r.chave] = r.valor || ''; const el = $('formRecibo').elements[r.chave]; if (el) el.value = r.valor || ''; });
+}
+// assinatura: tira o fundo branco, corta as margens e reduz o tamanho
+let assinNova = null;
+async function carregarAssinatura() {
+  const { data } = await supabaseClient.rpc('admin_ver_imagem', { p_chave: 'assinatura' });
+  mostrarAssinatura(data || null, false);
+}
+function mostrarAssinatura(url, nova) {
+  $('assinPrev').innerHTML = url ? '<img src="' + url + '" alt="Assinatura">' : '<span>Sem assinatura</span>';
+  $('assinGuardar').style.display = nova ? '' : 'none';
+  $('assinRemover').style.display = url && !nova ? '' : 'none';
+}
+function prepararAssinatura(inp) {
+  const f = inp.files && inp.files[0]; inp.value = '';
+  if (!f) return;
+  const img = new Image(), u = URL.createObjectURL(f);
+  img.onload = () => {
+    const k = Math.min(1, 1400 / Math.max(img.width, img.height));
+    const w = Math.round(img.width * k), h = Math.round(img.height * k);
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(u);
+    const d = g.getImageData(0, 0, w, h), p = d.data;
+    // luz média do papel → tudo o que é claro fica transparente; a tinta fica escura
+    let soma = 0, n = 0, azuis = [], nAzul = 0;
+    for (let i = 0; i < p.length; i += 16) { soma += (p[i] + p[i + 1] + p[i + 2]) / 3; azuis.push(p[i + 2] - p[i]); n++; }
+    const corte = Math.min(200, (soma / n) * 0.78);
+    azuis.sort((x, y) => x - y);
+    const azulPapel = azuis[Math.floor(azuis.length / 2)];          // tom do papel (fotos com luz fria ficam azuladas)
+    for (const v of azuis) if (v - azulPapel > 35) nAzul++;
+    const canetaAzul = nAzul > n * 0.0008;                          // há traços azuis → só conta o azul (ignora sombras e dedos)
+    let x0 = w, y0 = h, x1 = 0, y1 = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, l = (p[i] + p[i + 1] + p[i + 2]) / 3;
+      // tinta = caneta azul (azul bem acima do vermelho) ou preta (escura e sem cor). Dedos e sombras não contam.
+      const azul = p[i + 2] - p[i], cinza = Math.max(p[i], p[i + 1], p[i + 2]) - Math.min(p[i], p[i + 1], p[i + 2]);
+      const forca = canetaAzul ? (azul - azulPapel - 18) / 40 : ((l < corte * 0.55 && cinza < 40) ? (corte * 0.55 - l) / (corte * 0.3) : 0);
+      if (forca <= 0) { p[i + 3] = 0; continue; }
+      const a = Math.min(255, Math.round(Math.min(1, forca) * 255 * 1.4));
+      p[i] = Math.round(p[i] * 0.55); p[i + 1] = Math.round(p[i + 1] * 0.55); p[i + 2] = Math.round(p[i + 2] * 0.7); p[i + 3] = a;
+      if (a > 60) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; }
+    }
+    if (x1 <= x0 || y1 <= y0) { toast('Não encontrámos a assinatura na foto. Tente com mais luz e fundo branco.'); return; }
+    g.putImageData(d, 0, 0);
+    const m = 8, cw = x1 - x0 + 2 * m, ch = y1 - y0 + 2 * m, k2 = Math.min(1, 600 / cw);
+    const o = document.createElement('canvas'); o.width = Math.round(cw * k2); o.height = Math.round(ch * k2);
+    o.getContext('2d').drawImage(c, x0 - m, y0 - m, cw, ch, 0, 0, o.width, o.height);
+    assinNova = o.toDataURL('image/png');
+    if (assinNova.length > 400000) { toast('A imagem ficou grande demais. Tente uma foto mais de perto.'); assinNova = null; return; }
+    mostrarAssinatura(assinNova, true);
+  };
+  img.onerror = () => toast('Não foi possível abrir essa imagem.');
+  img.src = u;
+}
+async function guardarAssinatura() {
+  if (!assinNova) return;
+  const { error } = await supabaseClient.rpc('admin_guardar_imagem', { p_chave: 'assinatura', p_dados: assinNova });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  assinNova = null; toast('✅ Assinatura guardada. Já aparece nos recibos.'); carregarAssinatura();
+}
+async function removerAssinatura() {
+  if (!confirm('Remover a assinatura dos recibos?')) return;
+  const { error } = await supabaseClient.rpc('admin_guardar_imagem', { p_chave: 'assinatura', p_dados: '' });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast('Assinatura removida.'); mostrarAssinatura(null, false);
+}
+
+async function guardarRecibo(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  if (f.iva_ativo.value === 'sim' && !f.recibo_nuit.value.trim()) { toast('Para ligar o IVA, preencha primeiro o NUIT.'); return; }
+  for (const k of CHAVES_RECIBO) {
+    const v = (f.elements[k].value || '').trim();
+    if (v === (dadosReciboOrig[k] || '')) continue;
+    const { error } = await supabaseClient.rpc('admin_guardar_config', { p_chave: k, p_valor: v });
+    if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+    dadosReciboOrig[k] = v;
+  }
+  toast('✅ Dados dos recibos guardados.');
+}
 document.querySelectorAll('#filtrosPag button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#filtrosPag button').forEach(x => x.classList.toggle('sel', x === b));
   filtroPag = b.dataset.f; desenharPagamentos();
