@@ -350,7 +350,7 @@
       caminho = userId + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
       url = balde.getPublicUrl(caminho).data.publicUrl;
     }
-    var res = await balde.upload(caminho, f, { contentType: f.type || file.type });
+    var res = await balde.upload(caminho, f, { contentType: f.type || file.type, cacheControl: '31536000' });   // ficheiro nunca muda: o telemóvel guarda-o e não volta a descarregar
     if (res.error) {
       var msg = String(res.error.message || res.error.error || '') + ' ' + String(res.error.statusCode || '');
       if (!/duplicate|already exists|409/i.test(msg)) throw res.error;   // já lá estava: reaproveita

@@ -311,7 +311,7 @@ const observador = new IntersectionObserver(entradas => {
         if (!vistos.has(id)) { vistos.add(id); supabaseClient.rpc('ver_video', { vid: id }); }
       }, 2000);
       // pré-carregar o seguinte e pedir mais vídeos perto do fim
-      const seg = slide.nextElementSibling; if (seg && seg.querySelector('video')) seg.querySelector('video').preload = 'auto';
+      const seg = slide.nextElementSibling; if (seg && seg.querySelector('video') && !(window.FC && FC.POUPAR_TRAFEGO)) seg.querySelector('video').preload = 'auto';
       if (videos.length - [...slide.parentNode.children].indexOf(slide) <= 3) carregarMais();
     } else {
       video.pause();
@@ -475,7 +475,7 @@ async function publicarVideo() {
     btn.textContent = 'A enviar vídeo...';
     const ext = (pronto.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
     const caminho = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error: e1 } = await supabaseClient.storage.from('videos').upload(caminho, pronto, { contentType: pronto.type || 'video/mp4' });
+    const { error: e1 } = await supabaseClient.storage.from('videos').upload(caminho, pronto, { contentType: pronto.type || 'video/mp4', cacheControl: '31536000' });
     if (e1) throw e1;
     const url = supabaseClient.storage.from('videos').getPublicUrl(caminho).data.publicUrl;
     const { error: e2 } = await supabaseClient.from('videos').insert({
