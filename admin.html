@@ -136,7 +136,7 @@
         </form>
         <div class="assin-box">
           <b>Assinatura nos recibos</b>
-          <p>Assine numa folha branca com caneta preta ou azul, tire uma foto de perto e escolha-a aqui. O fundo branco é retirado automaticamente. O carimbo da Feira Comercial já sai sempre.</p>
+          <p>Assine numa folha branca com caneta azul ou preta, tire uma foto de perto e escolha-a aqui. O fundo, sombras e dedos são retirados automaticamente. O carimbo da Feira Comercial já sai sempre.</p>
           <div class="assin-prev" id="assinPrev"><span>Sem assinatura</span></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <label class="btn btn-sec" style="cursor:pointer"><i class="fas fa-signature"></i> Escolher foto da assinatura<input type="file" accept="image/*" id="assinFicheiro" hidden onchange="prepararAssinatura(this)"></label>
@@ -330,13 +330,21 @@ function prepararAssinatura(inp) {
     const g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(u);
     const d = g.getImageData(0, 0, w, h), p = d.data;
     // luz média do papel → tudo o que é claro fica transparente; a tinta fica escura
-    let soma = 0, n = 0; for (let i = 0; i < p.length; i += 16) { soma += (p[i] + p[i + 1] + p[i + 2]) / 3; n++; }
+    let soma = 0, n = 0, azuis = [], nAzul = 0;
+    for (let i = 0; i < p.length; i += 16) { soma += (p[i] + p[i + 1] + p[i + 2]) / 3; azuis.push(p[i + 2] - p[i]); n++; }
     const corte = Math.min(200, (soma / n) * 0.78);
+    azuis.sort((x, y) => x - y);
+    const azulPapel = azuis[Math.floor(azuis.length / 2)];          // tom do papel (fotos com luz fria ficam azuladas)
+    for (const v of azuis) if (v - azulPapel > 35) nAzul++;
+    const canetaAzul = nAzul > n * 0.0008;                          // há traços azuis → só conta o azul (ignora sombras e dedos)
     let x0 = w, y0 = h, x1 = 0, y1 = 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const i = (y * w + x) * 4, l = (p[i] + p[i + 1] + p[i + 2]) / 3;
-      if (l > corte) { p[i + 3] = 0; continue; }
-      const a = Math.min(255, Math.round((corte - l) / corte * 255 * 1.8));
+      // tinta = caneta azul (azul bem acima do vermelho) ou preta (escura e sem cor). Dedos e sombras não contam.
+      const azul = p[i + 2] - p[i], cinza = Math.max(p[i], p[i + 1], p[i + 2]) - Math.min(p[i], p[i + 1], p[i + 2]);
+      const forca = canetaAzul ? (azul - azulPapel - 18) / 40 : ((l < corte * 0.55 && cinza < 40) ? (corte * 0.55 - l) / (corte * 0.3) : 0);
+      if (forca <= 0) { p[i + 3] = 0; continue; }
+      const a = Math.min(255, Math.round(Math.min(1, forca) * 255 * 1.4));
       p[i] = Math.round(p[i] * 0.55); p[i + 1] = Math.round(p[i + 1] * 0.55); p[i + 2] = Math.round(p[i + 2] * 0.7); p[i + 3] = a;
       if (a > 60) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; }
     }
