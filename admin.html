@@ -29,6 +29,11 @@
 .filtros button { padding: 7px 12px; border-radius: 10px; border: 1px solid var(--linha); background: transparent; color: var(--sub); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .filtros button.sel { color: var(--texto); border-color: var(--ouro); }
 .lista { display: grid; gap: 12px; }
+.form-recibo { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
+.form-recibo label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--sub); font-weight: 600; }
+.form-recibo input, .form-recibo select { padding: 11px 12px; border-radius: 10px; border: 1px solid var(--linha); background: rgba(255,255,255,.04); color: inherit; font: inherit; font-size: 15px; }
+.form-recibo select option { color: #000; }
+.form-recibo .btn { align-self: end; }
 .reg { background: var(--cartao); border: 1px solid var(--linha); border-radius: 16px; padding: 16px; }
 .reg .cab { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .reg .quem { display: flex; gap: 10px; align-items: center; min-width: 0; }
@@ -96,6 +101,7 @@
     <div class="abas" role="tablist">
       <button type="button" class="sel" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
+      <button type="button" data-aba="recibos"><i class="fas fa-receipt"></i> Dados dos recibos</button>
     </div>
 
     <section id="aba-pagamentos">
@@ -106,6 +112,23 @@
         <button type="button" data-f="">Todos</button>
       </div>
       <div class="lista" id="listaPag"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-recibos" style="display:none">
+      <div class="reg" style="display:block">
+        <p style="margin:0 0 12px;color:var(--sub);font-size:14px;line-height:1.5">Estes dados aparecem no cabeçalho dos recibos. Enquanto não houver NUIT e o IVA estiver desligado, o documento sai como <b>RECIBO</b> sem IVA. Com NUIT e IVA ligado, sai como <b>FACTURA/RECIBO</b> com IVA.</p>
+        <form id="formRecibo" class="form-recibo" onsubmit="guardarRecibo(event)">
+          <label>Nome legal<input name="recibo_nome" maxlength="120" placeholder="Feira Comercial, Lda"></label>
+          <label>NUIT<input name="recibo_nuit" maxlength="20" inputmode="numeric" placeholder="9 dígitos"></label>
+          <label>Morada<input name="recibo_morada" maxlength="200" placeholder="Rua, n.º, bairro, cidade"></label>
+          <label>Telefone<input name="recibo_telefone" maxlength="30" placeholder="+258 …"></label>
+          <label>Email<input name="recibo_email" maxlength="120" type="email"></label>
+          <label>IVA<select name="iva_ativo"><option value="nao">Desligado (recibo sem IVA)</option><option value="sim">Ligado (factura/recibo com IVA)</option></select></label>
+          <label>Taxa de IVA (%)<input name="iva_taxa" maxlength="5" inputmode="decimal"></label>
+          <label>A mensalidade já inclui IVA?<select name="iva_incluido"><option value="sim">Sim (o IVA sai dos 100 MT)</option><option value="nao">Não (o IVA soma-se ao valor)</option></select></label>
+          <button class="btn btn-ok" type="submit"><i class="fas fa-floppy-disk"></i> Guardar</button>
+        </form>
+      </div>
     </section>
 
     <section id="aba-reclamacoes" style="display:none">
@@ -169,6 +192,7 @@ function desenharPagamentos() {
       '</div>' +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') +
       '<div class="acoes">' +
+        (p.estado === 'confirmado' ? '<a class="btn btn-sec" href="recibo.html?id=' + p.id + '" target="_blank"><i class="fas fa-receipt"></i> Recibo</a>' : '') +
         (p.comprovativo ? '<button type="button" class="btn btn-sec" onclick="verComprovativo(\'' + esc(p.comprovativo) + '\')"><i class="fas fa-file-invoice"></i> Ver comprovativo</button>' : '') +
         (p.estado === 'pendente' ?
           '<button type="button" class="btn btn-ok" onclick="decidir(' + p.id + ', \'confirmado\')"><i class="fas fa-check"></i> Confirmar</button>' +
@@ -256,7 +280,31 @@ document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
   $('aba-pagamentos').style.display = b.dataset.aba === 'pagamentos' ? '' : 'none';
   $('aba-reclamacoes').style.display = b.dataset.aba === 'reclamacoes' ? '' : 'none';
+  $('aba-recibos').style.display = b.dataset.aba === 'recibos' ? '' : 'none';
+  if (b.dataset.aba === 'recibos') carregarDadosRecibo();
 });
+
+// ─── Dados dos recibos ───
+const CHAVES_RECIBO = ['recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email','iva_ativo','iva_taxa','iva_incluido'];
+let dadosReciboOrig = {};
+async function carregarDadosRecibo() {
+  const { data } = await supabaseClient.from('config').select('chave,valor').in('chave', CHAVES_RECIBO);
+  dadosReciboOrig = {};
+  (data || []).forEach(r => { dadosReciboOrig[r.chave] = r.valor || ''; const el = $('formRecibo').elements[r.chave]; if (el) el.value = r.valor || ''; });
+}
+async function guardarRecibo(ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  if (f.iva_ativo.value === 'sim' && !f.recibo_nuit.value.trim()) { toast('Para ligar o IVA, preencha primeiro o NUIT.'); return; }
+  for (const k of CHAVES_RECIBO) {
+    const v = (f.elements[k].value || '').trim();
+    if (v === (dadosReciboOrig[k] || '')) continue;
+    const { error } = await supabaseClient.rpc('admin_guardar_config', { p_chave: k, p_valor: v });
+    if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+    dadosReciboOrig[k] = v;
+  }
+  toast('✅ Dados dos recibos guardados.');
+}
 document.querySelectorAll('#filtrosPag button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#filtrosPag button').forEach(x => x.classList.toggle('sel', x === b));
   filtroPag = b.dataset.f; desenharPagamentos();
