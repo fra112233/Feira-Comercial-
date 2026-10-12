@@ -58,7 +58,10 @@
   .selo { display: inline-block; margin-top: 8px; border: 2px solid #1f9d55; color: #1f9d55; font-weight: 800; padding: 4px 10px; border-radius: 6px; transform: rotate(-4deg); letter-spacing: 1px; }
 
   .assin { display: grid; grid-template-columns: 1fr 1fr; gap: 30mm; margin-top: 18mm; text-align: center; font-size: 11px; }
-  .assin div { border-top: 1px solid #888; padding-top: 4px; }
+  .assin > div { border-top: 1px solid #888; padding-top: 4px; position: relative; }
+  .assin .vend { position: relative; }
+  .assin .assinatura { position: absolute; left: 32%; bottom: calc(100% - 6px); transform: translateX(-50%); max-width: 62mm; max-height: 22mm; }
+  .assin .carimbo { position: absolute; right: 2mm; bottom: calc(100% - 20mm); width: 33mm; height: 33mm; transform: rotate(-11deg); opacity: .88; pointer-events: none; }
   .assin i { display: block; color: #777; font-size: 9.5px; }
   .rodape { position: absolute; left: 14mm; right: 14mm; bottom: 9mm; font-size: 9px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 5px; }
   .aviso-iva { margin-top: 8px; font-size: 9.5px; color: #777; }
@@ -129,6 +132,24 @@ function extenso(valor) {
   let t = extensoInt(int) + (int === 1 ? ' metical' : ' meticais');
   if (c) t += ' e ' + extensoInt(c) + (c === 1 ? ' centavo' : ' centavos');
   return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+// carimbo da Feira Comercial (tinta azul, como um carimbo de borracha)
+function carimbo(e) {
+  const tinta = '#1f3f94';
+  const nuit = (e.recibo_nuit || '').trim();
+  return '<svg class="carimbo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-label="Carimbo Feira Comercial">' +
+    '<defs><path id="arcoCima" d="M 30,100 A 70,70 0 0 1 170,100"/><path id="arcoBaixo" d="M 26,100 A 74,74 0 0 0 174,100"/></defs>' +
+    '<circle cx="100" cy="100" r="95" fill="none" stroke="' + tinta + '" stroke-width="5"/>' +
+    '<circle cx="100" cy="100" r="86" fill="none" stroke="' + tinta + '" stroke-width="1.6"/>' +
+    '<circle cx="100" cy="100" r="52" fill="none" stroke="' + tinta + '" stroke-width="1.6"/>' +
+    '<text fill="' + tinta + '" font-family="Arial, sans-serif" font-weight="700" font-size="19" letter-spacing="2.2"><textPath href="#arcoCima" startOffset="50%" text-anchor="middle">FEIRA COMERCIAL</textPath></text>' +
+    '<text fill="' + tinta + '" font-family="Arial, sans-serif" font-weight="700" font-size="14" letter-spacing="2"><textPath href="#arcoBaixo" startOffset="50%" text-anchor="middle" dominant-baseline="hanging">MAPUTO · MOÇAMBIQUE</textPath></text>' +
+    '<text x="16" y="105" fill="' + tinta + '" font-size="14" font-family="Arial">★</text><text x="171" y="105" fill="' + tinta + '" font-size="14" font-family="Arial">★</text>' +
+    '<text x="100" y="94" text-anchor="middle" fill="' + tinta + '" font-family="Arial, sans-serif" font-weight="800" font-size="30">FC</text>' +
+    '<text x="100" y="114" text-anchor="middle" fill="' + tinta + '" font-family="Arial, sans-serif" font-weight="700" font-size="10" letter-spacing="1">' + (nuit ? 'NUIT ' + esc(nuit) : 'RECEBIDO') + '</text>' +
+    '<text x="100" y="130" text-anchor="middle" fill="' + tinta + '" font-family="Arial, sans-serif" font-size="8.5" letter-spacing=".5">feira-comercial.com</text>' +
+  '</svg>';
 }
 
 function linhaCampo(pt, en, v) {
@@ -208,7 +229,10 @@ function mostrar(r) {
       '</div>' +
     '</div>' +
     (comIva ? '' : '<div class="aviso-iva">Documento não sujeito a IVA.</div>') +
-    '<div class="assin"><div>CLIENTE<i>(Assinatura)</i></div><div>' + esc(e.recibo_nome || 'Feira Comercial') + '<i>(Assinatura autorizada)</i></div></div>' +
+    '<div class="assin"><div>CLIENTE<i>(Assinatura)</i></div><div class="vend">' +
+      (r.assinatura && /^data:image\/png;base64,/.test(r.assinatura) ? '<img class="assinatura" src="' + r.assinatura + '" alt="Assinatura">' : '') +
+      carimbo(e) +
+      esc(e.recibo_nome || 'Feira Comercial') + '<i>(Assinatura autorizada)</i></div></div>' +
     '<div class="rodape">Documento processado por computador · ' + numero + ' · Feira Comercial — www.feira-comercial.com</div>' +
   '</div>';
 }

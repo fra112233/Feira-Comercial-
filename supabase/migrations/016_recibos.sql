@@ -50,6 +50,34 @@ insert into public.config (chave, valor, descricao) values
   ('iva_incluido',    'sim',                           'sim = o valor da mensalidade já inclui IVA')
 on conflict (chave) do nothing;
 
+-- 2b) Assinatura (imagem) — guardada à parte; só sai dentro do recibo
+create table if not exists public.recibo_imagens (
+  chave text primary key,
+  dados text not null default ''
+);
+alter table public.recibo_imagens enable row level security;
+revoke all on public.recibo_imagens from anon, authenticated;
+
+create or replace function public.admin_guardar_imagem(p_chave text, p_dados text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not sou_admin() then raise exception 'só o administrador'; end if;
+  if p_chave not in ('assinatura') then raise exception 'chave não permitida'; end if;
+  if length(coalesce(p_dados, '')) > 400000 then raise exception 'imagem demasiado grande'; end if;
+  if coalesce(p_dados, '') <> '' and p_dados not like 'data:image/png;base64,%' then raise exception 'formato inválido'; end if;
+  insert into recibo_imagens (chave, dados) values (p_chave, coalesce(p_dados, ''))
+  on conflict (chave) do update set dados = excluded.dados;
+end $$;
+revoke all on function public.admin_guardar_imagem(text, text) from public, anon;
+grant execute on function public.admin_guardar_imagem(text, text) to authenticated;
+
+create or replace function public.admin_ver_imagem(p_chave text)
+returns text language sql stable security definer set search_path = public as $$
+  select case when sou_admin() then (select dados from recibo_imagens where chave = p_chave) end;
+$$;
+revoke all on function public.admin_ver_imagem(text) from public, anon;
+grant execute on function public.admin_ver_imagem(text) to authenticated;
+
 -- 3) Ler um recibo (só a própria empresa ou o administrador; só pagamentos confirmados)
 create or replace function public.dados_recibo(pid bigint)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
@@ -64,7 +92,8 @@ begin
       'provincia', e.province, 'telefone', coalesce(e.phone, e.whatsapp), 'email', e.email),
     'emissor', (select jsonb_object_agg(chave, valor) from config
                 where chave in ('recibo_nome','recibo_nuit','recibo_morada','recibo_telefone','recibo_email',
-                                'iva_ativo','iva_taxa','iva_incluido','banco_nome','banco_nib','banco_titular'))
+                                'iva_ativo','iva_taxa','iva_incluido','banco_nome','banco_nib','banco_titular')),
+    'assinatura', (select nullif(dados, '') from recibo_imagens where chave = 'assinatura')
   ) into r
   from pagamentos p join perfis e on e.id = p.empresa_id
   where p.id = pid and p.estado = 'confirmado'
