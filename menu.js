@@ -102,6 +102,7 @@ window.FCMenu = (function () {
         item('fa-bell', 'Notificações de mensagens', 'FCMenu.notificacoes()', '<span class="sw ' + (notif ? 'on' : '') + '" id="fcm-sw-not"></span>') +
 
         '<div class="sec">Ajuda</div>' +
+        ((window.FC && FC.appInstalada && !FC.appInstalada()) ? item('fa-download', 'Instalar aplicação', 'FCMenu.instalar()') : '') +
         item('fa-circle-info', 'Sobre a Feira Comercial', 'about.html') +
         item('fa-shield-halved', 'Políticas e privacidade', 'politicas.html') +
         item('fa-flag', 'Reclamações e sugestões', 'reclamacao.html') +
@@ -174,5 +175,7 @@ window.FCMenu = (function () {
     if (window.FC && FC.signOut) FC.signOut(); else location.href = 'Portal.html';
   }
 
-  return { abrir: abrir, fechar: fechar, tema: tema, visibilidade: visibilidade, notificacoes: notificacoes, editarPerfil: editarPerfil, sair: sair };
+  function instalar() { fechar(); if (window.FC && FC.instalarApp) FC.instalarApp(); }
+
+  return { instalar: instalar, abrir: abrir, fechar: fechar, tema: tema, visibilidade: visibilidade, notificacoes: notificacoes, editarPerfil: editarPerfil, sair: sair };
 })();
