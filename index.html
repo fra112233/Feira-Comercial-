@@ -500,7 +500,7 @@
         .chat-msg.received .chat-msg-quote { border-left-color: var(--primary); background: rgba(0,0,0,0.06); }
 
         /* ── MEDIA ── */
-        @media (max-width: 1060px) { main { grid-template-columns: 70px 1fr 260px; } .item-link span { display: none; } }
+        @media (max-width: 1060px) { main { grid-template-columns: 70px 1fr 260px; } .item-link span:not([data-fc-msgs]) { display: none; } .col-left .item-link [data-fc-msgs] { position: absolute !important; top: 2px; right: 8px; margin: 0 !important; } }
         @media (max-width: 820px) { main { grid-template-columns: 1fr; } .col-left, .col-right { display: none; } }
 
         /* ── HEADER MOBILE ── */
