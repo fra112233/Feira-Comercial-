@@ -645,7 +645,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         await openContact(para);
     }
     if ('Notification' in window && Notification.permission === 'default') {
-        setTimeout(() => Notification.requestPermission().catch(() => {}), 4000);
+        setTimeout(() => { if (window.FC && FC.ativarPush) FC.ativarPush(true); else Notification.requestPermission().catch(() => {}); }, 4000);
     }
 });
 
@@ -1320,6 +1320,7 @@ function ligarTempoReal() {
 
 function notificar(titulo, texto, deId) {
     if (!('Notification' in window) || Notification.permission !== 'granted' || !document.hidden) return;
+    try { if (localStorage.getItem('fc_push_ok') === '1') return; } catch (e) {}   // o aviso push já trata disto (evita aviso a dobrar)
     try {
         const n = new Notification(titulo, { body: texto, icon: avatarDe(perfisCache[deId]) || undefined, tag: 'msg-' + deId });
         n.onclick = () => { window.focus(); openContact(deId); n.close(); };

@@ -32,6 +32,7 @@ FC.requireAuth = async function (loginPage = 'Portal.html') {
 };
 
 FC.signOut = async function () {
+  if (FC.desativarPush) await FC.desativarPush();
   await supabaseClient.auth.signOut();
   localStorage.removeItem('fc_profile');
   window.location.href = 'Portal.html';
@@ -175,6 +176,79 @@ FC.appInstalada = () => window.matchMedia('(display-mode: standalone)').matches 
 FC.instalarApp = async function () {
   if (FC._instalar) { FC._instalar.prompt(); try { await FC._instalar.userChoice; } catch (e) {} FC._instalar = null; return; }
   alert('Para instalar: no Chrome, toque nos 3 pontos (⋮) em cima à direita e escolha "Instalar aplicação" ou "Adicionar ao ecrã principal".');
+};
+
+/* ---------- Notificações push (mensagens novas, mesmo com a aplicação fechada) ---------- */
+FC.PUSH_URL = SUPABASE_URL + '/functions/v1/push';
+FC.pushSuportado = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+}
+function _b64(u) {   // chave base64url → bytes
+  const p = '='.repeat((4 - u.length % 4) % 4), b = atob((u + p).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(b, c => c.charCodeAt(0));
+}
+// regista este aparelho (pede autorização se ainda não foi dada). Devolve true se ficou ativo.
+FC.ativarPush = async function (pedir = true) {
+  try {
+    if (!FC.pushSuportado()) return false;
+    if (Notification.permission === 'denied') return false;
+    if (Notification.permission !== 'granted') {
+      if (!pedir) return false;
+      if (await Notification.requestPermission() !== 'granted') return false;
+    }
+    const session = await FC.getSession(); if (!session) return false;
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const r = await fetch(FC.PUSH_URL, { headers: { Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY } });
+      const { chave } = await r.json();
+      if (!chave) return false;
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: _b64(chave) });
+    }
+    const j = sub.toJSON();
+    const { error } = await supabaseClient.rpc('guardar_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+    if (error) { console.warn('push:', error.message); return false; }
+    try { localStorage.setItem('fc_push_ok', '1'); } catch (e) {}
+    return true;
+  } catch (e) { console.warn('push:', e); return false; }
+};
+// ao sair da conta: este aparelho deixa de receber avisos desta conta
+FC.desativarPush = async function () {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.getRegistration(); if (!reg) return;
+    const sub = await reg.pushManager.getSubscription(); if (!sub) return;
+    await supabaseClient.rpc('apagar_push', { p_endpoint: sub.endpoint });
+  } catch (e) {}
+};
+FC.toast = function (txt) {
+  const t = document.createElement('div');
+  t.textContent = txt;
+  t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:6500;background:#16161a;color:#f4f4f5;border:1px solid rgba(243,198,78,.35);padding:11px 16px;border-radius:12px;font:600 14px Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center';
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
+};
+// convite (uma vez, com calma): "Receber avisos de mensagens novas?"
+FC.convitePush = function () {
+  if (!FC.pushSuportado() || Notification.permission !== 'default') return;
+  try { if (Date.now() - Number(localStorage.getItem('fc_push_convite') || 0) < 7 * 24 * 3600 * 1000) return; } catch (e) { return; }
+  setTimeout(() => {
+    if (document.getElementById('fc-push-convite') || document.getElementById('fc-lembrete')) return;
+    const el = document.createElement('div');
+    el.id = 'fc-push-convite';
+    el.innerHTML =
+      '<style>#fc-push-convite{position:fixed;left:12px;right:12px;bottom:16px;z-index:5500;max-width:420px;margin:0 auto;background:#16161a;color:#f4f4f5;border:1px solid rgba(243,198,78,.35);border-radius:16px;padding:16px;box-shadow:0 14px 40px rgba(0,0,0,.45);font-family:Inter,"Segoe UI",system-ui,sans-serif;display:flex;gap:12px;align-items:flex-start}' +
+      '#fc-push-convite .i{font-size:26px;line-height:1}#fc-push-convite b{display:block;font-size:15px;margin-bottom:3px}#fc-push-convite p{margin:0 0 10px;color:#a1a1aa;font-size:13px;line-height:1.45}' +
+      '#fc-push-convite .bt{display:flex;gap:8px}#fc-push-convite button{flex:1;padding:10px;border-radius:10px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}' +
+      '#fc-push-convite .sim{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none}#fc-push-convite .nao{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
+      '<div class="i">🔔</div><div style="flex:1"><b>Avisos de mensagens novas</b><p>Saiba logo quando lhe enviam uma mensagem, mesmo com a aplicação fechada.</p>' +
+      '<div class="bt"><button class="sim" type="button">Ativar</button><button class="nao" type="button">Agora não</button></div></div>';
+    const fechar = () => { el.remove(); try { localStorage.setItem('fc_push_convite', String(Date.now())); } catch (e) {} };
+    el.querySelector('.nao').onclick = fechar;
+    el.querySelector('.sim').onclick = async () => { fechar(); const ok = await FC.ativarPush(true); if (ok) FC.toast('🔔 Avisos de mensagens ligados.'); };
+    document.body.appendChild(el);
+  }, 6000);
 };
 
 /* ---------- Erros em português claro (nunca mostrar mensagens técnicas) ---------- */
@@ -333,7 +407,7 @@ FC.lembreteMensalidade = function (me) {
     '#fc-lembrete a,#fc-lembrete button{display:block;width:100%;padding:13px;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;box-sizing:border-box}' +
     '#fc-lembrete a{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none;margin-bottom:8px}#fc-lembrete button{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
     '<div class="c" role="dialog" aria-modal="true"><div class="i">💳</div><h3>A mensalidade ' + quando + '</h3>' +
-    '<p>Pague <b style="color:#f3c64e">100 MT</b> por M-Pesa ou e-Mola para a sua empresa <b>não ficar sem acesso</b> a publicações, anúncios e Live.</p>' +
+    '<p>Pague <b style="color:#f3c64e">100 MT</b> por transferência bancária, M-Pesa ou e-Mola para a sua empresa <b>não ficar sem acesso</b> a publicações, anúncios e Live.</p>' +
     '<a href="mensalidade.html">Pagar agora</a><button type="button">Mais tarde</button></div>';
   el.querySelector('button').onclick = () => el.remove();
   el.addEventListener('click', e => { if (e.target === el) el.remove(); });
@@ -347,6 +421,8 @@ FC.boot = async function (opts = {}) {
   const me = await FC.applyIdentity(opts);
   FC.badgeMensagens();
   FC.vigiarLives();
+  // avisos push: renova o registo deste aparelho em silêncio, ou convida (uma vez) a ativar
+  if (FC.pushSuportado() && Notification.permission === 'granted') FC.ativarPush(false); else FC.convitePush();
   if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
   return me;
 };

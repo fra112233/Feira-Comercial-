@@ -157,11 +157,14 @@ window.FCMenu = (function () {
 
   async function notificacoes() {
     if (!('Notification' in window)) { aviso('Este navegador não suporta notificações.'); return; }
-    if (Notification.permission === 'granted') { aviso('Para desligar, use as definições do navegador (cadeado ao lado do endereço).'); return; }
-    if (Notification.permission === 'denied') { aviso('As notificações foram bloqueadas. Ative-as nas definições do navegador.'); return; }
-    var r = await Notification.requestPermission();
-    document.getElementById('fcm-sw-not').classList.toggle('on', r === 'granted');
-    if (r === 'granted') aviso('Notificações ligadas!');
+    if (Notification.permission === 'denied') { aviso('As notificações foram bloqueadas. Ative-as nas definições do navegador (cadeado ao lado do endereço).'); return; }
+    if (Notification.permission === 'granted') {
+      if (window.FC && FC.ativarPush) await FC.ativarPush(false);
+      aviso('Os avisos estão ligados. Para desligar, use as definições do navegador.'); return;
+    }
+    var ok = (window.FC && FC.ativarPush) ? await FC.ativarPush(true) : (await Notification.requestPermission()) === 'granted';
+    document.getElementById('fcm-sw-not').classList.toggle('on', !!ok);
+    if (ok) aviso('Avisos de mensagens ligados! Vai recebê-los mesmo com a aplicação fechada.');
   }
 
   function editarPerfil() {
