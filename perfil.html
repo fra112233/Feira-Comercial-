@@ -1822,17 +1822,17 @@
         if (m) {
             const mais = nMedia > 1 ? `<button class="post-media-mais" onclick="abrirMediaPost(${p.id}, 1)">+${nMedia - 1}</button>` : '';
             mediaTag = m.type === 'video'
-                ? `<div class="post-media-container"><video src="${m.data}" controls playsinline preload="metadata" class="post-video"></video><button class="post-media-ampliar" title="Ver em ecrã inteiro" onclick="abrirMediaPost(${p.id}, 0)"><i class="fas fa-expand"></i></button>${mais}</div>`
-                : `<div class="post-media-container"><img src="${m.data}" class="post-image" alt="Publicação" onclick="abrirMediaPost(${p.id}, 0)">${mais}</div>`;
+                ? `<div class="post-media-container"><video src="${FC.u(m.data)}" controls playsinline preload="metadata" class="post-video"></video><button class="post-media-ampliar" title="Ver em ecrã inteiro" onclick="abrirMediaPost(${p.id}, 0)"><i class="fas fa-expand"></i></button>${mais}</div>`
+                : `<div class="post-media-container"><img src="${FC.u(m.data)}" class="post-image" alt="Publicação" loading="lazy" onclick="abrirMediaPost(${p.id}, 0)">${mais}</div>`;
         }
         const nComentarios = (p.comments || []).reduce((n, c) => n + 1 + (c.replies ? c.replies.length : 0), 0);
         return `
             <div class="post" id="${postId}">
                 <div class="post-header">
                     <div class="post-author">
-                        <img src="${avatar}" class="avatar-sm" alt="Avatar" >
+                        <img src="${FC.u(avatar)}" class="avatar-sm" alt="Avatar" >
                         <div class="post-author-info">
-                            <div class="post-author-name">${nome}</div>
+                            <div class="post-author-name">${String(nome).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
                             <div class="post-time">${hora}</div>
                         </div>
                     </div>
@@ -1860,7 +1860,7 @@
                 <div class="comments-section" id="comments-${postId}">
                     <div class="comments-list" id="comments-list-${postId}"></div>
                     <div class="comment-input-area">
-                        <img src="${avatar}" class="avatar-sm" alt="Avatar" >
+                        <img src="${FC.u(avatar)}" class="avatar-sm" alt="Avatar" >
                         <div class="comment-input-wrapper">
                             <input type="text" class="comment-input" id="comment-input-${postId}" maxlength="2000" placeholder="Escreve um comentário..." onkeydown="if(event.key==='Enter') submitComment('${postId}', null)">
                             <button class="comment-send-btn" onclick="submitComment('${postId}', null)" title="Enviar comentário">
@@ -2334,7 +2334,7 @@
             if (item.type === 'video') {
                 return `
                     <div class="media-item" onclick="abrirGaleria(${i})" role="button" aria-label="Ver vídeo">
-                        <video src="${item.url}#t=0.5" preload="metadata" muted playsinline></video>
+                        <video src="${FC.u(item.url)}#t=0.5" preload="metadata" muted playsinline></video>
                         <div class="media-item-overlay" style="opacity:1;background:rgba(0,0,0,0.25)">
                             <div class="media-item-icon"><i class="fas fa-play"></i></div>
                         </div>
@@ -2343,7 +2343,7 @@
             } else {
                 return `
                     <div class="media-item" onclick="abrirGaleria(${i})" role="button" aria-label="Ver foto">
-                        <img src="${item.url}" alt="Foto" loading="lazy">
+                        <img src="${FC.u(item.url)}" alt="Foto" loading="lazy">
                         <div class="media-item-overlay">
                             <div class="media-item-icon"><i class="fas fa-search-plus"></i></div>
                         </div>
@@ -2364,7 +2364,7 @@
         }
 
         recentPhotosGallery.innerHTML = photoItems.map(item => {
-            return `<img src="${item.url}" class="gallery-thumb" alt="Foto" loading="lazy" onclick="abrirGaleria(${item.i})">`;
+            return `<img src="${FC.u(item.url)}" class="gallery-thumb" alt="Foto" loading="lazy" onclick="abrirGaleria(${item.i})">`;
         }).join('');
     }
 

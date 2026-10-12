@@ -1168,7 +1168,7 @@ function renderStories() {
         div.onclick = () => openStory(g.inicio + (primeiroPorVer >= 0 ? primeiroPorVer : 0));
         div.innerHTML = `
             <div class="story-ring segmentado" style="background:${anelStories(lista, vistos)}">
-                <img src="${st.userAvatar}" loading="lazy" alt="">
+                <img src="${FC.u(st.userAvatar)}" loading="lazy" alt="">
             </div>
             <div class="story-name">${escHtml(g.userId === currentUser.id ? 'Você' : st.userName)}</div>`;
         list.appendChild(div);
@@ -1208,8 +1208,8 @@ function openStory(i) {
 
     const viewer = document.getElementById('storyViewer');
     viewer.innerHTML = s.type === 'video'
-        ? `<video src="${s.url}" autoplay playsinline id="story-video" style="width:100%;height:100%;object-fit:contain;"></video>`
-        : `<img src="${s.url}" style="width:100%;height:100%;object-fit:contain;">`;
+        ? `<video src="${FC.u(s.url)}" autoplay playsinline id="story-video" style="width:100%;height:100%;object-fit:contain;"></video>`
+        : `<img src="${FC.u(s.url)}" style="width:100%;height:100%;object-fit:contain;">`;
 
     sDur = 5000;
     const vid = document.getElementById('story-video');
@@ -1466,7 +1466,7 @@ function htmlSecaoPost(p) {
         <div class="user-feed-section" id="user-section-${p.id}" data-sig="${assinaturaPost(p)}">
             <div class="user-feed-header">
                 <div class="user-feed-avatar" title="Ver perfil de ${escHtml(p.userName)}" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">
-                    <img src="${p.userAvatar}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <img src="${FC.u(p.userAvatar)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <i class="fas fa-user"></i>
                 </div>
                 <div>
@@ -1559,11 +1559,11 @@ function renderPostCard(p, isMe) {
             <div class="gallery-grid ${gridClass}">
                 ${p.media.slice(0, 4).map(m => m.type === 'video'
                     ? `<div class="video-wrapper" data-postid="${p.id}">
-                           <video src="${m.url}" class="media-item" muted loop playsinline preload="metadata"></video>
+                           <video src="${FC.u(m.url)}" class="media-item" muted loop playsinline preload="metadata"></video>
                            <div class="pause-overlay"><i class="fas fa-expand"></i></div>
                            <button type="button" class="som-btn" aria-label="Ligar o som" title="Ligar o som"><i class="fas fa-volume-xmark"></i></button>
                        </div>`
-                    : `<img src="${m.url}" class="media-item" loading="lazy" onclick="openLightbox(this, ${p.id})">`
+                    : `<img src="${FC.u(m.url)}" class="media-item" loading="lazy" onclick="openLightbox(this, ${p.id})">`
                 ).join('')}
             </div>
         </div>` : '';
@@ -1593,7 +1593,7 @@ function donoDoPost(postId) { const p = posts.find(x => x.id === postId); return
 function renderComments(comments, postId) {
     return comments.map(c => `
         <div class="comment-item">
-            <div class="comment-avatar"><img src="${c.userAvatar}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><i class="fas fa-user" style="font-size:11px;display:none"></i></div>
+            <div class="comment-avatar"><img src="${FC.u(c.userAvatar)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><i class="fas fa-user" style="font-size:11px;display:none"></i></div>
             <div class="comment-right">
                 <div class="comment-bubble"><b>${escHtml(c.userName)}</b>${escHtml(c.text)}</div>
                 <div class="comment-meta">
@@ -2055,8 +2055,8 @@ function initRollingFeed() {
             const item = document.createElement('div');
             item.className = 'rolling-item active';
             const mediaHtml = m.type === 'video'
-                ? `<video src="${m.url}" class="rolling-media" muted autoplay loop playsinline preload="metadata"></video>`
-                : `<img src="${m.url}" class="rolling-media" loading="lazy">`;
+                ? `<video src="${FC.u(m.url)}" class="rolling-media" muted autoplay loop playsinline preload="metadata"></video>`
+                : `<img src="${FC.u(m.url)}" class="rolling-media" loading="lazy">`;
             item.innerHTML = `${mediaHtml}
                 <div class="rolling-info" onclick="scrollToPost(${p.id})">
                     <i class="fas fa-user-circle fa-lg" style="color:#1877f2;flex-shrink:0;"></i>

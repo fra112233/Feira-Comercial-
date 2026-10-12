@@ -4,15 +4,54 @@
   "headers": [
     {
       "source": "/version.json",
-      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     },
     {
       "source": "/(.*)\\.(html|js|css)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "feira-comercialcom.vercel.app"
+        }
+      ],
+      "destination": "https://www.feira-comercial.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "feira-comercial-teste.vercel.app"
+        }
+      ],
+      "destination": "https://www.feira-comercial.com/:path*",
+      "permanent": true
     }
   ]
 }
