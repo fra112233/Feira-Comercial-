@@ -112,6 +112,7 @@ function aplicarPerfil() {
   if (modoVisita) {
     // perfil de outra pessoa: não mexer no meu nome/foto guardados
     setTxt('userName', p.full_name || 'Utilizador');
+    { const n = document.getElementById('userName'); if (n && p.id) n.setAttribute('data-selo', p.id); }
     const foto = p.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.full_name || 'U') + '&background=random&color=fff&size=256');
     const img = document.getElementById('profileImg'); if (img) img.src = foto;
   } else {

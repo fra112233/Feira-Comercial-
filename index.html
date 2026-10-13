@@ -1470,7 +1470,7 @@ function htmlSecaoPost(p) {
                     <i class="fas fa-user"></i>
                 </div>
                 <div>
-                    <div class="user-feed-name" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">${escHtml(p.userName)}${selo}</div>
+                    <div class="user-feed-name" data-selo="${escHtml(p.userId)}" onclick="abrirPerfil('${p.userId}')" style="cursor:pointer;">${escHtml(p.userName)}${selo}</div>
                     <div class="user-feed-count">${timeAgo(p.timestamp)}</div>
                 </div>
             </div>
@@ -1595,7 +1595,7 @@ function renderComments(comments, postId) {
         <div class="comment-item">
             <div class="comment-avatar"><img src="${FC.u(c.userAvatar)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><i class="fas fa-user" style="font-size:11px;display:none"></i></div>
             <div class="comment-right">
-                <div class="comment-bubble"><b>${escHtml(c.userName)}</b>${escHtml(c.text)}</div>
+                <div class="comment-bubble"><b data-selo="${escHtml(c.userId)}">${escHtml(c.userName)}</b>${escHtml(c.text)}</div>
                 <div class="comment-meta">
                     <span>${timeAgo(c.timestamp)}</span>
                     <span class="reply-btn" onclick="showReplyBox(${postId}, ${c.id})">Responder</span>

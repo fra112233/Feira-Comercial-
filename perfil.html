@@ -1706,6 +1706,7 @@
         if (!nome) return;
         localStorage.setItem('fc_name', nome);
         setTxt('userName', nome);
+        if (typeof alvoId !== 'undefined' && alvoId) document.getElementById('userName').setAttribute('data-selo', alvoId);
         setTxt('modalUserName', nome);
         setTxt('profileHandle', '@' + nome.toLowerCase().replace(/\s+/g, ''));
     }
