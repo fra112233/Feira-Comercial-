@@ -231,6 +231,16 @@ FC.desativarPush = async function () {
     await supabaseClient.rpc('apagar_push', { p_endpoint: sub.endpoint });
   } catch (e) {}
 };
+// conta suspensa pelo administrador: faixa no topo com o motivo e atalho para falar com a equipa
+FC.avisoSuspensa = function (me) {
+  if (document.getElementById('fc-suspensa')) return;
+  const el = document.createElement('div');
+  el.id = 'fc-suspensa';
+  el.style.cssText = 'position:sticky;top:0;z-index:5200;background:#7f1d1d;color:#fff;padding:10px 14px;font:600 13.5px/1.45 Inter,system-ui,sans-serif;text-align:center';
+  const motivo = (me.bloqueio_motivo || '').replace(/[<>&"]/g, '');
+  el.innerHTML = '🚫 A sua conta está suspensa' + (motivo ? ': ' + motivo : '.') + ' Não pode publicar nem enviar mensagens. <a href="mensagen.html" style="color:#fde68a;text-decoration:underline">Fale com a equipa</a>';
+  document.body.prepend(el);
+};
 FC.toast = function (txt) {
   const t = document.createElement('div');
   t.textContent = txt;
@@ -307,6 +317,7 @@ FC.traduzirErro = function (err) {
   if (/Failed to fetch|NetworkError|Load failed|network|ERR_INTERNET/i.test(m)) return 'Sem ligação à internet. Verifique a ligação e tente outra vez.';
   if (/JWT|refresh token|not authenticated|session/i.test(m)) return 'A sua sessão terminou. Entre outra vez na sua conta.';
   if (/row-level security|permission denied|not allowed|forbidden/i.test(m)) return 'Não tem permissão para fazer isto.';
+  if (/conta suspensa/i.test(m)) return 'A sua conta está suspensa. Fale com a equipa da Feira Comercial pelo chat.';
   if (/duplicate key|already exists|unique/i.test(m)) return 'Isto já existe.';
   if (/exceeded the maximum allowed size|too large|payload/i.test(m)) return 'O ficheiro é demasiado grande.';
   if (/mime type|not supported/i.test(m)) return 'Este tipo de ficheiro não é aceite.';
@@ -470,6 +481,7 @@ FC.boot = async function (opts = {}) {
   const me = await FC.applyIdentity(opts);
   FC.badgeMensagens();
   FC.vigiarLives();
+  if (me && me.bloqueado) FC.avisoSuspensa(me);
   // avisos push: renova o registo deste aparelho em silêncio, ou convida (uma vez) a ativar
   if (FC.pushSuportado() && Notification.permission === 'granted') FC.ativarPush(false); else FC.convitePush();
   if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
