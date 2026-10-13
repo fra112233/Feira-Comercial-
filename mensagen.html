@@ -741,7 +741,7 @@ function renderContacts() {
                 ${online.has(c.id) && !bloq ? '<div class="online-dot"></div>' : ''}
             </div>
             <div class="contact-info">
-                <div class="contact-name">${escHtml(c.name)} ${c.type === 'empresa' ? '<i class="fas fa-building" style="font-size:11px;opacity:.6"></i>' : ''} ${bloq ? '<span style="font-size:10px;color:var(--danger);">🚫</span>' : ''}</div>
+                <div class="contact-name" data-selo="${escHtml(c.id)}">${escHtml(c.name)} ${c.type === 'empresa' ? '<i class="fas fa-building" style="font-size:11px;opacity:.6"></i>' : ''} ${bloq ? '<span style="font-size:10px;color:var(--danger);">🚫</span>' : ''}</div>
                 <div class="contact-preview">${escHtml(c.last ? previewDe(c.last) : 'Diz olá! 👋')}</div>
             </div>
             <div class="contact-meta">
@@ -758,7 +758,7 @@ function renderContacts() {
         <div class="contact-item" onclick="openContact('${p.id}')">
             <div class="contact-avatar">${avatarHtml(avatarDe(p))}</div>
             <div class="contact-info">
-                <div class="contact-name">${escHtml(p.full_name)} ${p.type === 'empresa' ? '<i class="fas fa-building" style="font-size:11px;opacity:.6"></i>' : ''}</div>
+                <div class="contact-name" data-selo="${escHtml(p.id)}">${escHtml(p.full_name)} ${p.type === 'empresa' ? '<i class="fas fa-building" style="font-size:11px;opacity:.6"></i>' : ''}</div>
                 <div class="contact-preview">${escHtml([p.sector, p.city].filter(Boolean).join(' · ') || 'Enviar mensagem')}</div>
             </div>
         </div>`).join('');
@@ -783,6 +783,7 @@ async function openContact(id) {
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('activeChat').style.display = 'flex';
     document.getElementById('peer-name').textContent = c.name;
+    document.getElementById('peer-name').setAttribute('data-selo', c.id);
     document.getElementById('peer-avatar').innerHTML = avatarHtml(c.avatar);
     atualizarEstadoPeer();
     cancelReply();

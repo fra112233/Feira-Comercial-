@@ -259,6 +259,46 @@ FC.convitePush = function () {
   }, 6000);
 };
 
+/* ---------- Selos oficiais (Administrador / Equipa Feira Comercial) ----------
+   Qualquer elemento com data-selo="<id do perfil>" recebe o selo, se a conta for oficial. */
+FC._selos = new Map();
+FC.carregarSelos = async function () {
+  try {
+    const c = sessionStorage.getItem('fc_selos');
+    if (c) JSON.parse(c).forEach(r => FC._selos.set(r.id, r.selo));
+  } catch (e) {}
+  FC.aplicarSelos();
+  const { data, error } = await supabaseClient.rpc('selos');
+  if (error || !data) return;
+  FC._selos = new Map(data.map(r => [r.id, r.selo]));
+  try { sessionStorage.setItem('fc_selos', JSON.stringify(data)); } catch (e) {}
+  FC.aplicarSelos();
+};
+FC.seloHtml = function (id) {
+  const s = FC._selos.get(id);
+  if (!s) return '';
+  return '<span class="fc-selo" title="Conta oficial — ' + s + '"><i class="fas fa-circle-check"></i> ' + s + '</span>';
+};
+FC.aplicarSelos = function (raiz) {
+  (raiz || document).querySelectorAll('[data-selo]').forEach(el => {
+    const id = el.getAttribute('data-selo'), atual = el.querySelector(':scope > .fc-selo');
+    if (atual && atual.dataset.de === id) return;
+    if (atual) atual.remove();
+    const h = FC.seloHtml(id); if (!h) return;
+    el.insertAdjacentHTML('beforeend', h);
+    el.lastElementChild.dataset.de = id;
+  });
+};
+(function () {
+  const css = document.createElement('style');
+  css.textContent = '.fc-selo{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font:700 11px/1.4 Inter,"Segoe UI",system-ui,sans-serif;vertical-align:middle;white-space:nowrap;letter-spacing:.1px}.fc-selo i{font-size:11px}';
+  document.head.appendChild(css);
+  let pendente = false;
+  new MutationObserver(() => { if (pendente || !FC._selos.size) return; pendente = true; requestAnimationFrame(() => { pendente = false; FC.aplicarSelos(); }); })
+    .observe(document.documentElement, { childList: true, subtree: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => FC.carregarSelos()); else FC.carregarSelos();
+})();
+
 /* ---------- Erros em português claro (nunca mostrar mensagens técnicas) ---------- */
 FC.traduzirErro = function (err) {
   const m = String((err && (err.message || err.error_description || err.error)) || err || '');
