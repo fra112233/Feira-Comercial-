@@ -870,6 +870,11 @@
         }
 
         /* ==================== MEDIA GALLERY ==================== */
+        .cartao-oficial { display: flex; gap: 12px; align-items: center; text-align: left; margin: 10px auto 6px; max-width: 520px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(243,198,78,.16), rgba(217,165,46,.06)); border: 1px solid rgba(243,198,78,.45); }
+        .cartao-oficial .ic { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#f3c64e,#d9a52e); color: #111; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+        .cartao-oficial b { display: block; font-size: 14.5px; color: var(--text-primary, #fff); }
+        .cartao-oficial span { font-size: 13px; color: var(--text-secondary, #aaa); line-height: 1.45; }
+
         .media-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -1407,6 +1412,7 @@
                 <h1 class="profile-name" id="userName"></h1>
                 <div class="profile-handle" id="profileHandle"></div>
                 <div id="tipoBadge" style="margin:8px 0;"></div>
+                <div id="cartaoOficial" class="cartao-oficial" style="display:none"></div>
                 <p class="profile-bio" id="dispBio" style="display:none;"></p>
 
                 <div class="profile-meta">
@@ -1744,6 +1750,20 @@
     // Histórico de Média: fotos e vídeos de TODAS as publicações (ficam depois dos 4 dias)
     let historicoMedia = null;   // [{ id, media:[{data,url,type}], timestamp, content }]
 
+    // conta oficial (Administrador / Equipa): cartão bem visível debaixo do nome
+    function mostrarCartaoOficial() {
+        const el = document.getElementById('cartaoOficial'); if (!el || !window.FC || !FC._selos) return;
+        const id = (typeof alvoId !== 'undefined' && alvoId) || '';
+        const s = FC._selos.get(id);
+        if (!s) { el.style.display = 'none'; return; }
+        const adm = s === 'Administrador';
+        el.innerHTML = '<div class="ic"><i class="fas fa-circle-check"></i></div><div><b>Conta oficial · ' + s + '</b><span>' +
+            (adm ? 'Esta é a conta verificada do administrador da Feira Comercial. Pode falar diretamente para dúvidas, sugestões ou problemas com a sua conta.'
+                 : 'Conta oficial da equipa da Feira Comercial: avisos, novidades e dicas para usar a plataforma.') + '</span></div>';
+        el.style.display = 'flex';
+    }
+    document.addEventListener('fc:selos', mostrarCartaoOficial);
+
     function obterPostsFeed() { return meusPosts; }
 
     function normalizarMedia(r) {
@@ -1770,6 +1790,7 @@
 
     async function carregarMeusPosts() {
         if (!alvoId) return;
+        mostrarCartaoOficial();
         carregarHistoricoMedia();
         const { data, error } = await getSB().from('posts')
             .select('id, content, media, image_url, created_at, likes(user_id), comments(id)')
