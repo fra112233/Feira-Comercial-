@@ -1,7 +1,7 @@
 import re, json, glob, os, html
 from html.parser import HTMLParser
-R='/home/claude/feira-comercial-/'
-SKIP={'i18n.js','admin.html','recibo.html','sw.js','splash.js','compressao.js','atualizacao.js'}
+import os as _o; R=_o.path.abspath(_o.path.dirname(_o.path.abspath(__file__))+'/../..')+'/'
+SKIP={'i18n.js','admin.html','recibo.html','sw.js'}
 ACC=re.compile(r'[áàâãéêíóôõúçÁÀÂÃÉÊÍÓÔÕÚÇ]')
 def bom(s):
     s=re.sub(r'\s+',' ',s).strip()
