@@ -149,3 +149,88 @@ grant execute on function public.admin_acessos(uuid) to authenticated;
 grant execute on function public.admin_suspender(uuid, boolean, text) to authenticated;
 grant execute on function public.admin_mudar_tipo(uuid, text) to authenticated;
 grant execute on function public.admin_terminar_sessoes(uuid) to authenticated;
+
+-- ============================================================
+-- 6) Conversas: ninguém consegue alterar nem apagar de verdade o que foi enviado
+--    • o texto, ficheiros, remetente, destinatário e data nunca mudam depois de enviados
+--    • "apagar" e "limpar conversa" só escondem a mensagem de quem apagou; o original fica guardado
+--    • só o remetente pode marcar a sua mensagem como apagada; só o destinatário marca como lida
+-- ============================================================
+create or replace function public.proteger_mensagem()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if coalesce(auth.role(), '') = 'service_role' or current_user in ('postgres', 'supabase_admin') then
+    return new;
+  end if;
+  new.id := old.id; new.created_at := old.created_at;
+  new.sender_id := old.sender_id; new.receiver_id := old.receiver_id;
+  new.content := old.content; new.file_url := old.file_url; new.media_type := old.media_type;
+  new.file_name := old.file_name; new.file_size := old.file_size; new.reply_to := old.reply_to; new.ref := old.ref;
+  if auth.uid() is distinct from old.sender_id then
+    new.deleted := old.deleted; new.cleared_by_sender := old.cleared_by_sender;
+  end if;
+  if auth.uid() is distinct from old.receiver_id then
+    new.read_at := old.read_at; new.cleared_by_receiver := old.cleared_by_receiver;
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_proteger_mensagem on public.messages;
+create trigger trg_proteger_mensagem before update on public.messages
+  for each row execute function public.proteger_mensagem();
+
+-- 7) Registo de cada vez que a administração abre uma conversa (com o motivo)
+create table if not exists public.registo_admin (
+  id bigserial primary key,
+  admin_id uuid not null,
+  acao text not null,
+  conta_a uuid, conta_b uuid,
+  motivo text,
+  criado timestamptz not null default now()
+);
+alter table public.registo_admin enable row level security;
+revoke all on public.registo_admin from anon, authenticated;
+
+-- com quem uma conta conversou (só nomes e número de mensagens; sem conteúdo)
+create or replace function public.admin_conversas_de(p_uid uuid)
+returns table (outro uuid, nome text, mensagens bigint, ultima timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  if not sou_admin() then raise exception 'só o administrador'; end if;
+  return query
+  select o.id, o.full_name, count(*), max(m.created_at)
+  from messages m
+  join perfis o on o.id = case when m.sender_id = p_uid then m.receiver_id else m.sender_id end
+  where m.sender_id = p_uid or m.receiver_id = p_uid
+  group by o.id, o.full_name
+  order by max(m.created_at) desc;
+end $$;
+
+-- abrir a conversa entre duas contas (inclui mensagens apagadas) — exige motivo e fica registado
+create or replace function public.admin_conversa(p_a uuid, p_b uuid, p_motivo text)
+returns table (id bigint, criado timestamptz, de uuid, conteudo text, ficheiro text, tipo_ficheiro text,
+               nome_ficheiro text, apagada boolean, limpa_remetente boolean, limpa_destinatario boolean, lida timestamptz)
+language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  if not sou_admin() then raise exception 'só o administrador'; end if;
+  if char_length(trim(coalesce(p_motivo, ''))) < 5 then raise exception 'indique o motivo (ex.: denúncia n.º …)'; end if;
+  insert into registo_admin (admin_id, acao, conta_a, conta_b, motivo)
+  values (auth.uid(), 'abrir_conversa', p_a, p_b, left(trim(p_motivo), 300));
+  return query
+  select m.id, m.created_at, m.sender_id, m.content, m.file_url, m.media_type, m.file_name,
+         coalesce(m.deleted, false), coalesce(m.cleared_by_sender, false), coalesce(m.cleared_by_receiver, false), m.read_at
+  from messages m
+  where (m.sender_id = p_a and m.receiver_id = p_b) or (m.sender_id = p_b and m.receiver_id = p_a)
+  order by m.created_at;
+end $$;
+
+-- o administrador consegue abrir as fotos/ficheiros dessas conversas
+drop policy if exists chat_media_admin_ver on storage.objects;
+create policy chat_media_admin_ver on storage.objects for select to authenticated
+  using (bucket_id = 'chat-media' and (select public.sou_admin()));
+
+revoke all on function public.admin_conversas_de(uuid) from public, anon;
+revoke all on function public.admin_conversa(uuid, uuid, text) from public, anon;
+grant execute on function public.admin_conversas_de(uuid) to authenticated;
+grant execute on function public.admin_conversa(uuid, uuid, text) to authenticated;
