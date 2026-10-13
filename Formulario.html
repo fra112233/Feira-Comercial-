@@ -504,6 +504,10 @@
     document.getElementById('mainForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!validateAll()) return;
+        if (window.FC && FC.nomeReservado(nomeEl.value)) {
+            setStatus('O nome "' + nomeEl.value.trim().replace(/[<>&"]/g, '') + '" é reservado à Feira Comercial. Escolha outro nome.', 'error');
+            nomeEl.focus(); return;
+        }
 
         const tipo    = document.querySelector('input[name="perfilType"]:checked').value;
         const nome    = nomeEl.value.trim();

@@ -147,6 +147,8 @@ function aplicarPerfil() {
            <i class="fas fa-user"></i> Pessoa</span>`;
   }
 
+  if (window.FC && FC._selos && FC._selos.has(p.id) && typeof mostrarCartaoOficial === 'function') mostrarCartaoOficial();
+
   const info = document.getElementById('infoTipo');
   if (info) info.innerHTML = ehEmpresa(p) ? cartoesEmpresa(p, true) : cartoesPessoa(p);
   const lado = document.getElementById('sidebarTipo');
