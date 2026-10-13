@@ -26,3 +26,10 @@ update public.perfis
 set full_name = 'Francisco', username = 'francisco',
     bio = 'Administrador da Feira Comercial. Para dúvidas, sugestões ou problemas com a sua conta, fale comigo aqui no chat.'
 where id = 'ede042b6-964f-46fb-a361-0432ef30715e';
+
+-- Conta da Equipa Feira Comercial (suporte@feira-comercial.com):
+-- selo "Equipa Feira Comercial", utilizador @feiracomercial, isenta de mensalidade
+update public.perfis
+set role = 'equipa', username = 'feiracomercial', assinatura_ate = '2099-12-31',
+    bio = coalesce(nullif(bio, ''), 'Conta oficial da Feira Comercial: avisos, novidades e dicas para tirar o melhor partido da plataforma.')
+where id = 'a73d8f73-5b2c-4f03-9deb-17aa890287dd';
