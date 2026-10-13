@@ -290,6 +290,7 @@
 "Dúvidas? Escreva para": "Questions? Write to",
 "E-mail confirmado! Já pode entrar.": "E-mail confirmed! You can sign in now.",
 "E-mail inválido.": "Invalid e-mail.",
+"E-mail ou palavra-passe incorretos.": "Incorrect e-mail or password.",
 "Editar": "Edit",
 "Editar Foto": "Edit photo",
 "Editar Perfil": "Edit Profile",
