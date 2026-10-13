@@ -99,7 +99,7 @@ window.FCP = (function () {
     if (!horario) return '';
     return DIAS.map(([k, nome]) => {
       const d = horario[k];
-      const txt = d && d.aberto ? `${d.de} – ${d.ate}` : 'Fechado';
+      const txt = d && d.aberto ? `${esc(d.de)} – ${esc(d.ate)}` : 'Fechado';
       return `<div style="display:flex;justify-content:space-between;gap:12px;padding:3px 0;">
                 <span>${nome}</span><span style="font-weight:600;">${txt}</span></div>`;
     }).join('');

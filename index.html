@@ -1076,7 +1076,7 @@ let _tarefasMedia = [];
 function estadoMedia() {
     const area = document.getElementById('post-preview-area');
     if (!tempMedia.length) { area.innerHTML = ''; return; }
-    if (document.getElementById('publish-btn').textContent.indexOf('publicar') >= 0 && area.querySelector('.fa-spinner')) return; // a publicar
+    if (document.getElementById('publish-btn').dataset.aPublicar && area.querySelector('.fa-spinner')) return; // a publicar (não depende do idioma)
     const videos = tempMedia.map((f, i) => ({ f, t: _tarefasMedia[i] })).filter(x => x.f.type.startsWith('video/'));
     const aPreparar = videos.filter(x => x.t && !x.t.pronto);
     let extra = '';
@@ -1424,6 +1424,7 @@ async function publishPost() {
     btn.disabled = true;
     const original = btn.textContent;
     btn.textContent = 'A publicar...';
+    btn.dataset.aPublicar = '1';
     try {
         // todos os ficheiros ao mesmo tempo (a otimização já começou ao escolher)
         let feitos = 0;
@@ -1451,7 +1452,7 @@ async function publishPost() {
         else FCMedia.mostrarErro(err);
         btn.disabled = false;
     } finally {
-        btn.textContent = original;
+        delete btn.dataset.aPublicar; btn.textContent = original;
         btn.disabled = ta.value.trim() === '' && tempMedia.length === 0;
     }
 }

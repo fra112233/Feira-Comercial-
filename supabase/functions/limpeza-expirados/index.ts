@@ -8,7 +8,11 @@
 //   • ficheiros do espaço "media" com mais de 60 h que nenhuma publicação
 //     (de qualquer data) nem story recente usa — stories expirados, publicações
 //     apagadas pelo dono e envios falhados que ficaram perdidos.
-// Não toca em fotos de perfil, anúncios, vídeos da página Vídeos, chat nem comprovativos.
+//   • ficheiros de contas que já foram apagadas (em todos os espaços), exceto
+//     fotos do chat que ainda aparecem em mensagens guardadas;
+//   • vídeos da página Vídeos com mais de 60 h que nenhum vídeo publicado usa
+//     (vídeos apagados e envios falhados).
+// Não toca em comprovativos de pagamento nem em ficheiros de contas existentes.
 //
 // ?simular=1 → mostra o que seria apagado, sem apagar nada.
 // Corre no máximo uma vez por hora (chamadas a mais são ignoradas).
@@ -82,20 +86,76 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // 2b) outros espaços: ficheiros de contas apagadas + vídeos perdidos
+  const contas = new Set<string>();
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await sb.from("perfis").select("id").order("id").range(de, de + 999);
+    if (error) return json({ ok: false, erro: error.message }, 500);
+    for (const p of data ?? []) contas.add(p.id);
+    if (!data || data.length < 1000) break;
+  }
+  const videosUsados = new Set<string>();
+  {
+    const { data, error } = await sb.from("videos").select("video_url");
+    if (error) return json({ ok: false, erro: error.message }, 500);
+    for (const v of data ?? []) { const m = String(v.video_url ?? "").match(/\/object\/public\/videos\/([^?#]+)/); if (m) videosUsados.add(decodeURIComponent(m[1])); }
+  }
+  const chatUsado = new Set<string>();
+  {
+    const { data, error } = await sb.from("messages").select("file_url").not("file_url", "is", null);
+    if (error) return json({ ok: false, erro: error.message }, 500);
+    for (const m of data ?? []) { const x = String(m.file_url ?? "").match(/\/chat-media\/([^?#]+)/); if (x) chatUsado.add(decodeURIComponent(x[1])); }
+  }
+  const outros: Record<string, string[]> = {};
+  for (const balde of ["videos", "avatars", "ads_media", "chat-media", "media"]) {
+    const { data: ps, error } = await sb.storage.from(balde).list("", { limit: 1000 });
+    if (error) continue;
+    for (const pasta of ps ?? []) {
+      if (pasta.id) continue;
+      const apagada = !contas.has(pasta.name) && /^[0-9a-f-]{36}$/.test(pasta.name);
+      if (!apagada && balde !== "videos") continue;
+      let offset = 0;
+      for (;;) {
+        const { data: fich, error: ef } = await sb.storage.from(balde).list(pasta.name, { limit: 1000, offset });
+        if (ef) break;
+        for (const f of fich ?? []) {
+          if (!f.id) continue;
+          const caminho = `${pasta.name}/${f.name}`;
+          const criado = f.created_at ? Date.parse(f.created_at) : Date.now();
+          const velho = criado < Date.parse(limiteStory);
+          let sai = false;
+          if (apagada) sai = balde === "chat-media" ? !chatUsado.has(caminho) : true;
+          else if (balde === "videos") sai = velho && !videosUsados.has(caminho);
+          if (balde === "media" && apagar.includes(caminho)) sai = false;   // já está na lista de cima
+          if (sai) { (outros[balde] ??= []).push(caminho); bytes += Number(f.metadata?.size ?? 0); }
+        }
+        if (!fich || fich.length < 1000) break;
+        offset += 1000;
+      }
+    }
+  }
+  const nOutros = Object.values(outros).reduce((n, l) => n + l.length, 0);
+
   // 3) stories antigos
   const { count: nStories } = await sb.from("stories").select("id", { count: "exact", head: true }).lt("created_at", limiteStory);
 
   const resumo = {
     ok: true, simulacao: simular, limiteStories: limiteStory,
-    ficheiros: apagar.length, mb: Math.round(bytes / 1048576 * 10) / 10,
+    ficheiros: apagar.length + nOutros, porEspaco: Object.fromEntries(Object.entries(outros).map(([k, v]) => [k, v.length])), mb: Math.round(bytes / 1048576 * 10) / 10,
     publicacoes: 0, stories: nStories ?? 0,
   };
-  if (simular) return json({ ...resumo, exemplos: apagar.slice(0, 10) });
+  if (simular) return json({ ...resumo, exemplos: apagar.slice(0, 10), outros: Object.fromEntries(Object.entries(outros).map(([k, v]) => [k, v.slice(0, 10)])) });
 
   // apagar ficheiros em blocos
   for (let i = 0; i < apagar.length; i += 100) {
     const { error } = await sb.storage.from(BALDE).remove(apagar.slice(i, i + 100));
     if (error) return json({ ...resumo, ok: false, erro: "ficheiros: " + error.message }, 500);
+  }
+  for (const [balde, lista] of Object.entries(outros)) {
+    for (let i = 0; i < lista.length; i += 100) {
+      const { error } = await sb.storage.from(balde).remove(lista.slice(i, i + 100));
+      if (error) return json({ ...resumo, ok: false, erro: balde + ": " + error.message }, 500);
+    }
   }
   const { error: e5 } = await sb.from("stories").delete().lt("created_at", limiteStory);
   if (e5) return json({ ...resumo, ok: false, erro: e5.message }, 500);
