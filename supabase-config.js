@@ -310,6 +310,12 @@ FC.aplicarSelos = function (raiz) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => FC.carregarSelos()); else FC.carregarSelos();
 })();
 
+// nomes reservados à conta oficial (a base de dados também bloqueia)
+FC.nomeReservado = function (nome) {
+  const n = String(nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /feira\s*comercia/.test(n) || /(^|[^a-z])(administra[a-z]*|admin|moderador[a-z]*)([^a-z]|$)/.test(n);
+};
+
 /* ---------- Erros em português claro (nunca mostrar mensagens técnicas) ---------- */
 FC.traduzirErro = function (err) {
   const m = String((err && (err.message || err.error_description || err.error)) || err || '');
@@ -317,6 +323,7 @@ FC.traduzirErro = function (err) {
   if (/Failed to fetch|NetworkError|Load failed|network|ERR_INTERNET/i.test(m)) return 'Sem ligação à internet. Verifique a ligação e tente outra vez.';
   if (/JWT|refresh token|not authenticated|session/i.test(m)) return 'A sua sessão terminou. Entre outra vez na sua conta.';
   if (/row-level security|permission denied|not allowed|forbidden/i.test(m)) return 'Não tem permissão para fazer isto.';
+  if (/nome reservado/i.test(m)) return 'Este nome é reservado à Feira Comercial. Escolha outro nome.';
   if (/conta suspensa/i.test(m)) return 'A sua conta está suspensa. Fale com a equipa da Feira Comercial pelo chat.';
   if (/duplicate key|already exists|unique/i.test(m)) return 'Isto já existe.';
   if (/exceeded the maximum allowed size|too large|payload/i.test(m)) return 'O ficheiro é demasiado grande.';

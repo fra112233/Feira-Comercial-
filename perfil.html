@@ -872,6 +872,7 @@
         /* ==================== MEDIA GALLERY ==================== */
         .cartao-oficial { display: flex; gap: 12px; align-items: center; text-align: left; margin: 10px auto 6px; max-width: 520px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, rgba(243,198,78,.16), rgba(217,165,46,.06)); border: 1px solid rgba(243,198,78,.45); }
         .cartao-oficial .ic { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#f3c64e,#d9a52e); color: #111; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+        .cartao-oficial .co-seg { display: block; margin-top: 6px; font-size: 12px; opacity: .85; }
         .cartao-oficial b { display: block; font-size: 14.5px; color: var(--text-primary, #fff); }
         .cartao-oficial span { font-size: 13px; color: var(--text-secondary, #aaa); line-height: 1.45; }
 
@@ -1757,10 +1758,16 @@
         const s = FC._selos.get(id);
         if (!s) { el.style.display = 'none'; return; }
         const adm = s === 'Administrador';
-        el.innerHTML = '<div class="ic"><i class="fas fa-circle-check"></i></div><div><b>Conta oficial · ' + s + '</b><span>' +
+        el.innerHTML = '<div class="ic"><i class="fas fa-circle-check"></i></div><div><b>' +
+            (adm ? 'Conta oficial · Administrador' : 'Conta oficial verificada da Feira Comercial') + '</b><span>' +
             (adm ? 'Esta é a conta verificada do administrador da Feira Comercial. Pode falar diretamente para dúvidas, sugestões ou problemas com a sua conta.'
-                 : 'Conta oficial da equipa da Feira Comercial: avisos, novidades e dicas para usar a plataforma.') + '</span></div>';
+                 : 'Esta é a única conta oficial da plataforma. Publicamos aqui avisos, novidades e dicas, e respondemos às suas dúvidas por mensagem.') +
+            '<br><small class="co-seg"><i class="fas fa-lock"></i> A Feira Comercial nunca pede a sua palavra-passe nem códigos por mensagem.</small></span></div>';
         el.style.display = 'flex';
+        // "Empresa" → "Conta oficial"
+        const tb = document.getElementById('tipoBadge');
+        if (tb) tb.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font-size:12px;font-weight:700;"><i class="fas fa-circle-check"></i> ' +
+            (adm ? 'Administrador da plataforma' : 'Conta oficial · Plataforma digital') + '</span>';
     }
     document.addEventListener('fc:selos', mostrarCartaoOficial);
 

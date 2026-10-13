@@ -123,6 +123,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .back-btn { display: none; font-size: 18px; color: var(--icon); cursor: pointer; }
 .chat-peer-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-search); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 18px; overflow: hidden; cursor: pointer; }
 .chat-peer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.aviso-oficial { display: flex; gap: 8px; align-items: center; justify-content: center; text-align: center; padding: 7px 12px; font-size: 12.5px; line-height: 1.4;
+  background: linear-gradient(135deg, rgba(243,198,78,.16), rgba(217,165,46,.06)); border-bottom: 1px solid rgba(243,198,78,.35); color: var(--text-primary); }
+.aviso-oficial i { color: #f3c64e; }
 .chat-peer-info .peer-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
 .chat-peer-info .peer-status { font-size: 12px; color: var(--green); }
 .chat-peer-info .peer-status.blocked-status { color: var(--danger); }
@@ -427,6 +430,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
                     <button class="icon-btn" onclick="openPeerProfile()" title="Ver perfil"><i class="fas fa-ellipsis-v"></i></button>
                 </div>
             </div>
+
+            <div class="aviso-oficial" id="avisoOficial" style="display:none"></div>
 
             <!-- Reply bar -->
             <div class="reply-bar" id="replyBar">
@@ -785,6 +790,7 @@ async function openContact(id) {
     document.getElementById('activeChat').style.display = 'flex';
     document.getElementById('peer-name').textContent = c.name;
     document.getElementById('peer-name').setAttribute('data-selo', c.id);
+    mostrarAvisoOficial();
     document.getElementById('peer-avatar').innerHTML = avatarHtml(c.avatar);
     atualizarEstadoPeer();
     cancelReply();
@@ -1252,6 +1258,17 @@ async function clearChat() {
 }
 
 // ─── PERFIL DO CONTACTO ──────────────────────────────────
+// conversa com a conta oficial / administrador: faixa de confiança (como as contas verificadas do WhatsApp)
+function mostrarAvisoOficial() {
+    const el = document.getElementById('avisoOficial'); if (!el) return;
+    const s = activeContactId && window.FC && FC._selos ? FC._selos.get(activeContactId) : null;
+    if (!s) { el.style.display = 'none'; return; }
+    el.innerHTML = '<i class="fas fa-circle-check"></i><span><b>' + (s === 'Administrador' ? 'Administrador oficial da Feira Comercial' : 'Conta oficial da Feira Comercial') +
+        '.</b> Nunca lhe pedimos a palavra-passe nem códigos.</span>';
+    el.style.display = 'flex';
+}
+document.addEventListener('fc:selos', mostrarAvisoOficial);
+
 // denunciar: abre o formulário de denúncia já com a conta indicada (a conversa fica guardada mesmo que seja apagada)
 function denunciarConversa() {
     if (!activeContactId) return;
