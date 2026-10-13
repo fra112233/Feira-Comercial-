@@ -360,6 +360,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
         <div class="profile-actions">
             <button class="profile-btn msg" onclick="closeProfile()"><i class="fas fa-comment"></i> Mensagem</button>
             <button class="profile-btn block" id="pm-block-btn" onclick="toggleBlockFromProfile()"><i class="fas fa-ban"></i> <span id="pm-block-label">Bloquear</span></button>
+            <button class="profile-btn block" onclick="denunciarConversa()" style="margin-top:8px"><i class="fas fa-flag"></i> Denunciar</button>
         </div>
     </div>
 </div>
@@ -1251,6 +1252,12 @@ async function clearChat() {
 }
 
 // ─── PERFIL DO CONTACTO ──────────────────────────────────
+// denunciar: abre o formulário de denúncia já com a conta indicada (a conversa fica guardada mesmo que seja apagada)
+function denunciarConversa() {
+    if (!activeContactId) return;
+    location.href = 'reclamacao.html?tipo=denuncia&link=' + encodeURIComponent(location.origin + '/perfil.html?id=' + activeContactId);
+}
+
 // tocar na foto ou no nome → abre logo a página do perfil (os 3 pontos mostram as opções)
 function irParaPerfil() {
     if (!activeContactId) return;
