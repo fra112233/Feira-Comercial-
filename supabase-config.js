@@ -273,6 +273,7 @@ FC.carregarSelos = async function () {
   FC._selos = new Map(data.map(r => [r.id, r.selo]));
   try { sessionStorage.setItem('fc_selos', JSON.stringify(data)); } catch (e) {}
   FC.aplicarSelos();
+  document.dispatchEvent(new CustomEvent('fc:selos'));
 };
 FC.seloHtml = function (id) {
   const s = FC._selos.get(id);

@@ -20,3 +20,9 @@ grant execute on function public.selos() to anon, authenticated;
 update public.perfis
 set city = 'Maputo', province = 'Maputo Cidade', phone = '+258 877663748'
 where id = 'ede042b6-964f-46fb-a361-0432ef30715e';
+
+-- Conta pessoal: nome Francisco, utilizador @francisco e biografia
+update public.perfis
+set full_name = 'Francisco', username = 'francisco',
+    bio = 'Administrador da Feira Comercial. Para dúvidas, sugestões ou problemas com a sua conta, fale comigo aqui no chat.'
+where id = 'ede042b6-964f-46fb-a361-0432ef30715e';
