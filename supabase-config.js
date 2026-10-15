@@ -291,7 +291,10 @@ FC.diaHora = function (d) {
 // texto da notificação conforme o estado ATUAL da live / da oferta
 FC.textoNotificacao = function (n) {
   if (n.tipo === 'live' && n.live) {
-    const l = n.live, ativa = l.estado === 'ao_vivo' && (Date.now() - new Date(l.atualizado_em).getTime()) < 120000;
+    const l = n.live;
+    // confia no estado do servidor; só considera terminada uma live "em direto" que ficou 10 min sem sinal
+    // (margem larga porque o relógio do telemóvel de quem vê pode estar adiantado ou atrasado)
+    const ativa = l.estado === 'ao_vivo' && !l.ended_at && (Date.now() - new Date(l.atualizado_em).getTime()) < 10 * 60000;
     if (!ativa) {
       const fim = l.ended_at || l.atualizado_em;
       return { txt: 'esteve em direto', extra: 'Terminou ' + (fim ? FC.diaHora(fim) : ''), terminada: true };
