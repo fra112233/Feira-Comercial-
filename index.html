@@ -556,6 +556,15 @@ html, body { max-width: 100%; overflow-x: hidden; }
         .oferta.fim .raio { background: #6b7280; } .oferta.fim .preco { font-size: 16px; color: var(--text-secondary); } .oferta.fim .conta { color: var(--text-secondary); }
         .btn-action.btn-guardar { flex: 0 0 auto; padding: 8px 12px; }
         .post-card > .oferta { margin-right: 40px; }
+        /* telemóvel: 4 botões por baixo de cada publicação sem partir o texto em 2 linhas */
+        @media (max-width: 480px) {
+            .post-actions .btn-action { font-size: 12.5px; padding: 8px 4px; gap: 4px; white-space: nowrap; }
+            .post-actions .btn-action .rot { display: none; }
+            .post-actions .btn-action.btn-guardar { padding: 8px 10px; }
+            .feed-filtros { gap: 6px; }
+            .feed-filtros button { padding: 7px 11px; font-size: 13px; }
+            .feed-filtros button .rot, .compose-btn .rot { display: none; }
+        }
         .btn-denunciar { opacity: .5; text-decoration: none; color: var(--text-secondary) !important; background: var(--hover-bg) !important; } .btn-denunciar:hover { opacity: 1; }
         .btn-action.btn-guardar.guardado { color: #f3c64e; }
         #oferta-campos { display: none; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(243,198,78,.6); background: rgba(243,198,78,.06); }
@@ -688,7 +697,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
                     <input type="file" id="post-media-input" hidden accept="image/*,video/*" multiple onchange="previewPostMedia(event)">
                 </label>
                 <button type="button" class="compose-btn" id="btn-oferta" onclick="alternarCamposOferta()" style="border:none;background:none;font:inherit;font-size:13px;font-weight:600;">
-                    <i class="fas fa-bolt" style="color:#f7b928"></i> Oferta relâmpago
+                    <i class="fas fa-bolt" style="color:#f7b928"></i> Oferta<span class="rot"> relâmpago</span>
                 </button>
                 <button class="publish-btn" onclick="publishPost()" id="publish-btn" disabled>Publicar</button>
             </div>
@@ -696,7 +705,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 
         <div class="feed-filtros" id="feed-filtros" role="tablist">
             <button type="button" data-f="todos" class="ativo"><i class="fas fa-house"></i> Para si</button>
-            <button type="button" data-f="perto"><i class="fas fa-location-dot"></i> Perto de mim</button>
+            <button type="button" data-f="perto"><i class="fas fa-location-dot"></i> Perto<span class="rot"> de mim</span></button>
             <button type="button" data-f="ofertas"><i class="fas fa-bolt"></i> Ofertas</button>
             <button type="button" data-f="guardados"><i class="fas fa-bookmark"></i> Guardados</button>
         </div>
@@ -1838,11 +1847,11 @@ function htmlAcoes(p) {
                     ${['Curtir','Amei','Haha','Triste','Uau'].map(r => `<button type="button" class="react-icon${p.myReaction === r ? ' atual' : ''}" data-react="${r}" title="${r}">${emojiMap[r]}<small>${r}</small></button>`).join('')}
                 </div>
             </div>
-            <div class="btn-action" onclick="toggleComments(${p.id})">
-                <i class="fas fa-comment"></i> Comentar (${countComments(p.comments)})
+            <div class="btn-action" onclick="toggleComments(${p.id})" title="Comentar">
+                <i class="fas fa-comment"></i> <span class="rot">Comentar</span> <span>(${countComments(p.comments)})</span>
             </div>
-            <div class="btn-action" onclick="responderNoChat(${p.id})">
-                <i class="fas fa-paper-plane"></i> Responder
+            <div class="btn-action" onclick="responderNoChat(${p.id})" title="Responder por mensagem">
+                <i class="fas fa-paper-plane"></i> <span class="rot">Responder</span>
             </div>${temGuardados ? `
             <div class="btn-action btn-guardar${p.guardado ? ' guardado' : ''}" onclick="alternarGuardado(${p.id})" title="${p.guardado ? 'Remover dos guardados' : 'Guardar para ver mais tarde'}" aria-label="Guardar">
                 <i class="${p.guardado ? 'fas' : 'far'} fa-bookmark"></i>

@@ -40,7 +40,30 @@
 .perigo h2 i { background: rgba(248,113,113,.12); color: var(--erro); }
 .btn-perigo { background: #b91c1c; color: #fff; }
 .campo input { width: 100%; box-sizing: border-box; }
-.ok-txt { color: var(--ok); font-size: 13.5px; } .erro-txt { color: var(--erro); font-size: 13.5px; }
+.ok-txt { color: var(--ok); font-size: 13.5px; }
+/* relatório "os meus dados" */
+#relatorio { position: fixed; inset: 0; z-index: 6000; background: #f4f4f5; color: #18181b; overflow-y: auto; display: none; font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+#relatorio.aberto { display: block; }
+#relatorio .barra { position: sticky; top: 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 14px; background: #18181b; color: #fff; z-index: 2; }
+#relatorio .barra b { flex: 1; min-width: 140px; font-size: 15px; }
+#relatorio .barra button { border: none; border-radius: 10px; padding: 9px 12px; font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+#relatorio .barra .pdf { background: linear-gradient(135deg, #f3c64e, #d9a52e); color: #000; }
+#relatorio .barra .fx { background: #3f3f46; color: #fff; }
+#relDoc { max-width: 820px; margin: 0 auto; padding: 22px 16px 60px; }
+#relDoc h1 { font-size: 22px; margin: 0 0 4px; } #relDoc .sub { color: #52525b; font-size: 13px; margin-bottom: 18px; }
+#relDoc h2 { font-size: 16px; margin: 22px 0 8px; padding-bottom: 6px; border-bottom: 2px solid #e4e4e7; display: flex; justify-content: space-between; gap: 8px; }
+#relDoc h2 small { color: #71717a; font-weight: 600; }
+#relDoc table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: #fff; border-radius: 10px; overflow: hidden; }
+#relDoc td, #relDoc th { padding: 8px 10px; border-bottom: 1px solid #f0f0f1; text-align: left; vertical-align: top; word-break: break-word; }
+#relDoc th { background: #fafafa; color: #52525b; font-weight: 700; font-size: 12.5px; }
+#relDoc td.k { width: 38%; color: #52525b; font-weight: 600; }
+#relDoc thead + tbody td:first-child, #relDoc th { white-space: nowrap; }
+@media (max-width: 480px) { #relDoc table { font-size: 12.5px; } #relDoc td, #relDoc th { padding: 7px 6px; } }
+#relDoc .vazio { color: #71717a; font-size: 13px; font-style: italic; }
+#relDoc .resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+#relDoc .resumo div { background: #fff; border-radius: 10px; padding: 10px; text-align: center; font-size: 12.5px; color: #52525b; }
+#relDoc .resumo b { display: block; font-size: 20px; color: #18181b; }
+@media print { body > *:not(#relatorio) { display: none !important; } #relatorio { position: static; overflow: visible; background: #fff; } #relatorio .barra { display: none; } #relDoc table { break-inside: auto; } } .erro-txt { color: var(--erro); font-size: 13.5px; }
 #conteudo { display: none; }
 </style>
 </head>
@@ -91,8 +114,8 @@
     <!-- Dados -->
     <section class="cartao sec">
       <h2><i class="fas fa-download"></i> Descarregar os meus dados</h2>
-      <p>Um ficheiro com o seu perfil, publicações, comentários, mensagens, seguidores, produtos, avaliações e pagamentos.</p>
-      <button type="button" class="btn btn-sec" id="btnDados"><i class="fas fa-file-arrow-down"></i> Descarregar (ficheiro .json)</button>
+      <p>Um relatório fácil de ler com o seu perfil, publicações, comentários, mensagens, quem segue, produtos, avaliações e pagamentos. Pode guardá-lo em PDF.</p>
+      <button type="button" class="btn btn-sec" id="btnDados"><i class="fas fa-file-lines"></i> Ver os meus dados</button>
       <div id="dadosEstado" style="margin-top:8px"></div>
     </section>
 
@@ -100,15 +123,17 @@
     <section class="cartao sec perigo" id="secApagar">
       <h2><i class="fas fa-trash"></i> Apagar a minha conta</h2>
       <p>Apaga de vez o seu perfil, publicações, fotos, vídeos, mensagens, produtos e avaliações. <b style="color:var(--texto)">Não pode ser desfeito.</b> Se for uma empresa, os registos de pagamentos ficam guardados para a contabilidade.</p>
-      <details>
-        <summary style="cursor:pointer;font-weight:700;color:var(--erro)">Quero apagar a minha conta</summary>
+      <p id="apEquipa" style="display:none;color:#fcd34d"><i class="fas fa-circle-info"></i> Esta é uma conta da equipa (administrador/oficial) e não pode ser apagada aqui, para a plataforma não ficar sem gestão. Para a fechar, peça a outro administrador.</p>
+      <button type="button" class="btn btn-perigo" id="btnMostrarApagar"><i class="fas fa-trash"></i> Apagar a minha conta</button>
+      <div id="formApagar" style="display:none">
         <div style="margin-top:12px">
           <div class="campo"><label for="apSenha">A sua palavra-passe</label><input id="apSenha" type="password" autocomplete="current-password"></div>
           <div class="campo"><label for="apConf">Escreva <b>APAGAR</b> para confirmar</label><input id="apConf" autocomplete="off" autocapitalize="characters"></div>
           <button type="button" class="btn btn-perigo" id="btnApagar"><i class="fas fa-trash"></i> Apagar a conta para sempre</button>
+          <button type="button" class="btn btn-sec" id="btnCancelarApagar" style="margin-left:6px">Cancelar</button>
           <div id="apEstado" style="margin-top:8px"></div>
         </div>
-      </details>
+      </div>
     </section>
 
     <p style="color:var(--sub);font-size:13px;text-align:center">Saiba mais nas <a href="politicas.html">Políticas e privacidade</a>.</p>
@@ -194,19 +219,101 @@ async function ativar2FA() {
 }
 
 // ---------- dados ----------
+const dataPt = d => d ? new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+const dataHoraPt = d => d ? new Date(d).toLocaleString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const mtTxt = v => v == null ? '' : String(Math.round(Number(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MT';
+function tabela(cab, linhas) {
+  if (!linhas.length) return '<p class="vazio">Nada para mostrar.</p>';
+  return '<table><thead><tr>' + cab.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr></thead><tbody>' +
+    linhas.map(l => '<tr>' + l.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+}
+function secao(titulo, n, corpo) { return '<h2><span>' + titulo + '</span>' + (n != null ? '<small>' + n + '</small>' : '') + '</h2>' + corpo; }
+const ROTULOS = [['full_name', 'Nome'], ['username', 'Nome de utilizador'], ['email', 'E-mail'], ['type', 'Tipo de conta'], ['phone', 'Telefone'],
+  ['whatsapp', 'WhatsApp'], ['gender', 'Género'], ['sector', 'Setor'], ['bio', 'Descrição'], ['nuit', 'NUIT'], ['morada', 'Morada'],
+  ['city', 'Cidade'], ['province', 'Província'], ['website', 'Site'], ['facebook', 'Facebook'], ['instagram', 'Instagram'],
+  ['visibility', 'Perfil na pesquisa'], ['mensagens_de', 'Quem me pode enviar mensagens'], ['assinatura_ate', 'Mensalidade válida até'], ['created_at', 'Membro desde']];
+function valorPerfil(k, v) {
+  if (v == null || v === '') return null;
+  if (k === 'type') return v === 'empresa' ? 'Empresa' : 'Pessoa';
+  if (k === 'visibility') return v === 'privado' ? 'Escondido' : 'Visível';
+  if (k === 'mensagens_de') return v === 'seguidos' ? 'Só quem eu sigo' : 'Todas as pessoas';
+  if (k === 'assinatura_ate' || k === 'created_at') return dataPt(v);
+  return esc(v);
+}
+
+async function montarRelatorio(d) {
+  // nomes das pessoas que aparecem (mensagens, quem sigo, bloqueios, avaliações)
+  const ids = new Set();
+  (d.mensagens || []).forEach(m => { ids.add(m.de); ids.add(m.para); });
+  (d.sigo || []).forEach(x => ids.add(x)); (d.bloqueios || []).forEach(x => ids.add(x));
+  (d.avaliacoes_que_fiz || []).forEach(a => ids.add(a.empresa_id)); (d.avaliacoes_recebidas || []).forEach(a => ids.add(a.user_id));
+  ids.delete(me.id); ids.delete(null); ids.delete(undefined);
+  const nomes = {};
+  if (ids.size) {
+    const { data } = await supabaseClient.from('perfis').select('id, full_name').in('id', [...ids].slice(0, 500));
+    (data || []).forEach(p => nomes[p.id] = p.full_name);
+  }
+  const nome = id => esc(nomes[id] || 'Conta apagada ou desconhecida');
+  const p = d.perfil || {};
+  const pubs = d.publicacoes || [], msgs = d.mensagens || [], coms = d.comentarios || [];
+  let h = '<h1>Os meus dados na Feira Comercial</h1><div class="sub">' + esc(p.full_name || '') + ' · relatório criado a ' + dataHoraPt(d.exportado_em || new Date()) + '</div>';
+  h += '<div class="resumo">' + [['Publicações', pubs.length], ['Comentários', coms.length], ['Gostos dados', (d.gostos || []).length], ['Mensagens', msgs.length],
+    ['Sigo', (d.sigo || []).length], ['Seguidores', d.seguidores || 0], ['Produtos', (d.produtos || []).length], ['Pagamentos', (d.pagamentos || []).length]]
+    .map(([t, n]) => '<div><b>' + n + '</b>' + t + '</div>').join('') + '</div>';
+  h += secao('Perfil', null, '<table><tbody>' + ROTULOS.map(([k, r]) => { const v = valorPerfil(k, p[k]); return v == null ? '' : '<tr><td class="k">' + r + '</td><td>' + v + '</td></tr>'; }).join('') +
+    (p.latitude != null ? '<tr><td class="k">Localização no mapa</td><td>Sim, guardada</td></tr>' : '') + '</tbody></table>');
+  h += secao('Publicações', pubs.length, tabela(['Data', 'Texto', 'Fotos', '♥'], pubs.map(x =>
+    [dataPt(x.created_at), esc(x.content || '—') + (x.oferta_preco ? '<br><b>⚡ Oferta: ' + mtTxt(x.oferta_preco) + '</b>' : ''), String((x.media || []).length || (x.image_url ? 1 : 0)), String(x.curtidas_count || 0)])));
+  h += secao('Comentários', coms.length, tabela(['Data', 'Comentário'], coms.map(x => [dataPt(x.created_at), esc(x.content || '')])));
+  h += secao('Mensagens', msgs.length, tabela(['Data', 'Com quem', '', 'Mensagem'], msgs.map(m => {
+    const enviei = m.de === me.id;
+    return [dataHoraPt(m.em), nome(enviei ? m.para : m.de), enviei ? 'Enviada' : 'Recebida', m.texto ? esc(m.texto) : (m.ficheiro ? '📎 Ficheiro' : '—')];
+  })));
+  h += secao('Quem eu sigo', (d.sigo || []).length, (d.sigo || []).length ? '<p>' + (d.sigo || []).map(nome).join(' · ') + '</p>' : '<p class="vazio">Ninguém.</p>');
+  h += secao('Vídeos', (d.videos || []).length, tabela(['Data', 'Legenda', 'Visualizações'], (d.videos || []).map(v => [dataPt(v.created_at), esc(v.caption || '—'), String(v.views || 0)])));
+  h += secao('Stories', (d.stories || []).length, tabela(['Data', 'Tipo'], (d.stories || []).map(s => [dataPt(s.created_at), s.media_type === 'video' ? 'Vídeo' : 'Foto'])));
+  h += secao('Anúncios', (d.anuncios || []).length, tabela(['Data', 'Título', 'Tipo', 'Estado'], (d.anuncios || []).map(a =>
+    [dataPt(a.data_publicacao), esc(a.titulo), esc({ promo: 'Promoção', vaga: 'Vaga', servico: 'Serviço' }[a.tipo] || a.tipo || ''), a.ativo ? 'Ativo' : 'Pausado'])));
+  h += secao('Produtos', (d.produtos || []).length, tabela(['Produto', 'Preço', 'Visível'], (d.produtos || []).map(x => [esc(x.nome), x.preco != null ? mtTxt(x.preco) : 'Sob consulta', x.disponivel ? 'Sim' : 'Não'])));
+  h += secao('Avaliações que fiz', (d.avaliacoes_que_fiz || []).length, tabela(['Empresa', 'Estrelas', 'Comentário'], (d.avaliacoes_que_fiz || []).map(a => [nome(a.empresa_id), '★'.repeat(a.estrelas), esc(a.comentario || '')])));
+  h += secao('Avaliações recebidas', (d.avaliacoes_recebidas || []).length, tabela(['Cliente', 'Estrelas', 'Comentário', 'Resposta'], (d.avaliacoes_recebidas || []).map(a => [nome(a.user_id), '★'.repeat(a.estrelas), esc(a.comentario || ''), esc(a.resposta || '')])));
+  h += secao('Pagamentos da mensalidade', (d.pagamentos || []).length, tabela(['Data', 'Meses', 'Valor', 'Método', 'Estado'], (d.pagamentos || []).map(x =>
+    [dataPt(x.created_at), String(x.meses), mtTxt(x.valor), esc({ banco: 'Transferência', mpesa: 'M-Pesa', emola: 'e-Mola' }[x.metodo] || x.metodo || ''), esc({ pendente: 'À espera', confirmado: 'Confirmado', rejeitado: 'Recusado' }[x.estado] || x.estado)])));
+  h += secao('Reclamações e sugestões', (d.reclamacoes || []).length, tabela(['Data', 'Assunto', 'Estado'], (d.reclamacoes || []).map(x => [dataPt(x.created_at), esc(x.assunto || ''), esc(x.estado || '')])));
+  h += secao('Outros', null, '<table><tbody><tr><td class="k">Gostos dados</td><td>' + (d.gostos || []).length + '</td></tr><tr><td class="k">Publicações guardadas</td><td>' + (d.guardados || []).length +
+    '</td></tr><tr><td class="k">Contas bloqueadas</td><td>' + ((d.bloqueios || []).map(nome).join(' · ') || 'Nenhuma') + '</td></tr></tbody></table>');
+  return h;
+}
+
+let relatorioHtml = '';
 $('btnDados').onclick = async () => {
   const b = $('btnDados'); b.disabled = true;
-  msg('dadosEstado', 'A preparar…', true);
+  msg('dadosEstado', 'A preparar o relatório…', true);
   const { data, error } = await supabaseClient.rpc('exportar_meus_dados');
-  b.disabled = false;
-  if (error || !data) { msg('dadosEstado', 'Esta opção ainda não está disponível. Tente mais tarde.'); return; }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'feira-comercial-os-meus-dados-' + new Date().toISOString().slice(0, 10) + '.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  msg('dadosEstado', '✓ Ficheiro descarregado.', true);
+  if (error || !data) { b.disabled = false; msg('dadosEstado', 'Esta opção ainda não está disponível. Tente mais tarde.'); return; }
+  try { relatorioHtml = await montarRelatorio(data); } catch (e) { console.warn(e); b.disabled = false; msg('dadosEstado', 'Não foi possível preparar o relatório.'); return; }
+  b.disabled = false; msg('dadosEstado', '');
+  let r = $('relatorio');
+  if (!r) {
+    r = document.createElement('div'); r.id = 'relatorio';
+    r.innerHTML = '<div class="barra"><b>Os meus dados</b><button class="pdf" type="button" id="relPdf"><i class="fas fa-file-pdf"></i> Guardar em PDF</button>' +
+      '<button class="fx" type="button" id="relFicheiro"><i class="fas fa-download"></i> Descarregar</button><button class="fx" type="button" id="relFechar" aria-label="Fechar"><i class="fas fa-times"></i></button></div><div id="relDoc"></div>';
+    document.body.appendChild(r);
+    $('relFechar').onclick = () => { r.classList.remove('aberto'); document.body.style.overflow = ''; };
+    $('relPdf').onclick = () => window.print();
+    $('relFicheiro').onclick = () => {
+      const estilo = [...document.querySelectorAll('style')].map(s => s.textContent).join('\n');
+      const doc = '<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Os meus dados — Feira Comercial</title><style>' +
+        estilo + ' body{background:#f4f4f5;margin:0} #relatorio{display:block;position:static}</style></head><body><div id="relatorio"><div id="relDoc">' + relatorioHtml + '</div></div></body></html>';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html' }));
+      a.download = 'os-meus-dados-feira-comercial-' + new Date().toISOString().slice(0, 10) + '.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+  }
+  $('relDoc').innerHTML = relatorioHtml;
+  r.classList.add('aberto'); r.scrollTop = 0; document.body.style.overflow = 'hidden';
 };
 
 // ---------- apagar ----------
@@ -237,7 +344,9 @@ $('btnApagar').onclick = async () => {
   me = await FC.boot();
   if (!me) return;
   $('conteudo').style.display = 'grid';
-  if (me.role === 'admin' || me.role === 'equipa') $('secApagar').style.display = 'none';
+  if (me.role === 'admin' || me.role === 'equipa') { $('apEquipa').style.display = ''; $('btnMostrarApagar').disabled = true; }
+  $('btnMostrarApagar').onclick = () => { $('btnMostrarApagar').style.display = 'none'; $('formApagar').style.display = ''; $('apSenha').focus(); };
+  $('btnCancelarApagar').onclick = () => { $('formApagar').style.display = 'none'; $('btnMostrarApagar').style.display = ''; $('apSenha').value = ''; $('apConf').value = ''; msg('apEstado', ''); };
   iniciarMensagens();
   iniciarVisibilidade();
   desenhar2FA();

@@ -181,8 +181,9 @@ begin
   perform pg_temp.t('Mensagens','Destinatário NÃO apaga para todos', loja, format('update messages set deleted=true where id=%s', mid), 'ok');
   perform pg_temp.t('Mensagens','… a mensagem continua lá', ana, format('select deleted::text from messages where id=%s', mid), 'v=false');
   perform pg_temp.t('Mensagens','Remetente apaga para todos', ana, format('update messages set deleted=true where id=%s', mid), 'ok');
-  -- desde a migração 019 "apagar" só esconde: o original fica guardado para a equipa investigar denúncias
-  perform pg_temp.t('Mensagens','… fica marcada como apagada (o original fica guardado para a equipa)', loja, format('select deleted::text from messages where id=%s', mid), 'v=true');
+  -- desde a migração 028 o texto sai da conversa e o original fica num arquivo que só a equipa lê
+  perform pg_temp.t('Mensagens','… o texto desaparece da conversa (quem recebeu já não o lê)', loja, format('select content from messages where id=%s', mid), 'v=');
+  perform pg_temp.t('Mensagens','… e ninguém lê o arquivo diretamente', loja, 'select message_id from mensagens_apagadas', 'bloqueado');
   perform pg_temp.t('Mensagens','Limpar conversa só para mim', loja, format('update messages set cleared_by_receiver=true where receiver_id=%L', loja), 'ok');
   perform pg_temp.t('Mensagens','NÃO deve aceitar mensagem vazia (sem texto nem ficheiro)', ana, format('insert into messages(sender_id,receiver_id,content) values (%L,%L,null)', ana, loja), 'bloqueado');
 
