@@ -183,8 +183,15 @@
         .item-link i { width: 22px; text-align: center; font-size: 18px; color: var(--primary); }
 
         /* ── STORIES ── */
-        .stories-section { background: var(--bg-card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
+        .stories-section { background: var(--bg-card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow); position: relative; }
         .stories-container { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        /* setas para deslizar os stories no computador (sem ecrã tátil) */
+        .stories-seta { position: absolute; top: 34px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,.18); cursor: pointer;
+            display: none; align-items: center; justify-content: center; z-index: 2; font-size: 13px; }
+        .stories-seta.esq { left: 6px; } .stories-seta.dir { right: 6px; }
+        .stories-seta.ver { display: flex; }
+        @media (hover: none) { .stories-seta.ver { display: none; } }
         .stories-container::-webkit-scrollbar { display: none; }
         .story-circle {
             flex-shrink: 0; width: 70px; text-align: center; cursor: pointer;
@@ -644,6 +651,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
     <section class="col-center">
         <!-- Stories -->
         <div class="stories-section">
+            <button class="stories-seta esq" id="storiesEsq" onclick="deslizarStories(-1)" aria-label="Stories anteriores"><i class="fas fa-chevron-left"></i></button>
+            <button class="stories-seta dir" id="storiesDir" onclick="deslizarStories(1)" aria-label="Mais stories"><i class="fas fa-chevron-right"></i></button>
             <div class="stories-container" id="stories-list">
                 <div class="story-circle add" onclick="document.getElementById('up-story-input').click()">
                     <div class="story-ring"><i class="fas fa-plus"></i></div>
@@ -888,7 +897,11 @@ function guardarCache() {
 //  CARREGAR DA BASE DE DADOS
 // ─────────────────────────────────────
 function desde() { return new Date(Date.now() - TEMPO_VIDA_POST).toISOString(); }
-function desdeStory() { return new Date(Date.now() - TEMPO_VIDA_STORY).toISOString(); }
+function desdeStory() { return new Date(agoraServidor() - TEMPO_VIDA_STORY).toISOString(); }
+// diferença entre o relógio deste aparelho e o do servidor (um telemóvel com a hora errada
+// não pode esconder stories ativos nem mostrar stories já expirados)
+let desvioRelogio = 0;
+function agoraServidor() { return Date.now() + desvioRelogio; }
 
 // ── Filtros do feed: Para si · Perto de mim · Ofertas · Guardados ──
 let filtroFeed = 'todos';
@@ -1047,17 +1060,24 @@ function arvoreComentarios(lista) {
 }
 
 async function carregarStories() {
-    const { data, error } = await supabaseClient
-        .from('stories')
-        .select('id, media_url, media_type, created_at, user_id, autor:perfis!stories_user_id_fkey(full_name, avatar_url)')
-        .gte('created_at', desdeStory())
-        .order('created_at', { ascending: true });
-    if (error) { console.error('Erro ao carregar stories:', error.message); return; }
+    // o servidor decide quais estão ativos (48 h pela hora dele, igual para todos)
+    let { data, error } = await supabaseClient.rpc('stories_ativos');
+    if (error) {   // migração 029 ainda não aplicada → forma antiga
+        const r = await supabaseClient
+            .from('stories')
+            .select('id, media_url, media_type, created_at, user_id, autor:perfis!stories_user_id_fkey(full_name, avatar_url)')
+            .gte('created_at', desdeStory())
+            .order('created_at', { ascending: true });
+        if (r.error) { console.error('Erro ao carregar stories:', r.error.message); return; }
+        data = (r.data || []).map(s => ({ ...s, full_name: s.autor && s.autor.full_name, avatar_url: s.autor && s.autor.avatar_url }));
+    } else if (data && data.length && data[0].agora) {
+        desvioRelogio = new Date(data[0].agora).getTime() - Date.now();
+    }
     stories = (data || []).map(s => {
-        const nome = (s.autor && s.autor.full_name) || 'Utilizador';
+        const nome = s.full_name || 'Utilizador';
         return { id: s.id, url: s.media_url, type: s.media_type, userId: s.user_id,
                  timestamp: new Date(s.created_at).getTime(), userName: nome,
-                 userAvatar: avatarDe(nome, s.autor && s.autor.avatar_url) };
+                 userAvatar: avatarDe(nome, s.avatar_url) };
     });
     renderStories();
     guardarCache();
@@ -1280,6 +1300,9 @@ function marcarVisto(id) {
 
 function organizarStories() {
     const atual = document.getElementById('storyModal').classList.contains('open') && stories[sIdx] ? stories[sIdx].id : null;
+    // tira os que passaram das 48 h desde a última carga (o que está aberto fica até fechar)
+    const limite = agoraServidor() - TEMPO_VIDA_STORY;
+    stories = stories.filter(st => st.timestamp > limite || st.id === atual);
     const porUser = {};
     stories.forEach(st => (porUser[st.userId] = porUser[st.userId] || []).push(st));
     const vistos = storiesVistos();
@@ -1334,7 +1357,34 @@ function renderStories() {
             <div class="story-name">${escHtml(g.userId === currentUser.id ? 'Você' : st.userName)}</div>`;
         list.appendChild(div);
     });
+    atualizarSetasStories();
 }
+
+// no computador: setas e roda do rato para ver os stories que não cabem no ecrã
+function atualizarSetasStories() {
+    const l = document.getElementById('stories-list');
+    const e = document.getElementById('storiesEsq'), d = document.getElementById('storiesDir');
+    if (!l || !e || !d) return;
+    e.classList.toggle('ver', l.scrollLeft > 4);
+    d.classList.toggle('ver', l.scrollLeft + l.clientWidth < l.scrollWidth - 4);
+}
+function deslizarStories(dir) {
+    const l = document.getElementById('stories-list');
+    l.scrollBy({ left: dir * Math.max(160, l.clientWidth * 0.8), behavior: 'smooth' });
+}
+(function ligarDeslizeStories() {
+    const l = document.getElementById('stories-list');
+    if (!l) return;
+    l.addEventListener('scroll', atualizarSetasStories, { passive: true });
+    window.addEventListener('resize', atualizarSetasStories);
+    l.addEventListener('wheel', ev => {
+        if (Math.abs(ev.deltaY) <= Math.abs(ev.deltaX) || l.scrollWidth <= l.clientWidth) return;
+        const fim = ev.deltaY > 0 ? l.scrollLeft + l.clientWidth >= l.scrollWidth - 1 : l.scrollLeft <= 0;
+        if (fim) return;                       // nas pontas deixa a página descer normalmente
+        ev.preventDefault();
+        l.scrollLeft += ev.deltaY;
+    }, { passive: false });
+})();
 
 function openStory(i) {
     if (stories.length === 0) { closeStory(); return; }
