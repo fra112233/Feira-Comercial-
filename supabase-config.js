@@ -242,6 +242,7 @@ FC.sino = async function () {
     if (menu.previousElementSibling && menu.previousElementSibling.classList.contains('fc-sino-btn')) return;
     const b = document.createElement(menu.tagName === 'BUTTON' ? 'button' : 'div');
     b.className = menu.className + ' fc-sino-btn';
+    b.style.cssText = menu.style.cssText;   // alguns ☰ só aparecem com o estilo próprio deles
     if (b.tagName === 'BUTTON') b.type = 'button';
     b.title = 'Notificações'; b.setAttribute('aria-label', 'Notificações'); b.setAttribute('role', 'button');
     b.innerHTML = '<i class="fas fa-bell"></i><span class="fc-notif-badge" data-fc-notif style="display:none"></span>';
@@ -332,6 +333,29 @@ FC.sino = async function () {
   setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
 };
+
+/* ---------- Estatísticas das empresas ----------
+   FC.registarEvento(empresaId, 'perfil'|'whatsapp'|'ligar'|'email'|'site'|'anuncio', alvo)
+   Links com data-fc-evento="whatsapp" data-empresa="<id>" são contados sozinhos ao clicar.
+   A base de dados ignora o próprio dono e não conta a mesma pessoa várias vezes. */
+FC.registarEvento = function (empresa, tipo, alvo) {
+  if (!empresa || !tipo) return;
+  try { supabaseClient.rpc('registar_evento', { p_empresa: empresa, p_tipo: tipo, p_alvo: alvo == null ? null : String(alvo) }).then(() => {}, () => {}); } catch (e) {}
+};
+FC._vistasPendentes = new Set();
+FC.registarVista = function (postId) {   // publicação que apareceu no ecrã (envia em grupos)
+  if (!postId) return;
+  FC._vistasPendentes.add(Number(postId));
+  clearTimeout(FC._vistasT);
+  FC._vistasT = setTimeout(() => {
+    const ids = [...FC._vistasPendentes].slice(0, 30); FC._vistasPendentes.clear();
+    if (ids.length) supabaseClient.rpc('registar_vistas', { p_posts: ids }).then(() => {}, () => {});
+  }, 2500);
+};
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('[data-fc-evento][data-empresa]');
+  if (a) FC.registarEvento(a.dataset.empresa, a.dataset.fcEvento, a.dataset.alvo);
+}, true);
 
 /* ---------- Instalar a aplicação (sem APK, sem aviso de risco) ----------
    O Chrome instala o site como aplicação: ícone no ecrã, abre em ecrã inteiro e

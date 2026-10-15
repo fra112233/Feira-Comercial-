@@ -91,6 +91,7 @@ window.FCMenu = (function () {
         item('fa-bullhorn', 'Anúncios', 'anuncio.html') +
         item('fa-tower-broadcast', 'Live', 'live.html', (window.FC && FC._livesAgora && FC._livesAgora.length)
           ? '<span class="fc-aovivo-chip"><span class="fc-aovivo-ponto"></span>' + (FC._livesAgora.length === 1 ? esc((FC._livesAgora[0].autor && FC._livesAgora[0].autor.full_name) || 'AO VIVO') : FC._livesAgora.length + ' ao vivo') + '</span>' : '') +
+        (empresa ? item('fa-chart-column', 'Estatísticas', 'estatisticas.html') : '') +
         (empresa ? item('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
         (p.role === 'admin' ? item('fa-user-shield', 'Administração', 'admin.html') : '') +
 

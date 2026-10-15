@@ -30,9 +30,9 @@ function botoesContacto(p) {
   const wa = FCP.numeroWhatsApp(p.whatsapp || (ehEmpresa(p) ? '' : p.phone));
   const estilo = 'display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--radius-md);font-size:13px;font-weight:600;text-decoration:none;';
   return `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
-      ${p.phone ? `<a href="tel:${e(p.phone.replace(/\s/g, ''))}" style="${estilo}background:var(--primary);color:#fff;"><i class="fas fa-phone"></i> Ligar</a>` : ''}
-      ${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="${estilo}background:#25d366;color:#fff;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
-      ${p.email ? `<a href="mailto:${e(p.email)}" style="${estilo}background:var(--bg-tertiary);color:var(--text-primary);"><i class="fas fa-envelope"></i> E-mail</a>` : ''}
+      ${p.phone ? `<a href="tel:${e(p.phone.replace(/\s/g, ''))}" ${p.id ? `data-fc-evento="ligar" data-empresa="${e(p.id)}"` : ''} style="${estilo}background:var(--primary);color:#fff;"><i class="fas fa-phone"></i> Ligar</a>` : ''}
+      ${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener" ${p.id ? `data-fc-evento="whatsapp" data-empresa="${e(p.id)}"` : ''} style="${estilo}background:#25d366;color:#fff;"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+      ${p.email ? `<a href="mailto:${e(p.email)}" ${p.id ? `data-fc-evento="email" data-empresa="${e(p.id)}"` : ''} style="${estilo}background:var(--bg-tertiary);color:var(--text-primary);"><i class="fas fa-envelope"></i> E-mail</a>` : ''}
     </div>`;
 }
 
@@ -40,7 +40,7 @@ function botoesContacto(p) {
 function cartoesEmpresa(p, completo) {
   const e = FCP.esc;
   const estado = FCP.estadoAgora(p.opening_hours);
-  const site = p.website ? `<a href="${e(FCP.linkSite(p.website))}" target="_blank" rel="noopener" style="color:var(--primary);">${e(p.website)}</a>` : '';
+  const site = p.website ? `<a href="${e(FCP.linkSite(p.website))}" target="_blank" rel="noopener" data-fc-evento="site" data-empresa="${e(p.id || '')}" style="color:var(--primary);">${e(p.website)}</a>` : '';
   const temLocal = p.latitude != null || p.morada;
 
   const contactos = `
@@ -131,7 +131,7 @@ function aplicarPerfil() {
   const site = document.getElementById('dispWebsite');
   if (site) {
     site.closest('.profile-meta-item').style.display = p.website ? '' : 'none';
-    site.innerHTML = p.website ? `<a href="${e(FCP.linkSite(p.website))}" target="_blank" rel="noopener" style="color:inherit;">${e(p.website)}</a>` : '';
+    site.innerHTML = p.website ? `<a href="${e(FCP.linkSite(p.website))}" target="_blank" rel="noopener" data-fc-evento="site" data-empresa="${e(p.id || '')}" style="color:inherit;">${e(p.website)}</a>` : '';
   }
   if (p.created_at) {
     const d = new Date(p.created_at);

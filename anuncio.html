@@ -308,7 +308,7 @@ async function mostrarDetalhes(id) {
     if (a) await juntarContactos([a]);
   }
   if (!a) { toast('Este anúncio já não existe.'); return; }
-  if (!vistos.has(a.id) && a.empresa_id !== me.id) { vistos.add(a.id); supabaseClient.rpc('ver_anuncio', { aid: a.id }); }
+  if (!vistos.has(a.id) && a.empresa_id !== me.id) { vistos.add(a.id); supabaseClient.rpc('ver_anuncio', { aid: a.id }); FC.registarEvento(a.empresa_id, 'anuncio', a.id); }
 
   const e = a.empresa || {};
   const [nomeTipo, classe] = TIPOS[a.tipo] || TIPOS.promo;
@@ -340,9 +340,9 @@ async function mostrarDetalhes(id) {
         <button class="btn btn-claro" onclick="alternarAtivo('${a.id}', ${!a.ativo})"><i class="fas ${a.ativo ? 'fa-pause' : 'fa-play'}"></i> ${a.ativo ? 'Pausar' : 'Reativar'}</button>
         <button class="btn btn-del" onclick="apagarAnuncio('${a.id}')"><i class="fas fa-trash-alt"></i> Apagar</button>`
       : `
-        ${wa ? `<a class="btn btn-whats" href="https://wa.me/${wa}?text=${msgWa}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+        ${wa ? `<a class="btn btn-whats" href="https://wa.me/${wa}?text=${msgWa}" target="_blank" rel="noopener" data-fc-evento="whatsapp" data-empresa="${esc(e.id)}" data-alvo="${esc(a.id)}"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
         <a class="btn btn-view" href="mensagen.html?para=${e.id}"><i class="fas fa-comment-dots"></i> Mensagem</a>
-        ${contacto ? `<a class="btn btn-claro" href="tel:${esc(contacto.replace(/\s/g, ''))}"><i class="fas fa-phone"></i> Ligar</a>` : ''}`}
+        ${contacto ? `<a class="btn btn-claro" href="tel:${esc(contacto.replace(/\s/g, ''))}" data-fc-evento="ligar" data-empresa="${esc(e.id)}" data-alvo="${esc(a.id)}"><i class="fas fa-phone"></i> Ligar</a>` : ''}`}
       <button class="btn btn-claro" onclick="partilharAnuncio('${a.id}')"><i class="fas fa-share"></i> Partilhar</button>
     </div>`;
   abrirModal('detailModal');

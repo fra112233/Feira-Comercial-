@@ -1540,6 +1540,23 @@ function renderPosts() {
 
     abertos.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'block'; });
     observarVideos();
+    observarVistas();
+}
+
+// estatísticas das empresas: conta a publicação como vista quando metade dela fica 1 segundo no ecrã
+let _vistasObs = null;
+function observarVistas() {
+    if (!('IntersectionObserver' in window) || !window.FC || !FC.registarVista) return;
+    if (!_vistasObs) _vistasObs = new IntersectionObserver(entradas => entradas.forEach(en => {
+        const el = en.target;
+        if (en.isIntersecting) { el._vistaT = setTimeout(() => { FC.registarVista(el.id.replace('user-section-', '')); _vistasObs.unobserve(el); }, 1000); }
+        else clearTimeout(el._vistaT);
+    }), { threshold: 0.5 });
+    document.querySelectorAll('#feed .user-feed-section:not([data-vista])').forEach(el => {
+        const p = posts.find(x => 'user-section-' + x.id === el.id);
+        el.dataset.vista = '1';
+        if (p && p.userType === 'empresa' && p.userId !== currentUser.id) _vistasObs.observe(el);
+    });
 }
 
 function timeAgo(ts) {

@@ -1674,6 +1674,7 @@
                 return;
             }
             if (modoVisita) verificarSeSigo();
+            if (modoVisita && profile && profile.type === 'empresa' && FC.registarEvento) FC.registarEvento(alvoId, 'perfil');
         } catch (err) {
             console.warn('Não foi possível carregar o perfil:', err);
         }
