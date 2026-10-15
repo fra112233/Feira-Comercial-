@@ -535,6 +535,35 @@
 .fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:1;min-width:0}.fc-marca img{width:42px;height:42px;border-radius:11px;display:block;flex-shrink:0}.fc-marca-txt{display:flex;flex-direction:column;min-width:0;line-height:1.1;font-family:Inter,"Segoe UI",system-ui,sans-serif}.fc-marca-txt b{font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f6cf5f,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}.fc-marca-txt small{font-size:11.5px;font-weight:600;letter-spacing:.3px;color:#e3a92f;white-space:nowrap;margin-top:2px;overflow:hidden;text-overflow:ellipsis}@media (max-width:600px){.fc-marca{gap:7px}.fc-marca img{width:36px;height:36px;border-radius:9px}.fc-marca-txt b{font-size:15px;letter-spacing:-.3px}.fc-marca-txt small{font-size:9.5px;letter-spacing:.1px}}@media (max-width:400px){header .btn-circle[onclick="toggleDarkMode()"]{display:none}}@media (max-width:370px){.fc-marca img{width:32px;height:32px}.fc-marca-txt b{font-size:13.5px}.fc-marca-txt small{font-size:8.5px}}
 /* nada empurra a página para os lados no telemóvel */
 html, body { max-width: 100%; overflow-x: hidden; }
+        /* ── FILTROS DO FEED ── */
+        .feed-filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; scrollbar-width: none; }
+        .feed-filtros::-webkit-scrollbar { display: none; }
+        .feed-filtros button { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+            border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+        .feed-filtros button.ativo { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .feed-filtros button .n { background: rgba(0,0,0,.18); border-radius: 999px; padding: 0 7px; font-size: 12px; }
+        .feed-vazio { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .feed-vazio i { font-size: 44px; opacity: .25; display: block; margin-bottom: 12px; }
+        /* ── OFERTA RELÂMPAGO ── */
+        .oferta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
+            background: linear-gradient(135deg, rgba(243,198,78,.18), rgba(239,68,68,.12)); border: 1px solid rgba(243,198,78,.45); }
+        .oferta .raio { background: #ef4444; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .05em; padding: 3px 8px; border-radius: 6px; }
+        .oferta .preco { font-size: 20px; font-weight: 800; color: var(--text-main); }
+        .oferta s { color: var(--text-secondary); font-size: 14px; }
+        .oferta .desc { background: #16a34a; color: #fff; font-size: 12px; font-weight: 800; padding: 2px 7px; border-radius: 6px; }
+        .oferta .conta { margin-left: auto; font-size: 13px; font-weight: 700; color: #ef4444; display: inline-flex; align-items: center; gap: 5px; }
+        .oferta.fim { background: var(--hover-bg); border-color: var(--border); }
+        .oferta.fim .raio { background: #6b7280; } .oferta.fim .preco { font-size: 16px; color: var(--text-secondary); } .oferta.fim .conta { color: var(--text-secondary); }
+        .btn-action.btn-guardar { flex: 0 0 auto; padding: 8px 12px; }
+        .btn-action.btn-guardar.guardado { color: #f3c64e; }
+        #oferta-campos { display: none; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(243,198,78,.6); background: rgba(243,198,78,.06); }
+        #oferta-campos.aberto { display: block; }
+        #oferta-campos .linha { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        @media (max-width: 520px) { #oferta-campos .linha { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } #oferta-campos .linha .dur { grid-column: 1 / -1; } }
+        #oferta-campos label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; }
+        #oferta-campos input, #oferta-campos select { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border);
+            background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 14px; }
+        .compose-btn.ativo { background: rgba(243,198,78,.15); color: #d9a52e; }
 </style>
 
 <base target="_self">
@@ -641,16 +670,33 @@ html, body { max-width: 100%; overflow-x: hidden; }
                 <textarea class="compose-input" id="post-text" maxlength="5000" placeholder="No que você está pensando?"></textarea>
             </div>
             <div id="post-preview-area"></div>
+            <div id="oferta-campos">
+                <div class="linha">
+                    <div><label for="oferta-preco">Preço da oferta (MT)</label><input id="oferta-preco" type="number" inputmode="numeric" min="1" step="1" placeholder="1500"></div>
+                    <div><label for="oferta-antes">Preço antes (opcional)</label><input id="oferta-antes" type="number" inputmode="numeric" min="1" step="1" placeholder="2000"></div>
+                    <div class="dur"><label for="oferta-dur">Termina daqui a</label>
+                        <select id="oferta-dur"><option value="3">3 horas</option><option value="6">6 horas</option><option value="12">12 horas</option>
+                            <option value="24" selected>1 dia</option><option value="48">2 dias</option><option value="72">3 dias</option><option value="168">7 dias</option></select></div>
+                </div>
+                <p style="font-size:12px;color:var(--text-secondary);margin-top:8px;"><i class="fas fa-circle-info"></i> Quem o segue recebe um aviso, e a oferta aparece no filtro ⚡ Ofertas com contagem decrescente.</p>
+            </div>
             <div class="compose-actions">
                 <label class="compose-btn">
                     <i class="fas fa-images" style="color:#45bd62"></i> Fotos/Vídeos
                     <input type="file" id="post-media-input" hidden accept="image/*,video/*" multiple onchange="previewPostMedia(event)">
                 </label>
-                <label class="compose-btn">
-                    <i class="fas fa-smile" style="color:#f7b928"></i> Humor
-                </label>
+                <button type="button" class="compose-btn" id="btn-oferta" onclick="alternarCamposOferta()" style="border:none;background:none;font:inherit;font-size:13px;font-weight:600;">
+                    <i class="fas fa-bolt" style="color:#f7b928"></i> Oferta relâmpago
+                </button>
                 <button class="publish-btn" onclick="publishPost()" id="publish-btn" disabled>Publicar</button>
             </div>
+        </div>
+
+        <div class="feed-filtros" id="feed-filtros" role="tablist">
+            <button type="button" data-f="todos" class="ativo"><i class="fas fa-house"></i> Para si</button>
+            <button type="button" data-f="perto"><i class="fas fa-location-dot"></i> Perto de mim</button>
+            <button type="button" data-f="ofertas"><i class="fas fa-bolt"></i> Ofertas</button>
+            <button type="button" data-f="guardados"><i class="fas fa-bookmark"></i> Guardados</button>
         </div>
 
         <div id="feed"></div>
@@ -786,6 +832,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (cav) { cav.src = currentUser.avatar; cav.style.display = ''; }
 
     // 3) dados atualizados
+    await carregarGuardados();
     await Promise.all([carregarPosts(), carregarStories()]);
     initRollingFeed();
     ligarTempoReal();
@@ -832,21 +879,117 @@ function guardarCache() {
 function desde() { return new Date(Date.now() - TEMPO_VIDA_POST).toISOString(); }
 function desdeStory() { return new Date(Date.now() - TEMPO_VIDA_STORY).toISOString(); }
 
+// ── Filtros do feed: Para si · Perto de mim · Ofertas · Guardados ──
+let filtroFeed = 'todos';
+let temOfertas = true;          // falso se a base de dados ainda não tem as colunas das ofertas (migração 024)
+let temGuardados = true;
+let guardados = new Set();      // publicações que guardei
+
+async function carregarGuardados() {
+    const { data, error } = await supabaseClient.from('guardados').select('post_id').eq('user_id', currentUser.id);
+    if (error) { temGuardados = false; const b = document.querySelector('#feed-filtros [data-f="guardados"]'); if (b) b.remove(); return; }
+    guardados = new Set((data || []).map(r => r.post_id));
+}
+
 async function carregarPosts() {
-    const { data, error } = await supabaseClient
-        .from('posts')
-        .select(`id, content, media, image_url, created_at, user_id,
-                 autor:perfis!posts_user_id_fkey(id, full_name, avatar_url, type),
+    const filtro = filtroFeed;
+    const perto = filtro === 'perto';
+    const prov = (FC.me && FC.me.province) || '';
+    if (perto && !prov) { posts = []; renderPosts(); return; }
+    if (filtro === 'guardados' && !guardados.size) { posts = []; renderPosts(); return; }
+    const campos = `id, content, media, image_url, created_at, user_id${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
+                 autor:perfis!posts_user_id_fkey${perto ? '!inner' : ''}(id, full_name, avatar_url, type, city, province),
                  likes(user_id, reaction),
                  comments(id, content, created_at, parent_id, user_id,
-                          autor:perfis!comments_user_id_fkey(full_name, avatar_url))`)
-        .gte('created_at', desde())
-        .order('created_at', { ascending: false })
-        .limit(60);
-    if (error) { console.error('Erro ao carregar posts:', error.message); return; }
-    posts = (data || []).map(mapearPost);
+                          autor:perfis!comments_user_id_fkey(full_name, avatar_url))`;
+    let q = supabaseClient.from('posts').select(campos).gte('created_at', desde());
+    if (perto) q = q.eq('autor.province', prov);
+    if (filtro === 'ofertas') q = q.gt('oferta_ate', new Date().toISOString());
+    if (filtro === 'guardados') q = q.in('id', [...guardados]);
+    const { data, error } = await q.order(filtro === 'ofertas' ? 'oferta_ate' : 'created_at', { ascending: filtro === 'ofertas' }).limit(60);
+    if (filtro !== filtroFeed) return;            // mudou de filtro entretanto
+    if (error) {
+        if (temOfertas && /oferta_/.test(error.message || '')) {
+            temOfertas = false;
+            const b = document.querySelector('#feed-filtros [data-f="ofertas"]'); if (b) b.remove();
+            const o = document.getElementById('btn-oferta'); if (o) o.remove();
+            if (filtroFeed === 'ofertas') filtroFeed = 'todos';
+            return carregarPosts();
+        }
+        console.error('Erro ao carregar posts:', error.message); return;
+    }
+    let lista = (data || []).map(mapearPost);
+    // Perto de mim: primeiro as da minha cidade
+    const cidade = ((FC.me && FC.me.city) || '').toLowerCase();
+    if (perto && cidade) lista = lista.filter(Boolean).sort((a, b) => (b.cidade === cidade) - (a.cidade === cidade) || b.timestamp - a.timestamp);
+    posts = lista;
     renderPosts();
-    guardarCache();
+    if (filtro === 'todos') guardarCache();
+}
+
+function mudarFiltroFeed(f) {
+    if (f === filtroFeed) return;
+    filtroFeed = f;
+    document.querySelectorAll('#feed-filtros button').forEach(b => b.classList.toggle('ativo', b.dataset.f === f));
+    document.getElementById('feed').innerHTML = '<div class="feed-vazio"><i class="fas fa-spinner fa-spin"></i>A carregar…</div>';
+    carregarPosts();
+}
+document.addEventListener('click', e => {
+    const b = e.target.closest('#feed-filtros button'); if (b) mudarFiltroFeed(b.dataset.f);
+});
+
+async function alternarGuardado(id) {
+    if (!currentUser.id || !temGuardados) return;
+    const tinha = guardados.has(id);
+    tinha ? guardados.delete(id) : guardados.add(id);
+    const p = posts.find(x => x.id === id); if (p) { p.guardado = !tinha; atualizarAcoesPost(p); }
+    const { error } = tinha
+        ? await supabaseClient.from('guardados').delete().eq('user_id', currentUser.id).eq('post_id', id)
+        : await supabaseClient.from('guardados').insert({ user_id: currentUser.id, post_id: id });
+    if (error && !/duplicate|unique/i.test(error.message || '')) {
+        tinha ? guardados.add(id) : guardados.delete(id);
+        if (p) { p.guardado = tinha; atualizarAcoesPost(p); }
+        FCMedia.aviso('Não foi possível guardar', 'Verifique a ligação e tente outra vez.', { erro: true });
+        return;
+    }
+    FC.toast(tinha ? 'Removida dos guardados' : '🔖 Guardada. Veja em "Guardados".');
+    if (tinha && filtroFeed === 'guardados') { posts = posts.filter(x => x.id !== id); renderPosts(); }
+}
+
+// ── Ofertas relâmpago ──
+const mtFmt = v => String(Math.round(Number(v) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MT';
+function faltaTexto(ate) {
+    const s = Math.floor((new Date(ate) - Date.now()) / 1000);
+    if (s <= 0) return null;
+    const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+    if (d) return 'termina em ' + d + 'd ' + h + 'h';
+    if (h) return 'termina em ' + h + 'h ' + String(m).padStart(2, '0') + 'm';
+    return 'termina em ' + m + ' min';
+}
+function htmlOferta(p) {
+    if (!p.ofertaAte) return '';
+    const falta = faltaTexto(p.ofertaAte);
+    const desc = p.ofertaAntes && p.ofertaPreco < p.ofertaAntes ? Math.round((1 - p.ofertaPreco / p.ofertaAntes) * 100) : 0;
+    return `<div class="oferta${falta ? '' : ' fim'}" data-ate="${escHtml(p.ofertaAte)}">
+        <span class="raio">⚡ ${falta ? 'OFERTA' : 'OFERTA TERMINADA'}</span>
+        <span class="preco">${mtFmt(p.ofertaPreco)}</span>
+        ${p.ofertaAntes ? `<s>${mtFmt(p.ofertaAntes)}</s>` : ''}${desc && falta ? `<span class="desc">-${desc}%</span>` : ''}
+        <span class="conta"><i class="fas fa-clock"></i> <span>${falta || 'terminou'}</span></span></div>`;
+}
+setInterval(() => {
+    document.querySelectorAll('.oferta[data-ate]:not(.fim)').forEach(el => {
+        const t = faltaTexto(el.dataset.ate);
+        if (t) { el.querySelector('.conta span').textContent = t; return; }
+        el.classList.add('fim'); el.querySelector('.raio').textContent = '⚡ OFERTA TERMINADA';
+        el.querySelector('.conta span').textContent = 'terminou'; const d = el.querySelector('.desc'); if (d) d.remove();
+    });
+}, 30000);
+
+function alternarCamposOferta() {
+    const c = document.getElementById('oferta-campos');
+    const aberto = c.classList.toggle('aberto');
+    document.getElementById('btn-oferta').classList.toggle('ativo', aberto);
+    if (aberto) document.getElementById('oferta-preco').focus();
 }
 
 function mapearPost(r) {
@@ -867,6 +1010,11 @@ function mapearPost(r) {
         reactCount: likes.length,
         reactType: meu ? meu.reaction : 'Curtir',
         myReaction: meu ? meu.reaction : null,
+        guardado: guardados.has(r.id),
+        cidade: ((r.autor && r.autor.city) || '').toLowerCase(),
+        ofertaPreco: r.oferta_preco != null ? Number(r.oferta_preco) : null,
+        ofertaAntes: r.oferta_preco_antigo != null ? Number(r.oferta_preco_antigo) : null,
+        ofertaAte: r.oferta_ate || null,
         comments: arvoreComentarios(r.comments || [])
     };
 }
@@ -1421,6 +1569,17 @@ async function publishPost() {
     if (!currentUser.empresa) { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories!'); return; }
     if (!currentUser.podePublicar) { if (confirm('A mensalidade terminou. Quer pagar agora?')) location.href = 'mensalidade.html'; return; }
 
+    // oferta relâmpago (se o painel estiver aberto)
+    let oferta = null;
+    if (document.getElementById('oferta-campos').classList.contains('aberto')) {
+        const preco = Number(document.getElementById('oferta-preco').value);
+        const antes = Number(document.getElementById('oferta-antes').value) || null;
+        if (!(preco > 0)) { FCMedia.aviso('Falta o preço', 'Escreva o preço da oferta, ou feche o painel da oferta.', { erro: true }); return; }
+        if (antes && antes <= preco) { FCMedia.aviso('Preço antes', 'O preço antes deve ser maior do que o preço da oferta.', { erro: true }); return; }
+        const horas = Number(document.getElementById('oferta-dur').value) || 24;
+        oferta = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(Date.now() + horas * 3600000).toISOString() };
+    }
+
     btn.disabled = true;
     const original = btn.textContent;
     btn.textContent = 'A publicar...';
@@ -1433,13 +1592,12 @@ async function publishPost() {
         mostrar();
         const media = await Promise.all(tempMedia.map(f => enviarFicheiro(f).then(m => { feitos++; mostrar(); return m; })));
         const primeiraFoto = media.find(m => m.type === 'image');
-        const { error } = await supabaseClient.from('posts').insert({
-            user_id: currentUser.id,
-            content: text || null,
-            media,
-            image_url: primeiraFoto ? primeiraFoto.url : null
-        });
+        const novo = { user_id: currentUser.id, content: text || null, media, image_url: primeiraFoto ? primeiraFoto.url : null };
+        if (oferta) Object.assign(novo, oferta);
+        const { error } = await supabaseClient.from('posts').insert(novo);
         if (error) throw error;
+        if (oferta) { document.getElementById('oferta-campos').classList.remove('aberto'); document.getElementById('btn-oferta').classList.remove('ativo');
+            ['oferta-preco', 'oferta-antes'].forEach(i => document.getElementById(i).value = ''); }
 
         ta.value = '';
         tempMedia = [];
@@ -1483,7 +1641,7 @@ function htmlSecaoPost(p) {
 
 // "impressão digital" do que é pesado de redesenhar (texto, fotos, vídeos, autor)
 function assinaturaPost(p) {
-    const t = JSON.stringify([p.text, p.media, p.userName, p.userAvatar, p.userType]);
+    const t = JSON.stringify([p.text, p.media, p.userName, p.userAvatar, p.userType, p.ofertaPreco, p.ofertaAntes, p.ofertaAte]);
     let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);
 }
@@ -1509,7 +1667,15 @@ function renderPosts() {
     if (!feed) return;
 
     if (posts.length === 0) {
-        feed.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text-secondary);"><i class="fas fa-newspaper" style="font-size:48px;opacity:0.2;display:block;margin-bottom:12px;"></i><b>Sem publicações ainda</b><p style="font-size:13px;margin-top:6px;">Começa por partilhar algo!</p></div>`;
+        const semProv = filtroFeed === 'perto' && !(FC.me && FC.me.province);
+        const vazio = {
+            todos: ['fa-newspaper', 'Sem publicações ainda', 'Começa por partilhar algo!'],
+            perto: semProv ? ['fa-location-dot', 'Diga-nos onde está', 'Indique a sua província em <a href="perfil.html#editar">Editar perfil</a> para ver as empresas perto de si.']
+                           : ['fa-location-dot', 'Ainda sem publicações perto de si', 'Ainda não há empresas da sua província a publicar. Veja "Para si".'],
+            ofertas: ['fa-bolt', 'Sem ofertas a decorrer', 'Quando uma empresa lançar uma oferta relâmpago, aparece aqui com o tempo que falta.'],
+            guardados: ['fa-bookmark', 'Ainda não guardou nada', 'Toque em <i class="far fa-bookmark"></i> numa publicação para a ver mais tarde. As publicações ficam no site 4 dias.']
+        }[filtroFeed] || [];
+        feed.innerHTML = `<div class="feed-vazio"><i class="fas ${vazio[0]}"></i><b>${vazio[1]}</b><p style="font-size:13px;margin-top:6px;">${vazio[2]}</p></div>`;
         return;
     }
 
@@ -1594,6 +1760,7 @@ function renderPostCard(p, isMe) {
     return `
     <div class="post-card" id="post-${p.id}">
         ${isMe ? `<div class="btn-delete" onclick="deletePost(${p.id})" title="Apagar publicação"><i class="fas fa-trash"></i></div>` : ''}
+        ${htmlOferta(p)}
         ${p.text ? `<p class="post-text">${escHtml(p.text)}</p>` : ''}
         ${mediaHtml}
         <div class="post-actions">${htmlAcoes(p)}</div>
@@ -1671,7 +1838,10 @@ function htmlAcoes(p) {
             </div>
             <div class="btn-action" onclick="responderNoChat(${p.id})">
                 <i class="fas fa-paper-plane"></i> Responder
-            </div>`;
+            </div>${temGuardados ? `
+            <div class="btn-action btn-guardar${p.guardado ? ' guardado' : ''}" onclick="alternarGuardado(${p.id})" title="${p.guardado ? 'Remover dos guardados' : 'Guardar para ver mais tarde'}" aria-label="Guardar">
+                <i class="${p.guardado ? 'fas' : 'far'} fa-bookmark"></i>
+            </div>` : ''}`;
 }
 
 // ── Reações: tocar = curtir/descurtir · manter premido ou seta ▴ = escolher outra ──
