@@ -157,6 +157,7 @@ let me = null;
 let separador = 'todos';
 let videos = [];
 let fim = false, aCarregar = false;
+let lidosDaBase = 0;   // quantos vídeos já vieram da lista (sem contar o vídeo aberto por link)
 let seguindo = new Set();
 let gostos = new Set();          // vídeos de que gostei
 let somLigado = false;
@@ -191,7 +192,7 @@ async function carregarMais(primeiroId) {
   let q = supabaseClient.from('videos')
     .select('id, video_url, caption, views, likes_count, comments_count, created_at, user_id, autor:perfis!videos_user_id_fkey(id, full_name, avatar_url, type)')
     .order('created_at', { ascending: false })
-    .range(videos.length, videos.length + LOTE - 1);
+    .range(lidosDaBase, lidosDaBase + LOTE - 1);
   if (separador === 'seguir') {
     if (!seguindo.size) { aCarregar = false; fim = true; desenharVazio(); return; }
     q = q.in('user_id', [...seguindo]);
@@ -200,7 +201,11 @@ async function carregarMais(primeiroId) {
   aCarregar = false;
   if (error) { toast('Erro ao carregar vídeos'); console.error(error.message); return; }
   let novos = data || [];
+  lidosDaBase += novos.length;
   if (novos.length < LOTE) fim = true;
+  // não repetir vídeos que já estão no ecrã (ex.: o vídeo aberto por link)
+  const jaMostrados = new Set(videos.map(x => x.id));
+  novos = novos.filter(x => !jaMostrados.has(x.id));
 
   // vídeo partilhado por link (?v=...) aparece primeiro
   if (primeiroId) {
@@ -232,7 +237,7 @@ function mudarSeparador(s) {
   separador = s;
   document.getElementById('sep-todos').classList.toggle('ativo', s === 'todos');
   document.getElementById('sep-seguir').classList.toggle('ativo', s === 'seguir');
-  videos = []; fim = false;
+  videos = []; fim = false; lidosDaBase = 0;
   document.getElementById('feed').innerHTML = '';
   document.getElementById('feed').scrollTop = 0;
   carregarMais();
@@ -330,8 +335,15 @@ function alternarSom() {
 
 function slideDe(id) { return document.querySelector(`.slide[data-id="${id}"]`); }
 
+const gostoAEnviar = new Set();
 async function alternarGosto(id) {
   const v = videos.find(x => x.id === id); if (!v) return;
+  if (gostoAEnviar.has(id)) return;          // duplo clique rápido: espera o primeiro terminar
+  gostoAEnviar.add(id);
+  try { await alternarGostoAgora(v, id); } finally { gostoAEnviar.delete(id); }
+}
+
+async function alternarGostoAgora(v, id) {
   const btn = slideDe(id).querySelector('[data-gosto]');
   const tinha = gostos.has(id);
   // muda logo no ecrã, desfaz se falhar

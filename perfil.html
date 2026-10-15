@@ -1500,12 +1500,6 @@
                     <button class="action-btn" onclick="openModal('modalPost')">
                         <i class="fas fa-image"></i> Foto/Vídeo
                     </button>
-                    <button class="action-btn">
-                        <i class="fas fa-smile"></i> Sentimento
-                    </button>
-                    <button class="action-btn">
-                        <i class="fas fa-location-dot"></i> Localização
-                    </button>
                 </div>
             </div>
 
@@ -2131,6 +2125,54 @@
 
         btn.classList.add('active');
         document.getElementById(`tab-${tab}`).classList.add('active');
+        if (tab === 'likes') carregarGostos();
+    }
+
+    // ── Separador "Gostos": publicações que esta pessoa curtiu ──
+    async function carregarGostos() {
+        const lista = document.getElementById('likesList');
+        const vazio = document.getElementById('emptyLikes');
+        if (!alvoId || !lista) return;
+        lista.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:16px;">A carregar…</p>';
+        vazio.style.display = 'none';
+        const { data, error } = await getSB().from('likes')
+            .select('created_at, post:posts!inner(id, content, media, image_url, created_at, autor:perfis!posts_user_id_fkey(id, full_name, avatar_url))')
+            .eq('user_id', alvoId)
+            .gte('post.created_at', new Date(Date.now() - TEMPO_VIDA).toISOString())
+            .order('created_at', { ascending: false })
+            .limit(50);
+        if (error) {
+            lista.innerHTML = '<p style="text-align:center;color:var(--danger);padding:16px;">Não foi possível carregar os gostos.</p>';
+            return;
+        }
+        const itens = (data || []).filter(l => l.post);
+        vazio.style.display = itens.length ? 'none' : '';
+        lista.innerHTML = itens.map(l => {
+            const p = l.post, a = p.autor || {};
+            const nome = a.full_name || 'Utilizador';
+            const av = a.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=random&color=fff&size=64');
+            let media = Array.isArray(p.media) ? p.media : [];
+            if (!media.length && p.image_url) media = [{ url: p.image_url, type: 'image' }];
+            const m = media[0];
+            const midia = !m ? '' : (m.type === 'video'
+                ? `<div class="post-media-container"><video src="${FC.u(m.url)}" controls playsinline preload="metadata" class="post-video"></video></div>`
+                : `<div class="post-media-container"><img src="${FC.u(m.url)}" class="post-image" alt="Publicação" loading="lazy"></div>`);
+            return `
+            <div class="post">
+                <div class="post-header">
+                    <a class="post-author" href="perfil.html?id=${encodeURIComponent(a.id || '')}" style="text-decoration:none;color:inherit;">
+                        <img src="${FC.u(av)}" class="avatar-sm" alt="Avatar">
+                        <div class="post-author-info">
+                            <div class="post-author-name">${escTxt(nome)}</div>
+                            <div class="post-time">${new Date(p.created_at).toLocaleDateString('pt-PT')}</div>
+                        </div>
+                    </a>
+                    <a class="post-menu" href="index.html?post=${p.id}" title="Ver no feed"><i class="fas fa-arrow-up-right-from-square"></i></a>
+                </div>
+                ${p.content ? `<div class="post-content">${escTxt(p.content)}</div>` : ''}
+                ${midia}
+            </div>`;
+        }).join('');
     }
 
     // ==================== IMAGE HANDLING ==================== 
