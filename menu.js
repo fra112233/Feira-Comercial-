@@ -30,7 +30,27 @@ window.FCMenu = (function () {
     '#fcm .sw{margin-left:auto;width:42px;height:24px;border-radius:12px;background:#64748b;position:relative;transition:.2s;flex-shrink:0}',
     '#fcm .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}',
     '#fcm .sw.on{background:#22c55e}#fcm .sw.on::after{left:21px}',
-    '#fcm .rodape{padding:12px 20px;font-size:11px;opacity:.5;text-align:center}'
+    '#fcm .rodape{padding:12px 20px;font-size:11px;opacity:.5;text-align:center}',
+    /* atalhos em grelha (3 por linha) — o menu não cresce para baixo a cada nova página */
+    '#fcm .grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:6px 12px 4px}',
+    '#fcm .tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:72px;padding:10px 4px;',
+    'border-radius:14px;border:none;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)));color:inherit;font:inherit;font-size:12px;font-weight:600;',
+    'text-align:center;line-height:1.15;cursor:pointer;text-decoration:none;transition:transform .12s}',
+    '#fcm .tile:active{transform:scale(.96)}#fcm .tile:hover{filter:brightness(1.12)}',
+    '#fcm .tile i.ic{font-size:20px;color:var(--primary,#6366f1)}',
+    '#fcm .tile .lb{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '#fcm .tile .fc-msg-menu{position:absolute;top:6px;right:6px;margin:0;min-width:20px;height:20px;line-height:20px;font-size:11px;padding:0 6px}',
+    '#fcm .tile .fc-aovivo-chip{position:absolute;top:6px;right:6px;margin:0;max-width:calc(100% - 12px);font-size:9.5px;padding:1px 6px}',
+    '#fcm .tile .dir{position:absolute;top:6px;right:8px;font-size:10px;opacity:.75;margin:0}',
+    /* grupos que abrem e fecham */
+    '#fcm details.grupo{margin:2px 0}',
+    '#fcm details.grupo>summary{list-style:none}#fcm details.grupo>summary::-webkit-details-marker{display:none}',
+    '#fcm details.grupo>summary .seta{margin-left:auto;font-size:12px;opacity:.6;transition:transform .2s}',
+    '#fcm details.grupo[open]>summary .seta{transform:rotate(180deg)}',
+    '#fcm details.grupo>summary b{font-weight:600}',
+    '#fcm details.grupo .dentro .it{padding-left:56px;font-size:14px}',
+    '#fcm details.grupo .dentro .it i.ic{display:none}',
+    '#fcm .linha{height:1px;background:var(--border-color,var(--border,#334155));margin:8px 16px;opacity:.6}'
   ].join('');
 
   var montado = false, perfil = null;
@@ -52,6 +72,10 @@ window.FCMenu = (function () {
     var fundo = document.createElement('div'); fundo.id = 'fcm-fundo'; fundo.onclick = fechar;
     var m = document.createElement('aside'); m.id = 'fcm'; m.setAttribute('aria-label', 'Menu');
     document.body.appendChild(fundo); document.body.appendChild(m);
+    m.addEventListener('toggle', function (e) {
+      var d = e.target; if (!d.classList || !d.classList.contains('grupo')) return;
+      try { localStorage.setItem('fcm_g_' + d.getAttribute('data-g'), d.open ? '1' : '0'); } catch (x) {}
+    }, true);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
   }
 
@@ -59,6 +83,19 @@ window.FCMenu = (function () {
     var tag = acao.indexOf('.html') > -1 && acao.indexOf('(') === -1 ? 'a' : 'button';
     var attr = tag === 'a' ? 'href="' + acao + '"' : 'onclick="' + acao + '"';
     return '<' + tag + ' class="it ' + (classe || '') + '" ' + attr + '><i class="fas ' + icone + ' ic"></i>' + texto + (extra || '') + '</' + tag + '>';
+  }
+
+  function tile(icone, texto, acao, extra) {
+    var tag = acao.indexOf('.html') > -1 && acao.indexOf('(') === -1 ? 'a' : 'button';
+    var attr = tag === 'a' ? 'href="' + acao + '"' : 'onclick="' + acao + '"';
+    return '<' + tag + ' class="tile" ' + attr + '><i class="fas ' + icone + ' ic"></i><span class="lb">' + texto + '</span>' + (extra || '') + '</' + tag + '>';
+  }
+
+  // grupos abertos/fechados ficam lembrados neste aparelho
+  function grupoAberto(g) { try { return localStorage.getItem('fcm_g_' + g) === '1'; } catch (e) { return false; } }
+  function grupo(g, icone, titulo, dentro) {
+    return '<details class="grupo" data-g="' + g + '"' + (grupoAberto(g) ? ' open' : '') + '><summary class="it"><i class="fas ' + icone + ' ic"></i><b>' + titulo +
+      '</b><i class="fas fa-chevron-down seta"></i></summary><div class="dentro">' + dentro + '</div></details>';
   }
 
   function mensalidadeTxt(p) {
@@ -80,37 +117,37 @@ window.FCMenu = (function () {
         '<a class="eu" href="perfil.html"><img src="' + esc(foto) + '" alt=""><div style="min-width:0"><div class="n">' + esc(p.full_name || 'O meu perfil') + '</div>' +
           '<div class="t">' + (empresa ? '<i class="fas fa-building"></i> Empresa' : '<i class="fas fa-user"></i> Pessoa') + ' · ver o meu perfil</div></div></a>' +
 
-        '<div class="sec">Navegar</div>' +
-        item('fa-home', 'Início', 'index.html') +
-        ((window.FC && FC.abrirNotificacoes) ? item('fa-bell', 'Notificações', 'FC.abrirNotificacoes()',
-          '<span class="fc-msg-menu" data-fc-notif style="' + (FC._notifNaoLidas ? '' : 'display:none') + '">' + (FC._notifNaoLidas > 99 ? '99+' : (FC._notifNaoLidas || '')) + '</span>') : '') +
-        item('fa-user-friends', 'Amigos', 'amigos.html') +
-        item('fa-comment-dots', 'Mensagens', 'mensagen.html',
-          '<span data-fc-msgs class="fc-msg-menu" style="' + ((window.FC && FC._msgsNaoLidas) ? '' : 'display:none') + '">' + ((window.FC && FC._msgsNaoLidas) > 99 ? '99+' : ((window.FC && FC._msgsNaoLidas) || '')) + '</span>') +
-        item('fa-play-circle', 'Vídeos', 'videos.html') +
-        item('fa-bullhorn', 'Anúncios', 'anuncio.html') +
-        item('fa-tower-broadcast', 'Live', 'live.html', (window.FC && FC._livesAgora && FC._livesAgora.length)
-          ? '<span class="fc-aovivo-chip"><span class="fc-aovivo-ponto"></span>' + (FC._livesAgora.length === 1 ? esc((FC._livesAgora[0].autor && FC._livesAgora[0].autor.full_name) || 'AO VIVO') : FC._livesAgora.length + ' ao vivo') + '</span>' : '') +
-        (empresa ? item('fa-chart-column', 'Estatísticas', 'estatisticas.html') : '') +
-        (empresa ? item('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
-        (p.role === 'admin' ? item('fa-user-shield', 'Administração', 'admin.html') : '') +
+        '<div class="grade">' +
+          tile('fa-home', 'Início', 'index.html') +
+          ((window.FC && FC.abrirNotificacoes) ? tile('fa-bell', 'Notificações', 'FC.abrirNotificacoes()',
+            '<span class="fc-msg-menu" data-fc-notif style="' + (FC._notifNaoLidas ? '' : 'display:none') + '">' + (FC._notifNaoLidas > 99 ? '99+' : (FC._notifNaoLidas || '')) + '</span>') : '') +
+          tile('fa-user-friends', 'Amigos', 'amigos.html') +
+          tile('fa-comment-dots', 'Mensagens', 'mensagen.html',
+            '<span data-fc-msgs class="fc-msg-menu" style="' + ((window.FC && FC._msgsNaoLidas) ? '' : 'display:none') + '">' + ((window.FC && FC._msgsNaoLidas) > 99 ? '99+' : ((window.FC && FC._msgsNaoLidas) || '')) + '</span>') +
+          tile('fa-play-circle', 'Vídeos', 'videos.html') +
+          tile('fa-bullhorn', 'Anúncios', 'anuncio.html') +
+          tile('fa-tower-broadcast', 'Live', 'live.html', (window.FC && FC._livesAgora && FC._livesAgora.length)
+            ? '<span class="fc-aovivo-chip"><span class="fc-aovivo-ponto"></span>' + (FC._livesAgora.length === 1 ? 'AO VIVO' : FC._livesAgora.length + ' ao vivo') + '</span>' : '') +
+          (empresa ? tile('fa-chart-column', 'Estatísticas', 'estatisticas.html') : '') +
+          (empresa ? tile('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
+          (p.role === 'admin' ? tile('fa-user-shield', 'Administração', 'admin.html') : '') +
+        '</div>' +
+        '<div class="linha"></div>' +
 
-        '<div class="sec">Conta</div>' +
-        item('fa-pen', 'Editar perfil', 'FCMenu.editarPerfil()') +
-        item('fa-key', 'Alterar palavra-passe', 'password.html') +
-        item('fa-shield-halved', 'Privacidade e segurança', 'privacidade.html') +
+        grupo('conta', 'fa-gear', 'Definições e privacidade',
+          item('fa-pen', 'Editar perfil', 'FCMenu.editarPerfil()') +
+          item('fa-key', 'Alterar palavra-passe', 'password.html') +
+          item('fa-shield-halved', 'Privacidade e segurança', 'privacidade.html') +
+          (temTema() ? item(temaEscuro() ? 'fa-moon' : 'fa-sun', 'Modo escuro', 'FCMenu.tema()', '<span class="sw ' + (temaEscuro() ? 'on' : '') + '" id="fcm-sw-tema"></span>') : '') +
+          item('fa-eye', 'Perfil visível na pesquisa', 'FCMenu.visibilidade()', '<span class="sw ' + (publico ? 'on' : '') + '" id="fcm-sw-vis"></span>') +
+          item('fa-language', 'Idioma / Language', 'FCI18N.alternar()', '<b style="margin-left:auto;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid currentColor;opacity:.8">' + ((window.FCI18N && FCI18N.lang === 'en') ? 'EN' : 'PT') + '</b>') +
+          item('fa-mobile-screen', 'Avisos no telemóvel', 'FCMenu.notificacoes()', '<span class="sw ' + (notif ? 'on' : '') + '" id="fcm-sw-not"></span>')) +
 
-        '<div class="sec">Definições</div>' +
-        (temTema() ? item(temaEscuro() ? 'fa-moon' : 'fa-sun', 'Modo escuro', 'FCMenu.tema()', '<span class="sw ' + (temaEscuro() ? 'on' : '') + '" id="fcm-sw-tema"></span>') : '') +
-        item('fa-eye', 'Perfil visível na pesquisa', 'FCMenu.visibilidade()', '<span class="sw ' + (publico ? 'on' : '') + '" id="fcm-sw-vis"></span>') +
-        item('fa-language', 'Idioma / Language', 'FCI18N.alternar()', '<b style="margin-left:auto;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid currentColor;opacity:.8">' + ((window.FCI18N && FCI18N.lang === 'en') ? 'EN' : 'PT') + '</b>') +
-        item('fa-mobile-screen', 'Avisos no telemóvel', 'FCMenu.notificacoes()', '<span class="sw ' + (notif ? 'on' : '') + '" id="fcm-sw-not"></span>') +
-
-        '<div class="sec">Ajuda</div>' +
-        ((window.FC && FC.appInstalada && !FC.appInstalada()) ? item('fa-download', 'Instalar aplicação', 'FCMenu.instalar()') : '') +
-        item('fa-circle-info', 'Sobre a Feira Comercial', 'about.html') +
-        item('fa-shield-halved', 'Políticas e privacidade', 'politicas.html') +
-        item('fa-flag', 'Reclamações e sugestões', 'reclamacao.html') +
+        grupo('ajuda', 'fa-circle-question', 'Ajuda e informações',
+          ((window.FC && FC.appInstalada && !FC.appInstalada()) ? item('fa-download', 'Instalar aplicação', 'FCMenu.instalar()') : '') +
+          item('fa-circle-info', 'Sobre a Feira Comercial', 'about.html') +
+          item('fa-shield-halved', 'Políticas e privacidade', 'politicas.html') +
+          item('fa-flag', 'Reclamações e sugestões', 'reclamacao.html')) +
 
         '<div style="height:8px"></div>' +
         item('fa-sign-out-alt', 'Sair', 'FCMenu.sair()', '', 'perigo') +

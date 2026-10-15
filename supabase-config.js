@@ -278,12 +278,42 @@ FC.haQuanto = function (d) {
   if (s < 7 * 86400) { const n = Math.floor(s / 86400); return 'há ' + n + (n === 1 ? ' dia' : ' dias'); }
   return new Date(d).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
 };
+// "hoje às 10:29", "ontem às 9:44", "amanhã às 03:45", "sex., 17 out. às 03:45"
+FC.diaHora = function (d) {
+  const x = new Date(d), h = x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  const dia = t => { const y = new Date(t); y.setHours(0, 0, 0, 0); return y.getTime(); };
+  const dif = Math.round((dia(x) - dia(Date.now())) / 864e5);
+  if (dif === 0) return 'hoje às ' + h;
+  if (dif === -1) return 'ontem às ' + h;
+  if (dif === 1) return 'amanhã às ' + h;
+  return x.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' }) + ' às ' + h;
+};
+// texto da notificação conforme o estado ATUAL da live / da oferta
+FC.textoNotificacao = function (n) {
+  if (n.tipo === 'live' && n.live) {
+    const l = n.live, ativa = l.estado === 'ao_vivo' && (Date.now() - new Date(l.atualizado_em).getTime()) < 120000;
+    if (!ativa) {
+      const fim = l.ended_at || l.atualizado_em;
+      return { txt: 'esteve em direto', extra: 'Terminou ' + (fim ? FC.diaHora(fim) : ''), terminada: true };
+    }
+    return { txt: FC._notifTextos.live, extra: n.texto };
+  }
+  if (n.tipo === 'publicacao' && n.post && n.post.oferta_ate) {
+    const fim = new Date(n.post.oferta_ate).getTime(), acabou = fim <= Date.now();
+    const preco = n.post.oferta_preco != null ? Math.round(n.post.oferta_preco).toLocaleString('pt-PT') + ' MT' : '';
+    return { txt: 'publicou uma oferta relâmpago ⚡',
+             extra: [preco, acabou ? 'Terminou ' + FC.diaHora(fim) : 'Válida até ' + FC.diaHora(fim)].filter(Boolean).join(' · '),
+             terminada: acabou };
+  }
+  return { txt: FC._notifTextos[n.tipo] || '', extra: n.texto };
+};
 FC.linkNotificacao = function (n) {
   if (n.tipo === 'avaliacao') return 'perfil.html#avaliacoes';
   if (n.tipo === 'resposta_avaliacao') return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '') + '#avaliacoes';
   if (n.tipo && n.tipo.indexOf('convite') === 0) return 'mensalidade.html#convites';
   if (n.post_id) return 'index.html?post=' + n.post_id;
   if (n.video_id) return 'videos.html?v=' + n.video_id;
+  if (n.live_id && n.live && FC.textoNotificacao(n).terminada) return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
   if (n.live_id) return 'live.html?id=' + encodeURIComponent(n.live_id);
   return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
 };
@@ -313,7 +343,7 @@ FC.sino = async function () {
       '#fcn .fechar{width:36px;height:36px;border-radius:50%;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))!important;color:inherit!important;font-size:18px!important}' +
       '#fcn .lista{flex:1;overflow-y:auto}' +
       '#fcn .n{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--border-color,var(--border,rgba(148,163,184,.12)))}' +
-      '#fcn .n:hover{background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))}#fcn .n.nova{background:rgba(243,198,78,.08)}' +
+      '#fcn .n:hover{background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))}#fcn .n.nova{background:rgba(243,198,78,.08)}#fcn .n.fim .av i{background:#6b7280 !important;color:#fff !important}' +
       '#fcn .av{position:relative;flex-shrink:0}#fcn .av img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#475569}' +
       '#fcn .av i{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#f3c64e;color:#111;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-secondary,#1e293b)}' +
       '#fcn .av i.fa-heart{background:#ef4444;color:#fff}#fcn .av i.fa-tower-broadcast{background:#ef4444;color:#fff}#fcn .av i.fa-user-plus{background:#22c55e;color:#fff}' +
@@ -368,9 +398,12 @@ FC.sino = async function () {
   };
   const lista = painel.querySelector('.lista');
   const desenhar = async () => {
-    const { data, error } = await supabaseClient.from('notificacoes')
-      .select('id, tipo, autor_id, post_id, video_id, live_id, texto, lida, criado, autor:perfis!notificacoes_autor_id_fkey(full_name, avatar_url)')
+    const base = 'id, tipo, autor_id, post_id, video_id, live_id, texto, lida, criado, autor:perfis!notificacoes_autor_id_fkey(full_name, avatar_url)';
+    let { data, error } = await supabaseClient.from('notificacoes')
+      .select(base + ', live:lives!notificacoes_live_id_fkey(estado, atualizado_em, ended_at), post:posts!notificacoes_post_id_fkey(oferta_ate, oferta_preco)')
       .eq('user_id', uid).order('criado', { ascending: false }).limit(60);
+    if (error) ({ data, error } = await supabaseClient.from('notificacoes').select(base)   // base antiga sem colunas de oferta
+      .eq('user_id', uid).order('criado', { ascending: false }).limit(60));
     if (error) { lista.innerHTML = '<div class="vazio">Não foi possível carregar as notificações.</div>'; return; }
     if (!data || !data.length) {
       lista.innerHTML = '<div class="vazio"><i class="fas fa-bell"></i>Ainda não tem notificações.<br>Siga empresas em <a href="amigos.html" style="color:var(--primary,#f3c64e)">Amigos</a> para saber das novidades delas.</div>';
@@ -379,11 +412,12 @@ FC.sino = async function () {
     lista.innerHTML = data.map(n => {
       const a = n.autor || {}, nome = a.full_name || 'Alguém';
       const foto = a.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=random&color=fff&size=88');
-      return '<a class="n' + (n.lida ? '' : ' nova') + '" href="' + esc(FC.linkNotificacao(n)) + '" data-id="' + n.id + '">' +
+      const t = FC.textoNotificacao(n);
+      return '<a class="n' + (n.lida ? '' : ' nova') + (t.terminada ? ' fim' : '') + '" href="' + esc(FC.linkNotificacao(n)) + '" data-id="' + n.id + '">' +
         '<span class="av"><img src="' + FC.u(foto) + '" alt="" loading="lazy"><i class="fas ' + (FC._notifIcones[n.tipo] || 'fa-bell') + '"></i></span>' +
-        '<span class="tx"><b>' + esc(nome) + '</b> ' + esc(FC._notifTextos[n.tipo] || '') +
-        (n.texto ? '<small>' + esc(n.texto) + '</small>' : '') +
-        '<span class="q" style="display:block">' + FC.haQuanto(n.criado) + '</span></span>' +
+        '<span class="tx"><b>' + esc(nome) + '</b> ' + esc(t.txt) +
+        (t.extra ? '<small>' + esc(t.extra) + '</small>' : '') +
+        '<span class="q" style="display:block" title="' + esc(new Date(n.criado).toLocaleString('pt-PT')) + '">' + FC.haQuanto(n.criado) + ' · ' + FC.diaHora(n.criado) + '</span></span>' +
         (n.lida ? '' : '<span class="ponto"></span>') + '</a>';
     }).join('');
   };
@@ -412,7 +446,8 @@ FC.sino = async function () {
       else if (payload.eventType === 'INSERT' && document.visibilityState === 'visible') {
         const n = payload.new;
         const { data: a } = await supabaseClient.from('perfis').select('full_name').eq('id', n.autor_id).maybeSingle();
-        FC.toast('🔔 ' + ((a && a.full_name) || 'Alguém') + ' ' + (FC._notifTextos[n.tipo] || ''));
+        const oferta = n.tipo === 'publicacao' && /^⚡/.test(n.texto || '');
+        FC.toast('🔔 ' + ((a && a.full_name) || 'Alguém') + ' ' + (oferta ? 'publicou uma oferta relâmpago ⚡' : (FC._notifTextos[n.tipo] || '')));
       }
     })
     .subscribe();
