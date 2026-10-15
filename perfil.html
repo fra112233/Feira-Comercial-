@@ -2280,7 +2280,7 @@
             return;
         }
         if (!meuId) { alert('Sessão expirada. Entra novamente.'); return; }
-        if (typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type !== 'empresa') { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories, na página inicial.'); return; }
+        if (typeof perfilAtual !== 'undefined' && perfilAtual && !FC.podeComoEmpresa(perfilAtual)) { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories, na página inicial.'); return; }
 
         const botao = document.querySelector('[onclick="submitPost()"]');
         if (botao) { botao.disabled = true; botao.textContent = 'A publicar...'; }

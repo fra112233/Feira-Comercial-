@@ -190,8 +190,8 @@ async function carregarLista() {
 
 function desenharIniciar() {
   const z = $('zonaIniciar');
-  if (me.type !== 'empresa') { z.innerHTML = '<p class="nota" style="max-width:260px"><i class="fas fa-circle-info" style="color:var(--ouro)"></i> As lives são feitas pelas empresas. Pode assistir, comentar e mandar corações.</p>'; return; }
-  if (!FC.mensalidade(me).pode) { z.innerHTML = '<a class="btn" href="mensalidade.html"><i class="fas fa-credit-card"></i> Pagar mensalidade para fazer Live</a>'; return; }
+  if (!FC.podeComoEmpresa(me)) { z.innerHTML = '<p class="nota" style="max-width:260px"><i class="fas fa-circle-info" style="color:var(--ouro)"></i> As lives são feitas pelas empresas. Pode assistir, comentar e mandar corações.</p>'; return; }
+  if (!FC.podePublicar(me)) { z.innerHTML = '<a class="btn" href="mensalidade.html"><i class="fas fa-credit-card"></i> Pagar mensalidade para fazer Live</a>'; return; }
   z.innerHTML = '<button class="btn" onclick="prepararLive()"><i class="fas fa-tower-broadcast"></i> Iniciar live</button>';
 }
 

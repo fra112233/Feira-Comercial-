@@ -335,7 +335,8 @@ function mostrarModoDono() {
 // Só as empresas fazem publicações no feed (as pessoas usam os Stories)
 function ajustarPublicar() {
   if (modoVisita) return;
-  const empresa = ehEmpresa(perfilAtual) && (!window.FC || !FC.mensalidade || FC.mensalidade(perfilAtual).pode);
+  const empresa = (window.FC && FC.podePublicar) ? FC.podePublicar(perfilAtual)
+    : ehEmpresa(perfilAtual) && (!window.FC || !FC.mensalidade || FC.mensalidade(perfilAtual).pode);
   const b = document.getElementById('btnPublicar'); if (b) b.style.display = empresa ? '' : 'none';
   document.querySelectorAll('.create-post-card').forEach(el => el.style.display = empresa ? '' : 'none');
 }

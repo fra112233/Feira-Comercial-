@@ -700,6 +700,17 @@ FC.vigiarLives = async function () {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') carregar(); });
 };
 
+/* ---------- Quem pode publicar (feed, anúncios, Live, produtos) ----------
+   Empresas com a mensalidade em dia, e as contas da equipa (administrador / oficial). */
+FC.contaEquipa = me => !!me && (me.role === 'admin' || me.role === 'equipa');
+FC.podeComoEmpresa = me => !!me && (me.type === 'empresa' || FC.contaEquipa(me));
+FC.podePublicar = function (me) {
+  me = me || FC.me;
+  if (!me) return false;
+  if (FC.contaEquipa(me)) return true;
+  return me.type === 'empresa' && FC.mensalidade(me).pode;
+};
+
 /* ---------- Mensalidade das empresas ---------- */
 // Devolve { empresa, ativa (paga/em período grátis), pode (pode usar as funções pagas),
 //           ate (Date|null), dias (dias que faltam) }.

@@ -206,8 +206,8 @@ function fecharModal(id) { document.getElementById(id).classList.remove('aberto'
   document.getElementById('filtroProvincia').innerHTML = FCP.opcoes(FCP.PROVINCIAS, '', 'Todas as províncias');
   me = await FC.boot();
   if (!me) return;
-  souEmpresa = me.type === 'empresa';
-  mensalidadeAtiva = FC.mensalidade(me).pode;
+  souEmpresa = FC.podeComoEmpresa(me);          // empresas e contas da equipa
+  mensalidadeAtiva = FC.podePublicar(me);
   document.getElementById('btnAnunciar').style.display = souEmpresa ? '' : 'none';
   document.getElementById('tabMeus').style.display = souEmpresa ? '' : 'none';
   document.getElementById('avisoPessoa').style.display = souEmpresa ? 'none' : 'block';
