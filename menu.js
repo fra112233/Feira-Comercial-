@@ -82,6 +82,8 @@ window.FCMenu = (function () {
 
         '<div class="sec">Navegar</div>' +
         item('fa-home', 'Início', 'index.html') +
+        ((window.FC && FC.abrirNotificacoes) ? item('fa-bell', 'Notificações', 'FC.abrirNotificacoes()',
+          '<span class="fc-msg-menu" data-fc-notif style="' + (FC._notifNaoLidas ? '' : 'display:none') + '">' + (FC._notifNaoLidas > 99 ? '99+' : (FC._notifNaoLidas || '')) + '</span>') : '') +
         item('fa-user-friends', 'Amigos', 'amigos.html') +
         item('fa-comment-dots', 'Mensagens', 'mensagen.html',
           '<span data-fc-msgs class="fc-msg-menu" style="' + ((window.FC && FC._msgsNaoLidas) ? '' : 'display:none') + '">' + ((window.FC && FC._msgsNaoLidas) > 99 ? '99+' : ((window.FC && FC._msgsNaoLidas) || '')) + '</span>') +
@@ -100,7 +102,7 @@ window.FCMenu = (function () {
         (temTema() ? item(temaEscuro() ? 'fa-moon' : 'fa-sun', 'Modo escuro', 'FCMenu.tema()', '<span class="sw ' + (temaEscuro() ? 'on' : '') + '" id="fcm-sw-tema"></span>') : '') +
         item('fa-eye', 'Perfil visível na pesquisa', 'FCMenu.visibilidade()', '<span class="sw ' + (publico ? 'on' : '') + '" id="fcm-sw-vis"></span>') +
         item('fa-language', 'Idioma / Language', 'FCI18N.alternar()', '<b style="margin-left:auto;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid currentColor;opacity:.8">' + ((window.FCI18N && FCI18N.lang === 'en') ? 'EN' : 'PT') + '</b>') +
-        item('fa-bell', 'Notificações de mensagens', 'FCMenu.notificacoes()', '<span class="sw ' + (notif ? 'on' : '') + '" id="fcm-sw-not"></span>') +
+        item('fa-mobile-screen', 'Avisos no telemóvel', 'FCMenu.notificacoes()', '<span class="sw ' + (notif ? 'on' : '') + '" id="fcm-sw-not"></span>') +
 
         '<div class="sec">Ajuda</div>' +
         ((window.FC && FC.appInstalada && !FC.appInstalada()) ? item('fa-download', 'Instalar aplicação', 'FCMenu.instalar()') : '') +
@@ -165,7 +167,7 @@ window.FCMenu = (function () {
     }
     var ok = (window.FC && FC.ativarPush) ? await FC.ativarPush(true) : (await Notification.requestPermission()) === 'granted';
     document.getElementById('fcm-sw-not').classList.toggle('on', !!ok);
-    if (ok) aviso('Avisos de mensagens ligados! Vai recebê-los mesmo com a aplicação fechada.');
+    if (ok) aviso('Avisos ligados! Vai recebê-los mesmo com a aplicação fechada.');
   }
 
   function editarPerfil() {

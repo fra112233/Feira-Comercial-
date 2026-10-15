@@ -174,6 +174,165 @@ FC.badgeMensagens = async function () {
   window.addEventListener('focus', contar);
 };
 
+/* ---------- Sino 🔔: notificações de atividade ----------
+   Gostos, comentários, respostas, novos seguidores e novidades de quem sigo
+   (publicações, vídeos, Live). O sino aparece ao lado do botão ☰ em todas as páginas. */
+FC._notifNaoLidas = 0;
+FC._notifTextos = {
+  gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
+  seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
+  gosto_video: 'gostou do seu vídeo', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴'
+};
+FC._notifIcones = {
+  gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
+  seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast'
+};
+FC.haQuanto = function (d) {
+  const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 60) return 'agora';
+  if (s < 3600) return 'há ' + Math.floor(s / 60) + ' min';
+  if (s < 86400) return 'há ' + Math.floor(s / 3600) + ' h';
+  if (s < 7 * 86400) { const n = Math.floor(s / 86400); return 'há ' + n + (n === 1 ? ' dia' : ' dias'); }
+  return new Date(d).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+};
+FC.linkNotificacao = function (n) {
+  if (n.post_id) return 'index.html?post=' + n.post_id;
+  if (n.video_id) return 'videos.html?v=' + n.video_id;
+  if (n.live_id) return 'live.html?id=' + encodeURIComponent(n.live_id);
+  return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
+};
+FC.sino = async function () {
+  if (FC._sinoLigado) return;
+  const session = await FC.getSession();
+  if (!session) return;
+  const uid = session.user.id;
+  // a tabela ainda não existe (migração 022 por correr): não mostra o sino
+  const teste = await supabaseClient.from('notificacoes').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('lida', false);
+  if (teste.error) return;
+  FC._sinoLigado = true;
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  if (!document.getElementById('fc-sino-css')) {
+    const css = document.createElement('style');
+    css.id = 'fc-sino-css';
+    css.textContent =
+      '.fc-sino-btn{position:relative}' +
+      '.fc-notif-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font:700 11px/18px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bg-card,#18191a);pointer-events:none}' +
+      '#fcn-fundo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5000;opacity:0;visibility:hidden;transition:.25s}#fcn-fundo.aberto{opacity:1;visibility:visible}' +
+      '#fcn{position:fixed;top:0;right:0;bottom:0;width:min(400px,94vw);z-index:5001;background:var(--bg-secondary,var(--bg-card,var(--surface,#1e293b)));' +
+      'color:var(--text-primary,var(--text-main,var(--text,#f1f5f9)));transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column;' +
+      'box-shadow:-8px 0 30px rgba(0,0,0,.3);font-family:Inter,"Segoe UI",system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}#fcn.aberto{transform:none}' +
+      '#fcn .cab{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border-color,var(--border,#334155))}#fcn .cab b{font-size:17px;flex:1}' +
+      '#fcn .cab button{border:none;background:none;color:var(--primary,#f3c64e);font:600 13px inherit;cursor:pointer;padding:6px}' +
+      '#fcn .fechar{width:36px;height:36px;border-radius:50%;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))!important;color:inherit!important;font-size:18px!important}' +
+      '#fcn .lista{flex:1;overflow-y:auto}' +
+      '#fcn .n{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--border-color,var(--border,rgba(148,163,184,.12)))}' +
+      '#fcn .n:hover{background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))}#fcn .n.nova{background:rgba(243,198,78,.08)}' +
+      '#fcn .av{position:relative;flex-shrink:0}#fcn .av img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#475569}' +
+      '#fcn .av i{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#f3c64e;color:#111;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-secondary,#1e293b)}' +
+      '#fcn .av i.fa-heart{background:#ef4444;color:#fff}#fcn .av i.fa-tower-broadcast{background:#ef4444;color:#fff}#fcn .av i.fa-user-plus{background:#22c55e;color:#fff}' +
+      '#fcn .tx{flex:1;min-width:0;font-size:14px;line-height:1.4}#fcn .tx small{display:block;opacity:.75;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '#fcn .tx .q{font-size:12px;opacity:.6;margin-top:3px}#fcn .ponto{width:9px;height:9px;border-radius:50%;background:#f3c64e;flex-shrink:0;margin-top:6px}' +
+      '#fcn .vazio{text-align:center;opacity:.7;padding:50px 24px;font-size:14px;line-height:1.5}#fcn .vazio i{font-size:36px;display:block;margin-bottom:10px;opacity:.6}';
+    document.head.appendChild(css);
+  }
+
+  // botão do sino ao lado de cada botão ☰ (com o mesmo estilo dele)
+  document.querySelectorAll('[onclick*="FCMenu.abrir"]').forEach(menu => {
+    if (menu.previousElementSibling && menu.previousElementSibling.classList.contains('fc-sino-btn')) return;
+    const b = document.createElement(menu.tagName === 'BUTTON' ? 'button' : 'div');
+    b.className = menu.className + ' fc-sino-btn';
+    if (b.tagName === 'BUTTON') b.type = 'button';
+    b.title = 'Notificações'; b.setAttribute('aria-label', 'Notificações'); b.setAttribute('role', 'button');
+    b.innerHTML = '<i class="fas fa-bell"></i><span class="fc-notif-badge" data-fc-notif style="display:none"></span>';
+    b.onclick = () => FC.abrirNotificacoes();
+    menu.parentNode.insertBefore(b, menu);
+  });
+
+  const mostrar = n => {
+    FC._notifNaoLidas = n;
+    const txt = n > 99 ? '99+' : String(n);
+    document.querySelectorAll('[data-fc-notif]').forEach(el => { el.textContent = txt; el.style.display = n ? '' : 'none'; });
+    document.dispatchEvent(new CustomEvent('fc:notificacoes', { detail: n }));
+  };
+  let t = null;
+  const contar = () => {
+    clearTimeout(t);
+    t = setTimeout(async () => {
+      const { count, error } = await supabaseClient.from('notificacoes').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('lida', false);
+      if (!error) mostrar(count || 0);
+    }, 250);
+  };
+  mostrar(teste.count || 0);
+
+  // painel
+  const fundo = document.createElement('div'); fundo.id = 'fcn-fundo';
+  const painel = document.createElement('aside'); painel.id = 'fcn'; painel.setAttribute('aria-label', 'Notificações');
+  painel.innerHTML = '<div class="cab"><b>Notificações</b><button type="button" data-ler>Marcar tudo como lido</button>' +
+    '<button type="button" class="fechar" aria-label="Fechar"><i class="fas fa-times"></i></button></div><div class="lista"></div>';
+  document.body.appendChild(fundo); document.body.appendChild(painel);
+  const fechar = () => { painel.classList.remove('aberto'); fundo.classList.remove('aberto'); document.body.style.overflow = ''; };
+  fundo.onclick = fechar; painel.querySelector('.fechar').onclick = fechar;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
+  painel.querySelector('[data-ler]').onclick = async () => {
+    await supabaseClient.from('notificacoes').update({ lida: true }).eq('user_id', uid).eq('lida', false);
+    painel.querySelectorAll('.n.nova').forEach(el => { el.classList.remove('nova'); const p = el.querySelector('.ponto'); if (p) p.remove(); });
+    mostrar(0);
+  };
+  const lista = painel.querySelector('.lista');
+  const desenhar = async () => {
+    const { data, error } = await supabaseClient.from('notificacoes')
+      .select('id, tipo, autor_id, post_id, video_id, live_id, texto, lida, criado, autor:perfis!notificacoes_autor_id_fkey(full_name, avatar_url)')
+      .eq('user_id', uid).order('criado', { ascending: false }).limit(60);
+    if (error) { lista.innerHTML = '<div class="vazio">Não foi possível carregar as notificações.</div>'; return; }
+    if (!data || !data.length) {
+      lista.innerHTML = '<div class="vazio"><i class="fas fa-bell"></i>Ainda não tem notificações.<br>Siga empresas em <a href="amigos.html" style="color:var(--primary,#f3c64e)">Amigos</a> para saber das novidades delas.</div>';
+      return;
+    }
+    lista.innerHTML = data.map(n => {
+      const a = n.autor || {}, nome = a.full_name || 'Alguém';
+      const foto = a.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=random&color=fff&size=88');
+      return '<a class="n' + (n.lida ? '' : ' nova') + '" href="' + esc(FC.linkNotificacao(n)) + '" data-id="' + n.id + '">' +
+        '<span class="av"><img src="' + FC.u(foto) + '" alt="" loading="lazy"><i class="fas ' + (FC._notifIcones[n.tipo] || 'fa-bell') + '"></i></span>' +
+        '<span class="tx"><b>' + esc(nome) + '</b> ' + esc(FC._notifTextos[n.tipo] || '') +
+        (n.texto ? '<small>' + esc(n.texto) + '</small>' : '') +
+        '<span class="q" style="display:block">' + FC.haQuanto(n.criado) + '</span></span>' +
+        (n.lida ? '' : '<span class="ponto"></span>') + '</a>';
+    }).join('');
+  };
+  lista.addEventListener('click', e => {
+    const a = e.target.closest('a.n'); if (!a || !a.dataset.id) return;
+    e.preventDefault();
+    const href = a.getAttribute('href');
+    const ir = () => { location.href = href; };
+    if (a.classList.contains('nova')) {
+      supabaseClient.from('notificacoes').update({ lida: true }).eq('id', Number(a.dataset.id)).then(ir, ir);
+      setTimeout(ir, 800);   // não espera para sempre se a rede estiver lenta
+    } else ir();
+  });
+  FC.abrirNotificacoes = async () => {
+    if (window.FCMenu) FCMenu.fechar();
+    fundo.classList.add('aberto'); painel.classList.add('aberto'); document.body.style.overflow = 'hidden';
+    lista.innerHTML = '<div class="vazio">A carregar…</div>';
+    await desenhar();
+  };
+
+  // tempo real: número do sino + aviso discreto quando chega uma novidade
+  supabaseClient.channel('notif-' + uid)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacoes', filter: `user_id=eq.${uid}` }, async payload => {
+      contar();
+      if (painel.classList.contains('aberto')) desenhar();
+      else if (payload.eventType === 'INSERT' && document.visibilityState === 'visible') {
+        const n = payload.new;
+        const { data: a } = await supabaseClient.from('perfis').select('full_name').eq('id', n.autor_id).maybeSingle();
+        FC.toast('🔔 ' + ((a && a.full_name) || 'Alguém') + ' ' + (FC._notifTextos[n.tipo] || ''));
+      }
+    })
+    .subscribe();
+  setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
+};
+
 /* ---------- Instalar a aplicação (sem APK, sem aviso de risco) ----------
    O Chrome instala o site como aplicação: ícone no ecrã, abre em ecrã inteiro e
    atualiza-se sozinha. */
@@ -260,11 +419,11 @@ FC.convitePush = function () {
       '#fc-push-convite .i{font-size:26px;line-height:1}#fc-push-convite b{display:block;font-size:15px;margin-bottom:3px}#fc-push-convite p{margin:0 0 10px;color:#a1a1aa;font-size:13px;line-height:1.45}' +
       '#fc-push-convite .bt{display:flex;gap:8px}#fc-push-convite button{flex:1;padding:10px;border-radius:10px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}' +
       '#fc-push-convite .sim{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none}#fc-push-convite .nao{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
-      '<div class="i">🔔</div><div style="flex:1"><b>Avisos de mensagens novas</b><p>Saiba logo quando lhe enviam uma mensagem, mesmo com a aplicação fechada.</p>' +
+      '<div class="i">🔔</div><div style="flex:1"><b>Avisos de mensagens e novidades</b><p>Saiba logo quando lhe enviam uma mensagem, comentam ou quando quem segue publica, mesmo com a aplicação fechada.</p>' +
       '<div class="bt"><button class="sim" type="button">Ativar</button><button class="nao" type="button">Agora não</button></div></div>';
     const fechar = () => { el.remove(); try { localStorage.setItem('fc_push_convite', String(Date.now())); } catch (e) {} };
     el.querySelector('.nao').onclick = fechar;
-    el.querySelector('.sim').onclick = async () => { fechar(); const ok = await FC.ativarPush(true); if (ok) FC.toast('🔔 Avisos de mensagens ligados.'); };
+    el.querySelector('.sim').onclick = async () => { fechar(); const ok = await FC.ativarPush(true); if (ok) FC.toast('🔔 Avisos ligados.'); };
     document.body.appendChild(el);
   }, 6000);
 };
@@ -487,6 +646,7 @@ FC.boot = async function (opts = {}) {
   if (!session) return null;
   const me = await FC.applyIdentity(opts);
   FC.badgeMensagens();
+  FC.sino();
   FC.vigiarLives();
   if (me && me.bloqueado) FC.avisoSuspensa(me);
   // avisos push: renova o registo deste aparelho em silêncio, ou convida (uma vez) a ativar

@@ -1,10 +1,12 @@
-// Feira Comercial — notificações push de mensagens novas.
+// Feira Comercial — notificações push (mensagens novas e atividade do sino 🔔).
 //
 // GET                 → devolve a chave pública (o navegador precisa dela para se registar).
 //                       Na primeira chamada cria as chaves VAPID e guarda-as em push_segredo.
 // POST {mensagem: id} → chamado pela base de dados quando chega uma mensagem nova
 //                       (com o cabeçalho x-push-token); envia o aviso a todos os
 //                       aparelhos do destinatário e apaga os que já não existem.
+// POST {notificacao: id} → chamado quando há um aviso novo no sino (gosto, comentário,
+//                       seguidor, publicação/vídeo/Live de quem segue).
 import * as webpush from "jsr:@negrel/webpush@0.5.0";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -52,6 +54,67 @@ function resumo(m: { content: string | null; media_type: string | null; file_url
   return "Nova mensagem";
 }
 
+const TEXTOS: Record<string, string> = {
+  gosto: "gostou da sua publicação",
+  comentario: "comentou a sua publicação",
+  resposta: "respondeu ao seu comentário",
+  seguir: "começou a segui-lo",
+  publicacao: "fez uma publicação nova",
+  video: "publicou um vídeo novo",
+  gosto_video: "gostou do seu vídeo",
+  comentario_video: "comentou o seu vídeo",
+  live: "está em direto agora 🔴",
+};
+
+type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
+type Cfg = Awaited<ReturnType<typeof carregar>>;
+
+async function enviar(cfg: Cfg, subs: Sub[], aviso: string) {
+  let enviados = 0;
+  const mortos: number[] = [];
+  await Promise.all(subs.map(async (s) => {
+    try {
+      const sub = cfg.servidor.subscribe({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } });
+      await sub.pushTextMessage(aviso, { urgency: webpush.Urgency.High, ttl: 86400 });
+      enviados++;
+    } catch (e) {
+      if (e instanceof webpush.PushMessageError && (e.isGone() || e.response.status === 404)) mortos.push(s.id);
+      else console.warn("push falhou", String(e));
+    }
+  }));
+  if (mortos.length) await sb.from("push_subscricoes").delete().in("id", mortos);
+  return { enviados, removidos: mortos.length };
+}
+
+async function avisoAtividade(cfg: Cfg, id: number) {
+  const { data: n } = await sb.from("notificacoes")
+    .select("id, user_id, autor_id, tipo, post_id, video_id, live_id, texto, lida")
+    .eq("id", id).maybeSingle();
+  if (!n || n.lida) return json({ ok: true, ignorado: "sem aviso" });
+  const [{ data: subs }, { data: autor }, { count }] = await Promise.all([
+    sb.from("push_subscricoes").select("id, endpoint, p256dh, auth").eq("user_id", n.user_id),
+    sb.from("perfis").select("full_name, avatar_url").eq("id", n.autor_id).maybeSingle(),
+    sb.from("notificacoes").select("id", { count: "exact", head: true }).eq("user_id", n.user_id).eq("lida", false),
+  ]);
+  if (!subs || !subs.length) return json({ ok: true, enviados: 0 });
+  const nome = autor?.full_name || "Alguém";
+  const url = n.post_id ? "/index.html?post=" + n.post_id
+    : n.video_id ? "/videos.html?v=" + n.video_id
+    : n.live_id ? "/live.html?id=" + n.live_id
+    : "/perfil.html?id=" + n.autor_id;
+  const extra = (n.texto || "").trim();
+  const aviso = JSON.stringify({
+    title: nome + " " + (TEXTOS[n.tipo] || ""),
+    body: extra ? (extra.length > 110 ? extra.slice(0, 107) + "…" : extra) : "Toque para ver.",
+    icon: autor?.avatar_url || "/images/icone-192.png",
+    // gostos na mesma publicação substituem-se uns aos outros (não enchem o telemóvel)
+    tag: n.tipo + "-" + (n.post_id ?? n.video_id ?? n.live_id ?? n.autor_id),
+    url,
+    count: count ?? 1,
+  });
+  return json({ ok: true, ...(await enviar(cfg, subs as Sub[], aviso)) });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
@@ -62,7 +125,9 @@ Deno.serve(async (req: Request) => {
     if (req.method !== "POST") return json({ erro: "método" }, 405);
     if (req.headers.get("x-push-token") !== cfg.token) return json({ erro: "não autorizado" }, 401);
 
-    const { mensagem } = await req.json();
+    const corpo = await req.json();
+    if (corpo.notificacao) return await avisoAtividade(cfg, corpo.notificacao);
+    const { mensagem } = corpo;
     const { data: m } = await sb.from("messages")
       .select("id, sender_id, receiver_id, content, media_type, file_url, deleted")
       .eq("id", mensagem).maybeSingle();
@@ -85,20 +150,7 @@ Deno.serve(async (req: Request) => {
       count: count ?? 1,
     });
 
-    let enviados = 0;
-    const mortos: number[] = [];
-    await Promise.all(subs.map(async (s) => {
-      try {
-        const sub = cfg.servidor.subscribe({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } });
-        await sub.pushTextMessage(aviso, { urgency: webpush.Urgency.High, ttl: 86400 });
-        enviados++;
-      } catch (e) {
-        if (e instanceof webpush.PushMessageError && (e.isGone() || e.response.status === 404)) mortos.push(s.id);
-        else console.warn("push falhou", String(e));
-      }
-    }));
-    if (mortos.length) await sb.from("push_subscricoes").delete().in("id", mortos);
-    return json({ ok: true, enviados, removidos: mortos.length });
+    return json({ ok: true, ...(await enviar(cfg, subs as Sub[], aviso)) });
   } catch (e) {
     console.error(e);
     return json({ ok: false, erro: String(e) }, 500);

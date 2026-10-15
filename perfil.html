@@ -1682,6 +1682,7 @@
         contarSeguidores();
         if (location.hash === '#editar' && !modoVisita) { history.replaceState(null, '', 'perfil.html'); openModal('modalEdit'); }
         if (window.FC && FC.badgeMensagens) FC.badgeMensagens();
+        if (window.FC && FC.sino) FC.sino();
         if (window.FC && FC.vigiarLives) FC.vigiarLives();
     })();
 
