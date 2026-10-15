@@ -64,6 +64,10 @@ const TEXTOS: Record<string, string> = {
   gosto_video: "gostou do seu vídeo",
   comentario_video: "comentou o seu vídeo",
   live: "está em direto agora 🔴",
+  avaliacao: "avaliou a sua empresa",
+  resposta_avaliacao: "respondeu à sua avaliação",
+  convite_aceite: "criou conta com o seu convite",
+  convite_premio: "pagou a mensalidade: ganhou dias grátis",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -98,7 +102,10 @@ async function avisoAtividade(cfg: Cfg, id: number) {
   ]);
   if (!subs || !subs.length) return json({ ok: true, enviados: 0 });
   const nome = autor?.full_name || "Alguém";
-  const url = n.post_id ? "/index.html?post=" + n.post_id
+  const url = n.tipo === "avaliacao" ? "/perfil.html#avaliacoes"
+    : n.tipo === "resposta_avaliacao" ? "/perfil.html?id=" + n.autor_id + "#avaliacoes"
+    : n.tipo.startsWith("convite") ? "/mensalidade.html#convites"
+    : n.post_id ? "/index.html?post=" + n.post_id
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
     : "/perfil.html?id=" + n.autor_id;

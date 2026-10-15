@@ -149,7 +149,7 @@ window.FCMenu = (function () {
   }
 
   async function visibilidade() {
-    if (!perfil || !window.supabaseClient) return;
+    if (!perfil || typeof supabaseClient === 'undefined') return;   // supabaseClient é 'const' global (não fica em window)
     var novo = (perfil.visibility || 'publico') === 'publico' ? 'privado' : 'publico';
     var r = await supabaseClient.from('perfis').update({ visibility: novo }).eq('id', perfil.id);
     if (r.error) { aviso('Erro: ' + FC.traduzirErro(r.error)); return; }

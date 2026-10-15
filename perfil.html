@@ -19,6 +19,7 @@
 <script src="atualizacao.js"></script>
 <script src="perfil-campos.js"></script>
 <script src="perfil-tipos.js"></script>
+<script src="perfil-extra.js"></script>
 <script src="menu.js"></script>
 
     <style>
@@ -1477,6 +1478,12 @@
             <button class="tab-btn active" onclick="switchTab('posts', this)">
                 <i class="fas fa-stream"></i> Publicações
             </button>
+            <button class="tab-btn" id="tabBtnProdutos" style="display:none" onclick="switchTab('produtos', this)">
+                <i class="fas fa-box-open"></i> Produtos
+            </button>
+            <button class="tab-btn" id="tabBtnAvaliacoes" style="display:none" onclick="switchTab('avaliacoes', this)">
+                <i class="fas fa-star"></i> Avaliações
+            </button>
             <button class="tab-btn" onclick="switchTab('media', this)">
                 <i class="fas fa-images"></i> Média
             </button>
@@ -1521,6 +1528,16 @@
                     <p>Nenhuma foto ou vídeo ainda.</p>
                 </div>
             </div>
+        </div>
+
+        <!-- TAB CONTENT: PRODUTOS (empresas) -->
+        <div id="tab-produtos" class="tab-content">
+            <div id="produtosLista"></div>
+        </div>
+
+        <!-- TAB CONTENT: AVALIAÇÕES (empresas) -->
+        <div id="tab-avaliacoes" class="tab-content">
+            <div id="avaliacoesLista"></div>
         </div>
 
         <!-- TAB CONTENT: LIKES -->
@@ -1674,6 +1691,7 @@
                 return;
             }
             if (modoVisita) verificarSeSigo();
+            if (window.FCX && perfilAtual) FCX.iniciar(perfilAtual);
             if (modoVisita && profile && profile.type === 'empresa' && FC.registarEvento) FC.registarEvento(alvoId, 'perfil');
         } catch (err) {
             console.warn('Não foi possível carregar o perfil:', err);
@@ -2128,6 +2146,8 @@
         btn.classList.add('active');
         document.getElementById(`tab-${tab}`).classList.add('active');
         if (tab === 'likes') carregarGostos();
+        if (tab === 'produtos' && window.FCX) FCX.carregarProdutos();
+        if (tab === 'avaliacoes' && window.FCX) FCX.carregarAvaliacoes();
     }
 
     // ── Separador "Gostos": publicações que esta pessoa curtiu ──

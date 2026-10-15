@@ -491,6 +491,13 @@
         }
     });
 
+    // link de convite (Formulario.html?convite=<id da empresa que convidou>)
+    const convite = (() => {
+        let c = new URLSearchParams(location.search).get('convite') || '';
+        try { if (c) localStorage.setItem('fc_convite', c); else c = localStorage.getItem('fc_convite') || ''; } catch (e) {}
+        return /^[0-9a-f-]{36}$/i.test(c) ? c : '';
+    })();
+
     function setStatus(msg, type) {
         const box = document.getElementById('submit-status');
         box.innerHTML = msg;
@@ -522,6 +529,7 @@
             // 1. Criar utilizador no Supabase Auth
             // todos os dados vão juntos; a base de dados cria o perfil completo
             const dados = {
+                convidado_por: convite || undefined,
                 full_name: nome,
                 type: tipo,
                 phone: celular,
@@ -550,6 +558,7 @@
             });
             if (authError) throw authError;
             if (!authData.user) throw new Error('Não foi possível criar a conta. Tenta novamente.');
+            try { localStorage.removeItem('fc_convite'); } catch (e) {}
 
             // 2. Upload do avatar (opcional) para o bucket 'avatars'
             let avatarUrl = null;
@@ -590,8 +599,10 @@
             const msg = err.message || 'Erro inesperado. Tenta novamente.';
             if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
                 setStatus('Este e-mail já tem conta. <a href="Portal.html" style="color:var(--primary)">Entrar</a>', 'error');
-            } else if (msg.toLowerCase().includes('password')) {
-                setStatus('❌ Palavra-passe demasiado curta para o servidor (ajusta em Supabase → Auth → Settings → Minimum password length).', 'error');
+            } else if (/pwned|leaked|compromised|known to be|breach/i.test(msg)) {
+                setStatus('❌ Esta palavra-passe já apareceu em fugas de dados na internet e não é segura. Escolha outra, diferente das que usa noutros sites.', 'error');
+            } else if (/weak|password|palavra-passe/i.test(msg)) {
+                setStatus('❌ Palavra-passe fraca. Use pelo menos 8 caracteres, com letras maiúsculas, minúsculas e números.', 'error');
             } else {
                 setStatus('❌ ' + msg, 'error');
             }

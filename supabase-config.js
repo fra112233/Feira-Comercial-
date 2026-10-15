@@ -181,11 +181,14 @@ FC._notifNaoLidas = 0;
 FC._notifTextos = {
   gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
-  gosto_video: 'gostou do seu vídeo', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴'
+  gosto_video: 'gostou do seu vídeo', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴',
+  avaliacao: 'avaliou a sua empresa', resposta_avaliacao: 'respondeu à sua avaliação',
+  convite_aceite: 'criou conta com o seu convite', convite_premio: 'pagou a mensalidade: ganhou dias grátis'
 };
 FC._notifIcones = {
   gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
-  seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast'
+  seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
+  avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
@@ -196,6 +199,9 @@ FC.haQuanto = function (d) {
   return new Date(d).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
 };
 FC.linkNotificacao = function (n) {
+  if (n.tipo === 'avaliacao') return 'perfil.html#avaliacoes';
+  if (n.tipo === 'resposta_avaliacao') return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '') + '#avaliacoes';
+  if (n.tipo && n.tipo.indexOf('convite') === 0) return 'mensalidade.html#convites';
   if (n.post_id) return 'index.html?post=' + n.post_id;
   if (n.video_id) return 'videos.html?v=' + n.video_id;
   if (n.live_id) return 'live.html?id=' + encodeURIComponent(n.live_id);
@@ -223,7 +229,7 @@ FC.sino = async function () {
       'color:var(--text-primary,var(--text-main,var(--text,#f1f5f9)));transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column;' +
       'box-shadow:-8px 0 30px rgba(0,0,0,.3);font-family:Inter,"Segoe UI",system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}#fcn.aberto{transform:none}' +
       '#fcn .cab{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border-color,var(--border,#334155))}#fcn .cab b{font-size:17px;flex:1}' +
-      '#fcn .cab button{border:none;background:none;color:var(--primary,#f3c64e);font:600 13px inherit;cursor:pointer;padding:6px}' +
+      '#fcn .cab button{border:none;background:none;color:var(--primary,#f3c64e);font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;padding:6px}' +
       '#fcn .fechar{width:36px;height:36px;border-radius:50%;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))!important;color:inherit!important;font-size:18px!important}' +
       '#fcn .lista{flex:1;overflow-y:auto}' +
       '#fcn .n{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--border-color,var(--border,rgba(148,163,184,.12)))}' +
