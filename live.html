@@ -167,11 +167,13 @@ let pico = 0, batida = null;
 
 function aviso(t, tipo) { const a = $('aviso'); a.className = t ? 'aviso ' + (tipo || 'erro') : 'aviso'; a.innerHTML = t || ''; }
 function avatar(p) { return (p && p.avatar_url) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent((p && p.full_name) || 'L') + '&background=random&color=fff&size=128'); }
-function haQuanto(d) { const m = Math.max(1, Math.round((Date.now() - new Date(d)) / 60000)); return m < 60 ? 'há ' + m + ' min' : 'há ' + Math.floor(m / 60) + ' h'; }
+const agoraCerta = () => (window.FC && FC.agora ? FC.agora() : Date.now());   // hora do servidor
+function haQuanto(d) { const m = Math.max(1, Math.round((agoraCerta() - new Date(d)) / 60000)); return m < 60 ? 'há ' + m + ' min' : 'há ' + Math.floor(m / 60) + ' h'; }
 
 /* ─── lista "Ao vivo agora" ─── */
 async function carregarLista() {
-  const limite = new Date(Date.now() - 90 * 1000).toISOString();
+  if (window.FC && FC.sincronizarHora) await FC.sincronizarHora();
+  const limite = new Date(agoraCerta() - 150 * 1000).toISOString();
   const { data, error } = await supabaseClient.from('lives')
     .select('*,autor:perfis!lives_user_id_fkey(full_name,avatar_url,type)')
     .eq('estado', 'ao_vivo').gte('atualizado_em', limite).order('started_at', { ascending: false }).limit(30);
@@ -362,7 +364,8 @@ async function verLive(id) {
   if (error || !l) { aviso('Esta live não existe.'); return; }
   liveAtual = l;
   abrirPalco();
-  if (l.estado !== 'ao_vivo' || Date.now() - new Date(l.atualizado_em) > 90000) return liveTerminou();
+  if (window.FC && FC.sincronizarHora) await FC.sincronizarHora();
+  if (l.estado !== 'ao_vivo' || l.ended_at || agoraCerta() - new Date(l.atualizado_em) > 150000) return liveTerminou();
   if (l.user_id === me.id) { centro('<h2>Esta live é sua</h2><p>Ela continua noutra janela ou já terminou.</p><button class="btn" onclick="sairPalco()">Voltar</button>'); return; }
   papel = 'espectador'; minhaChave = me.id + '-' + Math.random().toString(36).slice(2, 8);
   if (typeof l.espectadores === 'number') $('pContador').textContent = Math.min(l.espectadores, MAX_ESPECTADORES) + '/' + MAX_ESPECTADORES;
@@ -424,7 +427,9 @@ async function aceitarOferta(sdp) {
 function ativarSom() { const v = $('video'); v.muted = false; v.play().catch(() => {}); $('btnSom').style.display = 'none'; }
 function liveTerminou() {
   clearInterval(tentativa); if (pcEsp) pcEsp.close(); pcEsp = null; ligado = false; $('btnSom').style.display = 'none';
-  centro('<h2>A live terminou</h2><p>Siga a empresa para não perder a próxima.</p><button class="btn" onclick="sairPalco()">Ver outras lives</button>');
+  const fim = liveAtual && (liveAtual.ended_at || liveAtual.atualizado_em);
+  const quando = fim && window.FC && FC.dataHora ? '<p style="opacity:.8">Terminou ' + FC.dataHora(fim) + '</p>' : '';
+  centro('<h2>A live terminou</h2>' + quando + '<p>Siga a empresa para não perder a próxima.</p><button class="btn" onclick="sairPalco()">Ver outras lives</button>');
 }
 
 /* ─── chat e corações ─── */

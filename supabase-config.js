@@ -9,6 +9,26 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.FC = window.FC || {};
 
+/* Hora certa: usa a hora do SERVIDOR, não a do relógio do aparelho (que pode estar adiantado
+   ou atrasado). Mostra-se sempre no fuso horário do aparelho. */
+FC._desvio = 0;
+FC._horaCerta = false;
+FC.agora = () => Date.now() + FC._desvio;
+FC.sincronizarHora = function () {
+  if (!FC._sincHora) FC._sincHora = (async () => {
+    try {
+      const t0 = Date.now();
+      const { data, error } = await supabaseClient.rpc('agora');
+      if (error || !data) return;
+      const t1 = Date.now();
+      FC._desvio = new Date(data).getTime() - (t0 + t1) / 2;   // desconta metade do tempo da viagem
+      FC._horaCerta = true;
+    } catch (e) {}
+  })();
+  return FC._sincHora;
+};
+FC.sincronizarHora();
+
 /* URL segura para pôr em src/href: só https, imagens embutidas, blob e caminhos do próprio site;
    aspas e < > escapadas (impede que um endereço malicioso guardado na base de dados injete código). */
 FC.u = function (u) {
@@ -258,6 +278,7 @@ FC.badgeMensagens = async function () {
    Gostos, comentários, respostas, novos seguidores e novidades de quem sigo
    (publicações, vídeos, Live). O sino aparece ao lado do botão ☰ em todas as páginas. */
 FC._notifNaoLidas = 0;
+FC._fimAvisado = new Set();
 FC._notifTextos = {
   gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
@@ -271,7 +292,7 @@ FC._notifIcones = {
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift'
 };
 FC.haQuanto = function (d) {
-  const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
+  const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
   if (s < 60) return 'agora';
   if (s < 3600) return 'há ' + Math.floor(s / 60) + ' min';
   if (s < 86400) return 'há ' + Math.floor(s / 3600) + ' h';
@@ -282,30 +303,37 @@ FC.haQuanto = function (d) {
 FC.diaHora = function (d) {
   const x = new Date(d), h = x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
   const dia = t => { const y = new Date(t); y.setHours(0, 0, 0, 0); return y.getTime(); };
-  const dif = Math.round((dia(x) - dia(Date.now())) / 864e5);
+  const dif = Math.round((dia(x) - dia(FC.agora())) / 864e5);
   if (dif === 0) return 'hoje às ' + h;
   if (dif === -1) return 'ontem às ' + h;
   if (dif === 1) return 'amanhã às ' + h;
   return x.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' }) + ' às ' + h;
 };
+// "hoje, 15/10/2026, às 11:20" — data completa e hora
+FC.dataHora = function (d) {
+  const x = new Date(d), h = x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  const data = x.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const rel = FC.diaHora(d).split(' às ')[0];
+  return (/^(hoje|ontem|amanhã)$/.test(rel) ? rel + ', ' : '') + data + ', às ' + h;
+};
 // texto da notificação conforme o estado ATUAL da live / da oferta
 FC.textoNotificacao = function (n) {
   if (n.tipo === 'live' && n.live) {
     const l = n.live;
-    // confia no estado do servidor; só considera terminada uma live "em direto" que ficou 10 min sem sinal
-    // (margem larga porque o relógio do telemóvel de quem vê pode estar adiantado ou atrasado)
-    const ativa = l.estado === 'ao_vivo' && !l.ended_at && (Date.now() - new Date(l.atualizado_em).getTime()) < 10 * 60000;
+    // o servidor fecha sozinho as lives sem sinal (migração 030); com a hora certa basta uma margem de 3 min
+    const margem = FC._horaCerta ? 3 * 60000 : 10 * 60000;
+    const ativa = l.estado === 'ao_vivo' && !l.ended_at && (FC.agora() - new Date(l.atualizado_em).getTime()) < margem;
     if (!ativa) {
       const fim = l.ended_at || l.atualizado_em;
-      return { txt: 'esteve em direto', extra: 'Terminou ' + (fim ? FC.diaHora(fim) : ''), terminada: true };
+      return { txt: 'terminou a live', extra: 'Terminou ' + (fim ? FC.dataHora(fim) : ''), terminada: true };
     }
     return { txt: FC._notifTextos.live, extra: n.texto };
   }
   if (n.tipo === 'publicacao' && n.post && n.post.oferta_ate) {
-    const fim = new Date(n.post.oferta_ate).getTime(), acabou = fim <= Date.now();
+    const fim = new Date(n.post.oferta_ate).getTime(), acabou = fim <= FC.agora();
     const preco = n.post.oferta_preco != null ? Math.round(n.post.oferta_preco).toLocaleString('pt-PT') + ' MT' : '';
     return { txt: 'publicou uma oferta relâmpago ⚡',
-             extra: [preco, acabou ? 'Terminou ' + FC.diaHora(fim) : 'Válida até ' + FC.diaHora(fim)].filter(Boolean).join(' · '),
+             extra: [preco, acabou ? 'Terminou ' + FC.dataHora(fim) : 'Válida até ' + FC.dataHora(fim)].filter(Boolean).join(' · '),
              terminada: acabou };
   }
   return { txt: FC._notifTextos[n.tipo] || '', extra: n.texto };
@@ -401,6 +429,7 @@ FC.sino = async function () {
   };
   const lista = painel.querySelector('.lista');
   const desenhar = async () => {
+    await FC.sincronizarHora();
     const base = 'id, tipo, autor_id, post_id, video_id, live_id, texto, lida, criado, autor:perfis!notificacoes_autor_id_fkey(full_name, avatar_url)';
     let { data, error } = await supabaseClient.from('notificacoes')
       .select(base + ', live:lives!notificacoes_live_id_fkey(estado, atualizado_em, ended_at), post:posts!notificacoes_post_id_fkey(oferta_ate, oferta_preco)')
@@ -420,7 +449,7 @@ FC.sino = async function () {
         '<span class="av"><img src="' + FC.u(foto) + '" alt="" loading="lazy"><i class="fas ' + (FC._notifIcones[n.tipo] || 'fa-bell') + '"></i></span>' +
         '<span class="tx"><b>' + esc(nome) + '</b> ' + esc(t.txt) +
         (t.extra ? '<small>' + esc(t.extra) + '</small>' : '') +
-        '<span class="q" style="display:block" title="' + esc(new Date(n.criado).toLocaleString('pt-PT')) + '">' + FC.haQuanto(n.criado) + ' · ' + FC.diaHora(n.criado) + '</span></span>' +
+        '<span class="q" style="display:block">' + FC.haQuanto(n.criado) + ' · ' + FC.dataHora(n.criado) + '</span></span>' +
         (n.lida ? '' : '<span class="ponto"></span>') + '</a>';
     }).join('');
   };
@@ -446,6 +475,14 @@ FC.sino = async function () {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacoes', filter: `user_id=eq.${uid}` }, async payload => {
       contar();
       if (painel.classList.contains('aberto')) desenhar();
+      else if (payload.eventType === 'UPDATE' && payload.new && payload.new.tipo === 'live' && payload.new.live_id &&
+               !payload.new.lida && document.visibilityState === 'visible') {   // marcar como lida não avisa
+        const { data: l } = await supabaseClient.from('lives').select('estado, ended_at, autor:perfis!lives_user_id_fkey(full_name)').eq('id', payload.new.live_id).maybeSingle();
+        if (l && l.estado === 'terminada' && !FC._fimAvisado.has(payload.new.live_id)) {
+          FC._fimAvisado.add(payload.new.live_id);
+          FC.toast('⏹ ' + ((l.autor && l.autor.full_name) || 'A live') + ' terminou a live' + (l.ended_at ? ' ' + FC.dataHora(l.ended_at).replace(/^hoje, [^,]+, /, '') : ''));
+        }
+      }
       else if (payload.eventType === 'INSERT' && document.visibilityState === 'visible') {
         const n = payload.new;
         const { data: a } = await supabaseClient.from('perfis').select('full_name').eq('id', n.autor_id).maybeSingle();
@@ -722,7 +759,8 @@ FC.vigiarLives = async function () {
   const carregar = () => {
     clearTimeout(t);
     t = setTimeout(async () => {
-      const limite = new Date(Date.now() - 90 * 1000).toISOString();
+      await FC.sincronizarHora();
+      const limite = new Date(FC.agora() - 150 * 1000).toISOString();   // hora do servidor; o servidor fecha as paradas
       const { data, error } = await supabaseClient.from('lives')
         .select('id,user_id,titulo,autor:perfis!lives_user_id_fkey(full_name,avatar_url)')
         .eq('estado', 'ao_vivo').gte('atualizado_em', limite)
