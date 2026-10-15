@@ -1,5 +1,5 @@
 -- Teste completo da base de dados da Feira Comercial.
--- Correr no Supabase → SQL Editor DEPOIS das migrações 007 e 008.
+-- Correr no Supabase → SQL Editor (atualizado para as migrações até à 027; ver também teste-novidades.sql).
 -- O resultado aparece como um "erro" vermelho que começa por RELATORIO: é de propósito,
 -- porque o erro anula tudo e nada fica gravado.
 -- Cria 3 contas (Ana = pessoa, Loja = empresa, Carlos = pessoa "intruso"),
@@ -88,15 +88,16 @@ begin
    ('00000000-0000-0000-0000-000000000000', carlos, 'authenticated', 'authenticated', 'carlos.teste@exemplo.co.mz', extensions.crypt('Teste1234', extensions.gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}', '{"full_name":"Carlos Intruso","type":"singular"}', now(), now());
 
-  perform pg_temp.t('Registo','Conta pessoal criada com género, celular, morada, província', ana,
-    format('select type||''|''||gender||''|''||phone||''|''||morada||''|''||province from perfis where id=%L', ana), 'v=singular|feminino|+258841111111|Av. Julius Nyerere 100|Maputo Cidade');
-  perform pg_temp.t('Registo','Conta empresa criada com NUIT, WhatsApp, setor, site, mapa e horário', loja,
-    format('select type||''|''||nuit||''|''||whatsapp||''|''||sector||''|''||website||''|''||round(latitude::numeric,2)||''|''||(opening_hours->''seg''->>''abre'') from perfis where id=%L', loja),
-    'v=empresa|400123456|+258842222222|Comércio|https://loja.exemplo.co.mz|-25.97|08:00');
+  perform pg_temp.t('Registo','Conta pessoal criada com género e província', ana,
+    format('select type||''|''||gender||''|''||province from perfis where id=%L', ana), 'v=singular|feminino|Maputo Cidade');
+  -- desde a migração 012 os dados privados só se leem pela função perfil_completo
+  perform pg_temp.t('Registo','Conta empresa: NUIT e WhatsApp guardados (vistos pela função do perfil)', loja,
+    format('select (perfil_completo(%L)->>''nuit'')||''|''||(perfil_completo(%L)->>''whatsapp'')', loja, loja), 'v=400123456|+258842222222');
   perform pg_temp.t('Registo','Nome de utilizador gerado automaticamente', ana, format('select (username like ''ana.teste_%%'')::text from perfis where id=%L', ana), 'v=true');
 
   -- ── 2. Perfis ──
-  perform pg_temp.t('Perfis','Sem sessão NÃO se vê nenhum perfil', null, 'select id from perfis', 'n=0');
+  perform pg_temp.t('Perfis','Sem sessão NÃO se vê nenhum perfil', null, 'select id from perfis', 'bloqueado');
+  perform pg_temp.t('Perfis','Outros NÃO veem o NUIT nem o celular pessoal', carlos, format('select (perfil_completo(%L)->>''nuit'') is null and (perfil_completo(%L)->>''phone'') is null', loja, ana), 'v=true');
   perform pg_temp.t('Perfis','Com sessão vê o perfil da empresa', ana, format('select id from perfis where id=%L', loja), 'n=1');
   perform pg_temp.t('Perfis','Editar o próprio perfil (bio)', ana, format('update perfis set bio=''Olá!'' where id=%L', ana), 'ok');
   perform pg_temp.t('Perfis','NÃO edita o perfil de outra pessoa', carlos, format('update perfis set bio=''hackeado'' where id=%L', ana), 'bloqueado');
@@ -106,7 +107,7 @@ begin
   perform pg_temp.t('Perfis','NÃO cria perfil falso com outro id', carlos, format('insert into perfis(id,username) values (%L,''falso'')', gen_random_uuid()), 'bloqueado');
   perform pg_temp.t('Perfis','NÃO apaga o perfil (só apagando a conta)', ana, format('delete from perfis where id=%L', ana), 'bloqueado');
   perform pg_temp.t('Perfis','Tenta dar-se o papel de admin e trocar o e-mail do perfil', ana, format('update perfis set role=''admin'', email=''presidente@gov.mz'' where id=%L', ana), 'ok');
-  perform pg_temp.t('Perfis','… papel e e-mail NÃO mudam', ana, format('select role||''|''||email from perfis where id=%L', ana), 'v=user|ana.teste@exemplo.co.mz');
+  perform pg_temp.t('Perfis','… papel NÃO muda (não é admin)', ana, 'select sou_admin()::text', 'v=false');
 
   -- ── 3. Publicações ──
   perform pg_temp.t('Publicações','Empresa publica no feed (com foto)', loja, format('insert into posts(user_id,content,media) values (%L,''Primeira publicação'',''[{"url":"https://x/a.jpg","type":"image"}]'')', loja), 'ok');
@@ -114,7 +115,7 @@ begin
   perform pg_temp.t('Publicações','Pessoa NÃO faz publicações no feed (só stories)', ana, format('insert into posts(user_id,content) values (%L,''Olá'')', ana), 'bloqueado');
   select max(id) into pid2 from posts where user_id = ana;
   perform pg_temp.t('Publicações','NÃO publica em nome de outra pessoa', carlos, format('insert into posts(user_id,content) values (%L,''falso'')', loja), 'bloqueado');
-  perform pg_temp.t('Publicações','Sem sessão NÃO deve ler publicações (perfis estão protegidos)', null, format('select id from posts where id=%L', pid), 'n=0');
+  perform pg_temp.t('Publicações','Sem sessão NÃO deve ler publicações (perfis estão protegidos)', null, format('select id from posts where id=%L', pid), 'bloqueado');
   perform pg_temp.t('Publicações','NÃO edita publicação de outro', carlos, format('update posts set content=''x'' where id=%L', pid), 'bloqueado');
   perform pg_temp.t('Publicações','NÃO apaga publicação de outro', carlos, format('delete from posts where id=%L', pid), 'bloqueado');
   perform pg_temp.t('Publicações','NÃO deve aceitar publicação vazia (sem texto nem foto)', loja, format('insert into posts(user_id,content,media) values (%L,null,''[]'')', loja), 'bloqueado');
@@ -146,7 +147,7 @@ begin
   perform pg_temp.t('Stories','Publicar story', ana, format('insert into stories(user_id,media_url) values (%L,''https://x/s.jpg'')', ana), 'ok');
   select max(id) into story from stories where user_id = ana;
   perform pg_temp.t('Stories','Outros veem o story', carlos, format('select id from stories where id=%s', story), 'n=1');
-  perform pg_temp.t('Stories','Sem sessão NÃO vê stories', null, 'select id from stories', 'n=0');
+  perform pg_temp.t('Stories','Sem sessão NÃO vê stories', null, 'select id from stories', 'bloqueado');
   perform pg_temp.t('Stories','NÃO publica story em nome de outro', carlos, format('insert into stories(user_id,media_url) values (%L,''x'')', ana), 'bloqueado');
   perform pg_temp.t('Stories','NÃO apaga story de outro', carlos, format('delete from stories where id=%s', story), 'bloqueado');
   perform pg_temp.t('Stories','Responder ao story por mensagem (com a referência da foto)', loja,
@@ -169,7 +170,7 @@ begin
   perform pg_temp.t('Mensagens','NÃO envia em nome de outro', carlos, format('insert into messages(sender_id,receiver_id,content) values (%L,%L,''falso'')', ana, loja), 'bloqueado');
   perform pg_temp.t('Mensagens','Destinatário vê a mensagem', loja, format('select id from messages where id=%s', mid), 'n=1');
   perform pg_temp.t('Mensagens','Terceiro NÃO lê a conversa dos outros', carlos, format('select id from messages where sender_id in (%L,%L)', ana, loja), 'n=0');
-  perform pg_temp.t('Mensagens','Sem sessão NÃO lê mensagens', null, 'select id from messages', 'n=0');
+  perform pg_temp.t('Mensagens','Sem sessão NÃO lê mensagens', null, 'select id from messages', 'bloqueado');
   perform pg_temp.t('Mensagens','Destinatário marca como lida', loja, format('update messages set read_at=now() where id=%s', mid), 'ok');
   perform pg_temp.t('Mensagens','… fica marcada como lida', ana, format('select (read_at is not null)::text from messages where id=%s', mid), 'v=true');
   perform pg_temp.t('Mensagens','Destinatário tenta mudar o texto', loja, format('update messages set content=''alterado'' where id=%s', mid), 'ok');
@@ -180,7 +181,8 @@ begin
   perform pg_temp.t('Mensagens','Destinatário NÃO apaga para todos', loja, format('update messages set deleted=true where id=%s', mid), 'ok');
   perform pg_temp.t('Mensagens','… a mensagem continua lá', ana, format('select deleted::text from messages where id=%s', mid), 'v=false');
   perform pg_temp.t('Mensagens','Remetente apaga para todos', ana, format('update messages set deleted=true where id=%s', mid), 'ok');
-  perform pg_temp.t('Mensagens','… o texto desaparece mesmo da base de dados', loja, format('select content from messages where id=%s', mid), 'v=');
+  -- desde a migração 019 "apagar" só esconde: o original fica guardado para a equipa investigar denúncias
+  perform pg_temp.t('Mensagens','… fica marcada como apagada (o original fica guardado para a equipa)', loja, format('select deleted::text from messages where id=%s', mid), 'v=true');
   perform pg_temp.t('Mensagens','Limpar conversa só para mim', loja, format('update messages set cleared_by_receiver=true where receiver_id=%L', loja), 'ok');
   perform pg_temp.t('Mensagens','NÃO deve aceitar mensagem vazia (sem texto nem ficheiro)', ana, format('insert into messages(sender_id,receiver_id,content) values (%L,%L,null)', ana, loja), 'bloqueado');
 
@@ -201,7 +203,7 @@ begin
   perform pg_temp.t('Anúncios','NÃO aceita tipo inventado', loja, format('insert into vagas_anuncios(empresa_id,titulo,descricao,tipo) values (%L,''x'',''x'',''spam'')', loja), 'bloqueado');
   perform pg_temp.t('Anúncios','Empresa NÃO publica em nome de outra', loja, format('insert into vagas_anuncios(empresa_id,titulo,descricao) values (%L,''x'',''x'')', carlos), 'bloqueado');
   perform pg_temp.t('Anúncios','Pessoas veem os anúncios ativos', ana, format('select id from vagas_anuncios where empresa_id=%L', loja), 'n=3');
-  perform pg_temp.t('Anúncios','Contar visualização', ana, format('select coalesce(ver_anuncio(%L)::text, ''feito'')', aid), 'v=feito');
+  perform pg_temp.t('Anúncios','Contar visualização', ana, format('select coalesce(ver_anuncio(%L)::text, ''feito'')', aid), 'v=');
   perform pg_temp.t('Anúncios','… visualizações = 1', ana, format('select views::text from vagas_anuncios where id=%L', aid), 'v=1');
   perform pg_temp.t('Anúncios','Sem sessão NÃO conta visualizações', null, format('select ver_anuncio(%L)::text', aid), 'bloqueado');
   perform pg_temp.t('Anúncios','Empresa tenta falsificar visualizações', loja, format('update vagas_anuncios set views=99999 where id=%L', aid), 'ok');
@@ -230,7 +232,7 @@ begin
   perform pg_temp.t('Vídeos','Dono do vídeo apaga comentário', ana, format('delete from video_comments where id=%s', vcid), 'ok');
   perform pg_temp.t('Vídeos','Dono tenta falsificar gostos', ana, format('update videos set likes_count=9999, views=9999 where id=%s', vid), 'ok');
   perform pg_temp.t('Vídeos','… e os números NÃO mudam', ana, format('select likes_count||''/''||views from videos where id=%s', vid), 'v=1/0');
-  perform pg_temp.t('Vídeos','Contar visualização', carlos, format('select coalesce(ver_video(%s)::text, ''feito'')', vid), 'v=feito');
+  perform pg_temp.t('Vídeos','Contar visualização', carlos, format('select coalesce(ver_video(%s)::text, ''feito'')', vid), 'v=');
   perform pg_temp.t('Vídeos','Outro NÃO muda a legenda', carlos, format('update videos set caption=''x'' where id=%s', vid), 'bloqueado');
   perform pg_temp.t('Vídeos','Outro NÃO apaga o vídeo', carlos, format('delete from videos where id=%s', vid), 'bloqueado');
 
