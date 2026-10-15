@@ -1801,7 +1801,9 @@
         mostrarCartaoOficial();
         carregarHistoricoMedia();
         const { data, error } = await getSB().from('posts')
-            .select('id, content, media, image_url, created_at, likes(user_id), comments(id)')
+            .select(`id, content, media, image_url, created_at, likes(user_id),
+                     comments(id, content, created_at, parent_id, user_id,
+                              autor:perfis!comments_user_id_fkey(full_name, avatar_url))`)
             .eq('user_id', alvoId)
             .gte('created_at', new Date(Date.now() - TEMPO_VIDA).toISOString())
             .order('created_at', { ascending: false });
@@ -1815,7 +1817,13 @@
                 media: media.map(m => ({ data: m.url, url: m.url, type: m.type })),
                 timestamp: new Date(r.created_at).getTime(),
                 reactCount: (r.likes || []).length,
-                comments: (r.comments || []).map(c => ({ id: c.id }))
+                myLike: !!(meuId && (r.likes || []).some(l => l.user_id === meuId)),   // já curti? (não deixa curtir 2 vezes)
+                comments: (r.comments || []).map(c => ({
+                    id: c.id, text: c.content || '', userId: c.user_id, parentId: c.parent_id,
+                    nome: (c.autor && c.autor.full_name) || 'Utilizador',
+                    avatar: c.autor && c.autor.avatar_url,
+                    timestamp: new Date(c.created_at).getTime()
+                })).sort((a, b) => a.timestamp - b.timestamp)
             };
         });
         renderizarPostsDoFeed();
@@ -1837,6 +1845,7 @@
             comments: p.comments || []
         }));
         feedEl.innerHTML = lista.map(p => htmlPostFeed(p)).join('');
+        lista.forEach(renderComentariosPost);
         updateMediaGallery();
         updateRecentPhotos();
     }
@@ -1855,7 +1864,7 @@
                 ? `<div class="post-media-container"><video src="${FC.u(m.data)}" controls playsinline preload="metadata" class="post-video"></video><button class="post-media-ampliar" title="Ver em ecrã inteiro" onclick="abrirMediaPost(${p.id}, 0)"><i class="fas fa-expand"></i></button>${mais}</div>`
                 : `<div class="post-media-container"><img src="${FC.u(m.data)}" class="post-image" alt="Publicação" loading="lazy" onclick="abrirMediaPost(${p.id}, 0)">${mais}</div>`;
         }
-        const nComentarios = (p.comments || []).reduce((n, c) => n + 1 + (c.replies ? c.replies.length : 0), 0);
+        const nComentarios = (p.comments || []).length;
         return `
             <div class="post" id="${postId}">
                 <div class="post-header">
@@ -1877,8 +1886,8 @@
                     <span><span class="comment-count-${postId}">${nComentarios}</span> Comentários</span>
                 </div>
                 <div class="post-actions">
-                    <button class="post-action" onclick="toggleLike(this, '${postId}')">
-                        <i class="far fa-heart"></i> Gosto
+                    <button class="post-action${p.myLike ? ' liked' : ''}" onclick="toggleLike(this, '${postId}')">
+                        <i class="${p.myLike ? 'fas' : 'far'} fa-heart"></i> Gosto
                     </button>
                     <button class="post-action" onclick="focusComment('${postId}')">
                         <i class="far fa-comment"></i> Comentar
@@ -1892,8 +1901,8 @@
                     <div class="comment-input-area">
                         <img src="${FC.u(avatar)}" class="avatar-sm" alt="Avatar" >
                         <div class="comment-input-wrapper">
-                            <input type="text" class="comment-input" id="comment-input-${postId}" maxlength="2000" placeholder="Escreve um comentário..." onkeydown="if(event.key==='Enter') submitComment('${postId}', null)">
-                            <button class="comment-send-btn" onclick="submitComment('${postId}', null)" title="Enviar comentário">
+                            <input type="text" class="comment-input" id="comment-input-${postId}" maxlength="2000" placeholder="Escreve um comentário..." onkeydown="if(event.key==='Enter') submitComment('${postId}')">
+                            <button class="comment-send-btn" onclick="submitComment('${postId}')" title="Enviar comentário">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
@@ -2230,94 +2239,117 @@
         }
     }
 
-    function toggleLike(btn, postId) {
-        btn.classList.toggle('liked');
-        btn.querySelector('i').classList.toggle('fas');
-        btn.querySelector('i').classList.toggle('far');
-
-        const post = allPosts.find(p => p.id === postId);
-        if (post) {
-            if (btn.classList.contains('liked')) {
-                post.likes++;
-            } else {
-                post.likes--;
-            }
-            document.querySelector(`.like-count-${postId}`).textContent = post.likes;
+    // ── Gostos: gravados na base de dados (1 por pessoa em cada publicação) ──
+    const _gostoAEnviar = new Set();
+    async function toggleLike(btn, postId) {
+        const refId = Number(String(postId).replace('post-', ''));
+        const p = meusPosts.find(x => x.id === refId);
+        if (!p || !meuId || _gostoAEnviar.has(refId)) return;      // evita duplo clique a meio do envio
+        _gostoAEnviar.add(refId);
+        const antes = { myLike: p.myLike, reactCount: p.reactCount };
+        p.myLike = !p.myLike;
+        p.reactCount = Math.max(0, (p.reactCount || 0) + (p.myLike ? 1 : -1));
+        pintarGosto(btn, postId, p);
+        const sb = getSB();
+        const { error } = p.myLike
+            ? await sb.from('likes').upsert({ post_id: refId, user_id: meuId, reaction: 'Curtir' }, { onConflict: 'post_id,user_id' })
+            : await sb.from('likes').delete().eq('post_id', refId).eq('user_id', meuId);
+        _gostoAEnviar.delete(refId);
+        if (error) {
+            Object.assign(p, antes); pintarGosto(btn, postId, p);
+            showToast('Não foi possível guardar o gosto. Verifique a ligação.');
         }
+    }
+
+    function pintarGosto(btn, postId, p) {
+        btn.classList.toggle('liked', p.myLike);
+        const i = btn.querySelector('i');
+        i.classList.toggle('fas', p.myLike); i.classList.toggle('far', !p.myLike);
+        const c = document.querySelector(`.like-count-${postId}`);
+        if (c) c.textContent = p.reactCount;
+        const a = allPosts.find(x => x.refId === p.id);
+        if (a) a.likes = p.reactCount;
     }
 
     function focusComment(postId) {
         document.getElementById(`comment-input-${postId}`).focus();
     }
 
-    function submitComment(postId, replyToId) {
-        const input = document.getElementById(`comment-input-${postId}`);
-        const txt = input.value.trim();
-
-        if (!txt) return;
-
-        const commentsList = document.getElementById(`comments-list-${postId}`);
-        const comment = document.createElement('div');
-        const commentId = 'comment-' + Date.now();
-
-        const isReply = replyToId !== null;
-        comment.className = isReply ? 'comment reply' : 'comment';
-        comment.id = commentId;
-
-        comment.innerHTML = `
-            <img src="${localStorage.getItem('fc_avatar') || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E'}" class="comment-avatar" alt="Avatar">
-            <div>
-                <div class="comment-bubble">
-                    <div class="comment-author">${localStorage.getItem('fc_name') || 'Tu'}</div>
-                    <div class="comment-text">${txt}</div>
-                </div>
-                <div class="comment-actions-bar">
-                    <button class="comment-action-btn" onclick="toggleCommentLike(this, '${commentId}')">
-                        <i class="far fa-heart"></i> Gosto
-                    </button>
-                    <button class="comment-action-btn" onclick="focusReply('${postId}', '${commentId}')">
-                        Responder
-                    </button>
-                    <span class="comment-likes-count" id="likes-${commentId}" style="display: none;">0 Gostos</span>
-                </div>
-            </div>
-        `;
-
-        if (isReply) {
-            const replyContainer = document.getElementById(replyToId);
-            if (!replyContainer.nextElementSibling || !replyContainer.nextElementSibling.classList.contains('replies-container')) {
-                const container = document.createElement('div');
-                container.className = 'replies-container';
-                replyContainer.parentElement.insertBefore(container, replyContainer.nextElementSibling);
-            }
-            document.querySelector(`#${replyToId}`).parentElement.nextElementSibling.appendChild(comment);
-        } else {
-            commentsList.appendChild(comment);
-        }
-
-        input.value = "";
-        input.placeholder = "Escreve um comentário...";
-        delete input.dataset.replyTo;
-
-        const post = allPosts.find(p => p.id === postId);
-        if (post) {
-            post.comments.push({ id: commentId, text: txt, replies: [], likes: 0 });
-            document.querySelector(`.comment-count-${postId}`).textContent = post.comments.length;
-        }
+    // ── Comentários: lidos e gravados na base de dados ──
+    function escTxt(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    function toggleCommentLike(btn, commentId) {
-        btn.classList.toggle('liked');
-        btn.querySelector('i').classList.toggle('fas');
-        btn.querySelector('i').classList.toggle('far');
+    function htmlComentario(postId, p, c, resposta) {
+        const av = c.avatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(c.nome || 'U') + '&background=random&color=fff&size=64');
+        const podeApagar = meuId && (c.userId === meuId || !modoVisita);   // autor do comentário ou dono da publicação
+        return `
+            <div class="${resposta ? 'comment reply' : 'comment'}" id="comment-${c.id}">
+                <img src="${FC.u(av)}" class="comment-avatar" alt="Avatar">
+                <div>
+                    <div class="comment-bubble">
+                        <div class="comment-author">${escTxt(c.nome)}</div>
+                        <div class="comment-text">${escTxt(c.text)}</div>
+                    </div>
+                    <div class="comment-actions-bar">
+                        ${resposta ? '' : `<button class="comment-action-btn" onclick="focusReply('${postId}', ${c.id})">Responder</button>`}
+                        ${podeApagar ? `<button class="comment-action-btn" onclick="apagarComentario(${p.id}, ${c.id})">Apagar</button>` : ''}
+                    </div>
+                </div>
+            </div>`;
+    }
 
-        const likesSpan = document.getElementById(`likes-${commentId}`);
-        if (btn.classList.contains('liked')) {
-            likesSpan.style.display = 'inline';
-            likesSpan.textContent = '1 Gosto';
-        } else {
-            likesSpan.style.display = 'none';
-        }
+    function renderComentariosPost(p) {
+        const postId = 'post-' + p.id;
+        const el = document.getElementById(`comments-list-${postId}`);
+        if (!el) return;
+        const lista = p.comments || [];
+        const ids = new Set(lista.map(c => c.id));
+        el.innerHTML = lista.filter(c => !c.parentId || !ids.has(c.parentId)).map(c => {
+            const respostas = lista.filter(r => r.parentId === c.id);
+            return htmlComentario(postId, p, c, false) +
+                (respostas.length ? `<div class="replies-container">${respostas.map(r => htmlComentario(postId, p, r, true)).join('')}</div>` : '');
+        }).join('');
+        const n = document.querySelector(`.comment-count-${postId}`);
+        if (n) n.textContent = lista.length;
+        const a = allPosts.find(x => x.refId === p.id);
+        if (a) a.comments = lista;
+    }
+
+    async function submitComment(postId) {
+        const input = document.getElementById(`comment-input-${postId}`);
+        const txt = input.value.trim();
+        if (!txt || !meuId || input.dataset.aEnviar) return;
+        const refId = Number(String(postId).replace('post-', ''));
+        const p = meusPosts.find(x => x.id === refId);
+        if (!p) return;
+        const parentId = input.dataset.replyTo ? Number(input.dataset.replyTo) : null;
+        input.dataset.aEnviar = '1';
+        const { data, error } = await getSB().from('comments')
+            .insert({ post_id: refId, user_id: meuId, content: txt, parent_id: parentId })
+            .select('id, content, created_at, parent_id, user_id, autor:perfis!comments_user_id_fkey(full_name, avatar_url)')
+            .single();
+        delete input.dataset.aEnviar;
+        if (error) { alert('Não foi possível comentar: ' + FC.traduzirErro(error)); return; }
+        p.comments.push({
+            id: data.id, text: data.content || '', userId: data.user_id, parentId: data.parent_id,
+            nome: (data.autor && data.autor.full_name) || 'Utilizador', avatar: data.autor && data.autor.avatar_url,
+            timestamp: new Date(data.created_at).getTime()
+        });
+        input.value = '';
+        input.placeholder = 'Escreve um comentário...';
+        delete input.dataset.replyTo;
+        renderComentariosPost(p);
+    }
+
+    async function apagarComentario(refId, commentId) {
+        if (!confirm('Apagar este comentário?')) return;
+        const { error } = await getSB().from('comments').delete().eq('id', commentId);
+        if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
+        const p = meusPosts.find(x => x.id === refId);
+        if (!p) return;
+        p.comments = p.comments.filter(c => c.id !== commentId && c.parentId !== commentId);
+        renderComentariosPost(p);
     }
 
     function focusReply(postId, commentId) {
