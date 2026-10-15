@@ -555,6 +555,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
         .oferta.fim { background: var(--hover-bg); border-color: var(--border); }
         .oferta.fim .raio { background: #6b7280; } .oferta.fim .preco { font-size: 16px; color: var(--text-secondary); } .oferta.fim .conta { color: var(--text-secondary); }
         .btn-action.btn-guardar { flex: 0 0 auto; padding: 8px 12px; }
+        .post-card > .oferta { margin-right: 40px; }
         .btn-denunciar { opacity: .5; text-decoration: none; color: var(--text-secondary) !important; background: var(--hover-bg) !important; } .btn-denunciar:hover { opacity: 1; }
         .btn-action.btn-guardar.guardado { color: #f3c64e; }
         #oferta-campos { display: none; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(243,198,78,.6); background: rgba(243,198,78,.06); }
@@ -1642,7 +1643,9 @@ function htmlSecaoPost(p) {
 
 // "impressão digital" do que é pesado de redesenhar (texto, fotos, vídeos, autor)
 function assinaturaPost(p) {
-    const t = JSON.stringify([p.text, p.media, p.userName, p.userAvatar, p.userType, p.ofertaPreco, p.ofertaAntes, p.ofertaAte]);
+    // inclui se a publicação é minha: ao abrir, o feed guardado aparece antes de se saber quem entrou,
+    // e o botão (🗑️ apagar ou 🚩 denunciar) tem de ser refeito quando isso muda
+    const t = JSON.stringify([p.text, p.media, p.userName, p.userAvatar, p.userType, p.ofertaPreco, p.ofertaAntes, p.ofertaAte, p.userId === currentUser.id]);
     let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);
 }
