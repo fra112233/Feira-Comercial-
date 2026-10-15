@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<script src="i18n.js"></script>
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacidade e segurança | Feira Comercial</title>
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="atualizacao.js"></script>
+<script src="menu.js"></script>
+<style>
+.secoes { display: grid; gap: 16px; margin-top: 22px; }
+.sec h2 { font-size: 18px; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.sec h2 i { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: rgba(243,198,78,.12); color: var(--ouro); font-size: 15px; }
+.sec > p { color: var(--sub); font-size: 14px; line-height: 1.5; margin-bottom: 14px; }
+.opcoes { display: grid; gap: 8px; }
+.opcao { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--linha); background: var(--campo); cursor: pointer; }
+.opcao input { margin-top: 3px; accent-color: #f3c64e; width: 18px; height: 18px; flex-shrink: 0; }
+.opcao b { display: block; font-size: 15px; } .opcao span { color: var(--sub); font-size: 13px; }
+.opcao:has(input:checked) { border-color: var(--ouro); background: rgba(243,198,78,.08); }
+.linha-sw { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; border-radius: 12px; background: var(--campo); border: 1px solid var(--linha); }
+.sw { width: 46px; height: 26px; border-radius: 13px; background: #52525b; position: relative; border: none; cursor: pointer; flex-shrink: 0; transition: .2s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: .2s; }
+.sw.on { background: #22c55e; } .sw.on::after { left: 23px; }
+.estado2fa { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+.estado2fa.on { background: rgba(74,222,128,.15); color: var(--ok); } .estado2fa.off { background: rgba(161,161,170,.15); color: var(--sub); }
+.qr { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+.qr img { width: 180px; height: 180px; background: #fff; border-radius: 12px; padding: 8px; }
+.qr code { display: block; word-break: break-all; background: var(--campo); border: 1px solid var(--linha); padding: 8px 10px; border-radius: 8px; font-size: 13px; margin-top: 6px; color: var(--texto); }
+.passos { color: #d4d4d8; font-size: 14px; line-height: 1.6; margin: 0 0 0 18px; }
+.cod { width: 170px; text-align: center; font-size: 22px; letter-spacing: 6px; }
+.perigo { border-color: rgba(248,113,113,.35) !important; }
+.perigo h2 i { background: rgba(248,113,113,.12); color: var(--erro); }
+.btn-perigo { background: #b91c1c; color: #fff; }
+.campo input { width: 100%; box-sizing: border-box; }
+.ok-txt { color: var(--ok); font-size: 13.5px; } .erro-txt { color: var(--erro); font-size: 13.5px; }
+#conteudo { display: none; }
+</style>
+</head>
+<body>
+<header class="topo">
+  <div class="topo-in">
+    <a href="index.html" class="fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial">
+      <span class="fc-marca-txt"><b>Feira Comercial</b><small>Explore, Exiba, Expanda</small></span></a>
+    <div class="acoes" style="margin-left:auto">
+      <a class="entrar" href="index.html"><i class="fas fa-house"></i> Início</a>
+      <button class="menu" style="display:inline-flex;align-items:center;justify-content:center" onclick="FCMenu.abrir()" aria-label="Menu" title="Menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <span class="etiqueta"><i class="fas fa-shield-halved"></i> Conta</span>
+  <h1 class="titulo">Privacidade e <em>segurança</em></h1>
+  <p class="intro">Decida quem fala consigo, proteja a sua conta e tenha controlo sobre os seus dados.</p>
+
+  <div class="secoes" id="conteudo">
+    <!-- Mensagens -->
+    <section class="cartao sec" id="secMensagens">
+      <h2><i class="fas fa-comment-dots"></i> Quem me pode enviar mensagens</h2>
+      <p>A equipa da Feira Comercial pode sempre falar consigo. Quem já lhe escreveu antes também.</p>
+      <div class="opcoes">
+        <label class="opcao"><input type="radio" name="msg" value="todos"><div><b>Todas as pessoas</b><span>Recomendado para empresas: os clientes podem contactá-lo.</span></div></label>
+        <label class="opcao"><input type="radio" name="msg" value="seguidos"><div><b>Só quem eu sigo</b><span>As outras pessoas não conseguem iniciar uma conversa consigo.</span></div></label>
+      </div>
+      <div id="msgEstado" style="margin-top:8px"></div>
+    </section>
+
+    <!-- Pesquisa -->
+    <section class="cartao sec">
+      <h2><i class="fas fa-magnifying-glass"></i> Aparecer na pesquisa</h2>
+      <p>Se desligar, o seu perfil deixa de aparecer em "Descobrir" na página Amigos. Quem tiver o link do perfil continua a vê-lo.</p>
+      <div class="linha-sw"><span>Perfil visível na pesquisa</span><button type="button" class="sw" id="swVis" aria-label="Perfil visível na pesquisa"></button></div>
+    </section>
+
+    <!-- 2FA -->
+    <section class="cartao sec" id="sec2fa">
+      <h2><i class="fas fa-key"></i> Verificação em dois passos</h2>
+      <p>Além da palavra-passe, a conta passa a pedir um código de 6 dígitos de uma app no seu telemóvel (Google Authenticator, Microsoft Authenticator ou Authy). Mesmo que alguém descubra a sua palavra-passe, não entra sem o seu telemóvel.</p>
+      <div id="estado2fa"></div>
+      <div id="caixa2fa" style="margin-top:12px"></div>
+    </section>
+
+    <!-- Dados -->
+    <section class="cartao sec">
+      <h2><i class="fas fa-download"></i> Descarregar os meus dados</h2>
+      <p>Um ficheiro com o seu perfil, publicações, comentários, mensagens, seguidores, produtos, avaliações e pagamentos.</p>
+      <button type="button" class="btn btn-sec" id="btnDados"><i class="fas fa-file-arrow-down"></i> Descarregar (ficheiro .json)</button>
+      <div id="dadosEstado" style="margin-top:8px"></div>
+    </section>
+
+    <!-- Apagar -->
+    <section class="cartao sec perigo" id="secApagar">
+      <h2><i class="fas fa-trash"></i> Apagar a minha conta</h2>
+      <p>Apaga de vez o seu perfil, publicações, fotos, vídeos, mensagens, produtos e avaliações. <b style="color:var(--texto)">Não pode ser desfeito.</b> Se for uma empresa, os registos de pagamentos ficam guardados para a contabilidade.</p>
+      <details>
+        <summary style="cursor:pointer;font-weight:700;color:var(--erro)">Quero apagar a minha conta</summary>
+        <div style="margin-top:12px">
+          <div class="campo"><label for="apSenha">A sua palavra-passe</label><input id="apSenha" type="password" autocomplete="current-password"></div>
+          <div class="campo"><label for="apConf">Escreva <b>APAGAR</b> para confirmar</label><input id="apConf" autocomplete="off" autocapitalize="characters"></div>
+          <button type="button" class="btn btn-perigo" id="btnApagar"><i class="fas fa-trash"></i> Apagar a conta para sempre</button>
+          <div id="apEstado" style="margin-top:8px"></div>
+        </div>
+      </details>
+    </section>
+
+    <p style="color:var(--sub);font-size:13px;text-align:center">Saiba mais nas <a href="politicas.html">Políticas e privacidade</a>.</p>
+  </div>
+</main>
+
+<footer class="rodape"><div class="rodape-in"><span>© Feira Comercial · Moçambique</span>
+  <nav><a href="politicas.html">Termos</a><a href="password.html">Alterar palavra-passe</a></nav></div></footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+let me = null;
+const msg = (id, txt, ok) => { $(id).innerHTML = txt ? '<span class="' + (ok ? 'ok-txt' : 'erro-txt') + '">' + txt + '</span>' : ''; };
+
+// ---------- mensagens ----------
+function iniciarMensagens() {
+  if (!('mensagens_de' in me)) { $('secMensagens').style.display = 'none'; return; }   // migração 026 por correr
+  const atual = me.mensagens_de || 'todos';
+  document.querySelectorAll('input[name=msg]').forEach(r => {
+    r.checked = r.value === atual;
+    r.onchange = async () => {
+      const { error } = await supabaseClient.from('perfis').update({ mensagens_de: r.value }).eq('id', me.id);
+      if (error) { msg('msgEstado', 'Não foi possível guardar: ' + esc(FC.traduzirErro(error))); return; }
+      me.mensagens_de = r.value; localStorage.removeItem('fc_profile');
+      msg('msgEstado', r.value === 'todos' ? '✓ Todas as pessoas podem escrever-lhe.' : '✓ Só quem segue lhe pode escrever.', true);
+    };
+  });
+}
+
+// ---------- pesquisa ----------
+function iniciarVisibilidade() {
+  const sw = $('swVis');
+  const pinta = () => sw.classList.toggle('on', (me.visibility || 'publico') === 'publico');
+  pinta();
+  sw.onclick = async () => {
+    const novo = (me.visibility || 'publico') === 'publico' ? 'privado' : 'publico';
+    const { error } = await supabaseClient.from('perfis').update({ visibility: novo }).eq('id', me.id);
+    if (error) { FC.toast('Erro: ' + FC.traduzirErro(error)); return; }
+    me.visibility = novo; localStorage.removeItem('fc_profile'); pinta();
+    FC.toast(novo === 'publico' ? 'O seu perfil aparece na pesquisa.' : 'O seu perfil deixou de aparecer na pesquisa.');
+  };
+}
+
+// ---------- verificação em dois passos ----------
+async function desenhar2FA() {
+  const { data, error } = await supabaseClient.auth.mfa.listFactors();
+  if (error) { $('estado2fa').innerHTML = '<span class="erro-txt">Não foi possível ver o estado: ' + esc(FC.traduzirErro(error)) + '</span>'; return; }
+  const ativo = (data.totp || []).find(f => f.status === 'verified');
+  $('estado2fa').innerHTML = ativo ? '<span class="estado2fa on"><i class="fas fa-circle-check"></i> Ativa</span>' : '<span class="estado2fa off"><i class="fas fa-circle-xmark"></i> Desligada</span>';
+  $('caixa2fa').innerHTML = ativo
+    ? '<button type="button" class="btn btn-sec" id="btnDesligar2fa"><i class="fas fa-power-off"></i> Desligar</button>'
+    : '<button type="button" class="btn" id="btnAtivar2fa"><i class="fas fa-shield-halved"></i> Ativar</button>';
+  if (ativo) $('btnDesligar2fa').onclick = async () => {
+    if (!confirm('Desligar a verificação em dois passos? A conta fica protegida só pela palavra-passe.')) return;
+    const r = await supabaseClient.auth.mfa.unenroll({ factorId: ativo.id });
+    if (r.error) { FC.toast('Erro: ' + FC.traduzirErro(r.error)); return; }
+    FC.toast('Verificação em dois passos desligada.'); desenhar2FA();
+  };
+  else $('btnAtivar2fa').onclick = ativar2FA;
+}
+
+async function ativar2FA() {
+  // limpa tentativas antigas que ficaram a meio
+  const { data: l } = await supabaseClient.auth.mfa.listFactors();
+  for (const f of ((l && l.all) || []).filter(f => f.status !== 'verified')) await supabaseClient.auth.mfa.unenroll({ factorId: f.id });
+  const { data, error } = await supabaseClient.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Feira Comercial' });
+  if (error) { $('caixa2fa').innerHTML = '<span class="erro-txt">Não foi possível ativar: ' + esc(FC.traduzirErro(error)) + '</span>'; return; }
+  $('caixa2fa').innerHTML =
+    '<ol class="passos"><li>Instale uma app autenticadora (ex.: Google Authenticator).</li><li>Na app, toque em <b>+</b> e leia este código QR (ou escreva a chave).</li><li>Escreva aqui o código de 6 dígitos que a app mostra.</li></ol>' +
+    '<div class="qr"><img alt="Código QR" src="' + FC.u(data.totp.qr_code) + '"><div style="min-width:0;flex:1"><span style="color:var(--sub);font-size:13px">Chave (se não conseguir ler o QR):</span><code>' + esc(data.totp.secret) + '</code></div></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="cod" id="cod2fa" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">' +
+    '<button type="button" class="btn" id="btnConf2fa">Confirmar</button></div><div id="err2fa" style="margin-top:8px"></div>';
+  const inp = $('cod2fa');
+  inp.oninput = () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 6); };
+  $('btnConf2fa').onclick = async () => {
+    if (inp.value.length !== 6) { msg('err2fa', 'Escreva os 6 dígitos.'); return; }
+    const v = await supabaseClient.auth.mfa.challengeAndVerify({ factorId: data.id, code: inp.value });
+    if (v.error) { msg('err2fa', 'Código errado ou expirado. Escreva o código novo que a app mostra.'); return; }
+    FC.toast('🔐 Verificação em dois passos ativada!');
+    desenhar2FA();
+  };
+}
+
+// ---------- dados ----------
+$('btnDados').onclick = async () => {
+  const b = $('btnDados'); b.disabled = true;
+  msg('dadosEstado', 'A preparar…', true);
+  const { data, error } = await supabaseClient.rpc('exportar_meus_dados');
+  b.disabled = false;
+  if (error || !data) { msg('dadosEstado', 'Esta opção ainda não está disponível. Tente mais tarde.'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'feira-comercial-os-meus-dados-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  msg('dadosEstado', '✓ Ficheiro descarregado.', true);
+};
+
+// ---------- apagar ----------
+$('btnApagar').onclick = async () => {
+  const senha = $('apSenha').value, conf = $('apConf').value.trim().toUpperCase();
+  if (!senha) { msg('apEstado', 'Escreva a sua palavra-passe.'); return; }
+  if (conf !== 'APAGAR') { msg('apEstado', 'Escreva APAGAR na segunda caixa para confirmar.'); return; }
+  if (!confirm('Última confirmação: apagar a conta e tudo o que publicou? Não pode ser desfeito.')) return;
+  const b = $('btnApagar'); b.disabled = true; msg('apEstado', 'A apagar…', true);
+  try {
+    const s = await FC.getSession();
+    const r = await fetch(SUPABASE_URL + '/functions/v1/apagar-conta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.access_token, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ confirmar: 'APAGAR', senha })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.erro || 'Não foi possível apagar a conta.');
+    try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
+    await supabaseClient.auth.signOut().catch(() => {});
+    location.href = 'Portal.html';
+  } catch (e) {
+    msg('apEstado', esc(e.message)); b.disabled = false;
+  }
+};
+
+(async () => {
+  me = await FC.boot();
+  if (!me) return;
+  $('conteudo').style.display = 'grid';
+  if (me.role === 'admin' || me.role === 'equipa') $('secApagar').style.display = 'none';
+  iniciarMensagens();
+  iniciarVisibilidade();
+  desenhar2FA();
+  if (location.hash === '#2fa') $('sec2fa').scrollIntoView({ block: 'start', behavior: 'smooth' });
+})();
+</script>
+</body>
+</html>

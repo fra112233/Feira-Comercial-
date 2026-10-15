@@ -198,7 +198,7 @@ const avatar = p => (p && p.avatar_url) || ('https://ui-avatars.com/api/?name=' 
 // ─── PAGAMENTOS ───
 async function carregarPagamentos() {
   const { data, error } = await supabaseClient.from('pagamentos')
-    .select('id,empresa_id,metodo,meses,valor,codigo_transacao,telefone,estado,nota_admin,comprovativo,created_at,confirmado_em,empresa:perfis!pagamentos_empresa_id_fkey(id,full_name,avatar_url,city,province)')
+    .select('*,empresa:perfis!pagamentos_empresa_id_fkey(id,full_name,avatar_url,city,province)')
     .order('created_at', { ascending: false }).limit(300);
   if (error) { $('listaPag').innerHTML = '<p class="vazio">Erro ao carregar pagamentos: ' + esc(FC.traduzirErro(error)) + '</p>'; return; }
   pagamentos = data || [];
@@ -213,7 +213,7 @@ function desenharPagamentos() {
   const lista = pagamentos.filter(p => !filtroPag || p.estado === filtroPag);
   if (!lista.length) { $('listaPag').innerHTML = '<p class="vazio">' + (filtroPag === 'pendente' ? '🎉 Nenhum pagamento por confirmar.' : 'Nada para mostrar.') + '</p>'; return; }
   $('listaPag').innerHTML = lista.map(p => {
-    const e = p.empresa || {};
+    const e = p.empresa || { full_name: p.empresa_nome ? p.empresa_nome + ' (conta apagada)' : null };
     return '<article class="reg" id="pag-' + p.id + '">' +
       '<div class="cab"><a class="quem" href="perfil.html?id=' + esc(p.empresa_id) + '" style="color:inherit"><img src="' + esc(avatar(e)) + '" alt=""><div style="min-width:0"><b>' + esc(e.full_name || 'Empresa') + '</b>' +
         '<small>' + esc([e.city, e.province].filter(Boolean).join(', ') || 'Empresa') + ' · ref. FC-' + esc(String(p.empresa_id).replace(/-/g, '').slice(0, 6).toUpperCase()) + '</small></div></a>' +

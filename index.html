@@ -555,6 +555,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
         .oferta.fim { background: var(--hover-bg); border-color: var(--border); }
         .oferta.fim .raio { background: #6b7280; } .oferta.fim .preco { font-size: 16px; color: var(--text-secondary); } .oferta.fim .conta { color: var(--text-secondary); }
         .btn-action.btn-guardar { flex: 0 0 auto; padding: 8px 12px; }
+        .btn-denunciar { opacity: .5; text-decoration: none; color: var(--text-secondary) !important; background: var(--hover-bg) !important; } .btn-denunciar:hover { opacity: 1; }
         .btn-action.btn-guardar.guardado { color: #f3c64e; }
         #oferta-campos { display: none; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(243,198,78,.6); background: rgba(243,198,78,.06); }
         #oferta-campos.aberto { display: block; }
@@ -1759,7 +1760,8 @@ function renderPostCard(p, isMe) {
 
     return `
     <div class="post-card" id="post-${p.id}">
-        ${isMe ? `<div class="btn-delete" onclick="deletePost(${p.id})" title="Apagar publicação"><i class="fas fa-trash"></i></div>` : ''}
+        ${isMe ? `<div class="btn-delete" onclick="deletePost(${p.id})" title="Apagar publicação"><i class="fas fa-trash"></i></div>`
+               : `<a class="btn-delete btn-denunciar" href="reclamacao.html?tipo=denuncia&assunto=${encodeURIComponent('Denúncia de publicação de ' + p.userName)}&link=${encodeURIComponent(location.origin + '/index.html?post=' + p.id)}" title="Denunciar publicação" aria-label="Denunciar publicação"><i class="fas fa-flag"></i></a>`}
         ${htmlOferta(p)}
         ${p.text ? `<p class="post-text">${escHtml(p.text)}</p>` : ''}
         ${mediaHtml}

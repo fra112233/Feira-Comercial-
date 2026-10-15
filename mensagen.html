@@ -1018,7 +1018,9 @@ async function sendMessage(text = null, mediaType = null, fileUrl = null, fileNa
     if (error) {
         if (i >= 0) mensagens.splice(i, 1);
         renderMessages();
-        showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.' : 'Erro ao enviar: ' + FC.traduzirErro(error));
+        showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.'
+            : /row-level security/i.test(error.message || '') ? 'Esta pessoa só recebe mensagens de quem ela segue.'
+            : 'Erro ao enviar: ' + FC.traduzirErro(error));
         if (text === null && msgText) inputEl.value = msgText;
         return;
     }

@@ -98,6 +98,7 @@ window.FCMenu = (function () {
         '<div class="sec">Conta</div>' +
         item('fa-pen', 'Editar perfil', 'FCMenu.editarPerfil()') +
         item('fa-key', 'Alterar palavra-passe', 'password.html') +
+        item('fa-shield-halved', 'Privacidade e segurança', 'privacidade.html') +
 
         '<div class="sec">Definições</div>' +
         (temTema() ? item(temaEscuro() ? 'fa-moon' : 'fa-sun', 'Modo escuro', 'FCMenu.tema()', '<span class="sw ' + (temaEscuro() ? 'on' : '') + '" id="fcm-sw-tema"></span>') : '') +

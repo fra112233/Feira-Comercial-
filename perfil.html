@@ -1458,6 +1458,9 @@
                     <button class="btn btn-secondary" onclick="shareProfile()">
                         <i class="fas fa-share"></i> Partilhar
                     </button>
+                    <button class="btn btn-secondary" title="Denunciar este perfil" aria-label="Denunciar" onclick="location.href='reclamacao.html?tipo=denuncia&assunto=' + encodeURIComponent('Denúncia de perfil: ' + ((perfilAtual && perfilAtual.full_name) || '')) + '&link=' + encodeURIComponent(location.origin + '/perfil.html?id=' + alvoId)">
+                        <i class="fas fa-flag"></i>
+                    </button>
                 </div>
                 <div class="profile-actions" id="acoesDono">
                     <button class="btn btn-primary" id="btnPublicar" onclick="openModal('modalPost')">
@@ -1672,6 +1675,7 @@
             if (!client) return;
             const { data: { session } } = await client.auth.getSession();
             if (!session) { window.location.href = 'Portal.html'; return; }
+            if (FC.garantir2FA && !(await FC.garantir2FA())) return;
             meuId = session.user.id;
             alvoId = VER_ID || meuId;
             modoVisita = alvoId !== meuId;

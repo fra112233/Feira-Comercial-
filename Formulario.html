@@ -309,6 +309,7 @@
             </div>
         </div>
 
+        <div class="fc-captcha" style="display:flex;justify-content:center;margin:10px 0"></div>
         <button type="submit" class="submit-btn" id="submitBtn" disabled>Criar Conta</button>
 
         <div id="submit-status"></div>
@@ -554,7 +555,7 @@
             const { data: authData, error: authError } = await client.auth.signUp({
                 email,
                 password: pwEl.value,
-                options: { data: dados, emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'Portal.html?confirmado=1&email=' + encodeURIComponent(email) }
+                options: { captchaToken: FC.tokenCaptcha(), data: dados, emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'Portal.html?confirmado=1&email=' + encodeURIComponent(email) }
             });
             if (authError) throw authError;
             if (!authData.user) throw new Error('Não foi possível criar a conta. Tenta novamente.');

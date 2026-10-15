@@ -22,6 +22,38 @@ FC.u = function (u) {
    Mudar para false depois de passar ao plano Pro. */
 FC.POUPAR_TRAFEGO = true;
 
+/* Captcha anti-robôs (Cloudflare Turnstile, grátis) no registo, entrada e recuperação de palavra-passe.
+   Vazio = desligado. Para ligar: 1) criar o widget em dash.cloudflare.com → Turnstile;
+   2) pôr aqui a "Site Key"; 3) no Supabase → Authentication → Attack Protection → Captcha:
+   escolher Turnstile e colar a "Secret Key". (Fazer o passo 2 ANTES do 3, senão ninguém entra.) */
+FC.CAPTCHA_SITE_KEY = '';
+FC._captchas = [];
+FC.prepararCaptcha = function () {
+  if (!FC.CAPTCHA_SITE_KEY) return;
+  const caixas = document.querySelectorAll('.fc-captcha');
+  if (!caixas.length) return;
+  const desenhar = () => caixas.forEach(c => {
+    if (c.dataset.pronto) return; c.dataset.pronto = '1';
+    const w = { token: '', id: null };
+    w.id = window.turnstile.render(c, { sitekey: FC.CAPTCHA_SITE_KEY, language: 'pt', callback: t => { w.token = t; }, 'expired-callback': () => { w.token = ''; } });
+    FC._captchas.push(w);
+  });
+  if (window.turnstile) return desenhar();
+  window.fcTurnstilePronto = desenhar;
+  const s = document.createElement('script');
+  s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=fcTurnstilePronto';
+  s.async = true; document.head.appendChild(s);
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => FC.prepararCaptcha()); else FC.prepararCaptcha();
+// devolve o token (ou undefined se o captcha estiver desligado) e prepara um novo para a próxima vez
+FC.tokenCaptcha = function () {
+  if (!FC.CAPTCHA_SITE_KEY) return undefined;
+  const w = FC._captchas.find(x => x.token) || FC._captchas[0];
+  const t = w && w.token;
+  if (w && window.turnstile) { try { window.turnstile.reset(w.id); } catch (e) {} w.token = ''; }
+  return t || undefined;
+};
+
 /* ---------- Sessão ---------- */
 FC.getSession = async function () {
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -36,7 +68,55 @@ FC.requireAuth = async function (loginPage = 'Portal.html') {
     window.location.href = loginPage + (aqui && aqui !== 'index.html' ? '?voltar=' + encodeURIComponent(aqui) : '');
     return null;
   }
+  if (!(await FC.garantir2FA())) return null;
   return session;
+};
+
+/* ---------- Verificação em dois passos (código da app autenticadora) ----------
+   Quem ativou a verificação em dois passos tem de escrever o código de 6 dígitos
+   depois de entrar. Sem o código, sai da conta. */
+FC.pedirCodigo = function (titulo, texto) {
+  return new Promise(resolve => {
+    const el = document.createElement('div');
+    el.id = 'fc-2fa';
+    el.innerHTML =
+      '<style>#fc-2fa{position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,"Segoe UI",system-ui,sans-serif}' +
+      '#fc-2fa .c{background:#16161a;color:#f4f4f5;border:1px solid rgba(243,198,78,.35);border-radius:20px;max-width:360px;width:100%;padding:24px;text-align:center}' +
+      '#fc-2fa h3{margin:6px 0;font-size:19px}#fc-2fa p{color:#a1a1aa;font-size:14px;line-height:1.5;margin:0 0 14px}' +
+      '#fc-2fa input{width:100%;box-sizing:border-box;text-align:center;font-size:26px;letter-spacing:8px;padding:12px;border-radius:12px;border:1px solid #2c2c34;background:#1f1f25;color:#fff;font-variant-numeric:tabular-nums}' +
+      '#fc-2fa .e{color:#f87171;font-size:13px;min-height:18px;margin:8px 0}#fc-2fa button{display:block;width:100%;padding:12px;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px}' +
+      '#fc-2fa .ok{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none}#fc-2fa .nao{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
+      '<form class="c" role="dialog" aria-modal="true"><div style="font-size:36px">🔐</div><h3></h3><p></p>' +
+      '<input inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" aria-label="Código de 6 dígitos"><div class="e" role="alert"></div>' +
+      '<button class="ok" type="submit">Confirmar</button><button class="nao" type="button">Sair da conta</button></form>';
+    el.querySelector('h3').textContent = titulo || 'Verificação em dois passos';
+    el.querySelector('p').textContent = texto || 'Abra a sua app autenticadora e escreva o código de 6 dígitos da Feira Comercial.';
+    const inp = el.querySelector('input');
+    inp.addEventListener('input', () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 6); });
+    el.querySelector('form').onsubmit = e => { e.preventDefault(); if (inp.value.length === 6) resolve({ codigo: inp.value, el }); };
+    el.querySelector('.nao').onclick = () => { el.remove(); resolve(null); };
+    document.body.appendChild(el);
+    setTimeout(() => inp.focus(), 50);
+  });
+};
+FC.garantir2FA = async function () {
+  try {
+    if (!supabaseClient.auth.mfa) return true;
+    const { data, error } = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || !data || data.nextLevel !== 'aal2' || data.currentLevel === 'aal2') return true;
+    const { data: f } = await supabaseClient.auth.mfa.listFactors();
+    const fator = f && (f.totp || []).find(x => x.status === 'verified');
+    if (!fator) return true;
+    if (!document.body) await new Promise(r => document.addEventListener('DOMContentLoaded', r, { once: true }));
+    for (;;) {
+      const r = await FC.pedirCodigo();
+      if (!r) { await FC.signOut(); return false; }
+      const v = await supabaseClient.auth.mfa.challengeAndVerify({ factorId: fator.id, code: r.codigo });
+      if (!v.error) { r.el.remove(); return true; }
+      r.el.remove();
+      FC.toast('Código errado ou expirado. Tente o código novo da app.');
+    }
+  } catch (e) { console.warn('2FA:', e); return true; }
 };
 
 FC.signOut = async function () {
