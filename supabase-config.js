@@ -846,6 +846,12 @@ FC.boot = async function (opts = {}) {
   FC.sino();
   FC.vigiarLives();
   if (me && me.bloqueado) FC.avisoSuspensa(me);
+  // idioma: num aparelho novo segue o da conta; se a pessoa escolheu outro neste aparelho, a conta passa a usar esse
+  if (me && me.idioma && window.FCI18N) {
+    const aqui = FCI18N.escolhido && FCI18N.escolhido();
+    if (!aqui && me.idioma !== FCI18N.lang) { try { localStorage.setItem('fc_lang', me.idioma); } catch (e) {} location.reload(); return me; }
+    if (aqui && aqui !== me.idioma) FCI18N.guardarNaConta(aqui);
+  }
   // avisos push: renova o registo deste aparelho em silêncio, ou convida (uma vez) a ativar
   if (FC.pushSuportado() && Notification.permission === 'granted') FC.ativarPush(false); else FC.convitePush();
   if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
