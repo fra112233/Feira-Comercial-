@@ -40,7 +40,7 @@
   // botão PT / EN nas páginas sem menu (entrar, criar conta, recuperar palavra-passe, vídeos)
   function pilula() {
     if (window.FCMenu || document.getElementById('fc-lang')) return;
-    if (!/(Portal|Formulario|password)\.html/i.test(location.pathname) && !/\/$/.test(location.pathname)) return;   // só nas páginas de entrada
+    if (!/(Portal|Formulario|password|loja)\.html/i.test(location.pathname) && !/\/$/.test(location.pathname)) return;   // só nas páginas de entrada
     // seletor "PT | EN" no canto de cima (páginas de entrar, criar conta, recuperar palavra-passe…)
     var w = document.createElement('div');
     w.id = 'fc-lang';
@@ -91,6 +91,8 @@
     [/^Reenviar em (\d+) ?s$/, 'Resend in $1 s'],
     [/^Membro desde (.+)$/, 'Member since $1'],
     [/^Ver perfil de (.+)$/, 'View profile of $1'],
+    [/^Para falar com (.+), encomendar ou segui-la, crie a sua conta grátis na Feira Comercial — leva 1 minuto\.$/, function (m, a) { return 'To talk to ' + (a === 'esta empresa' ? 'this business' : a) + ', order or follow it, create your free Feira Comercial account — it takes 1 minute.'; }],
+    [/^(\d+)\+? produtos?$/, function (m, n) { return m.replace(/produtos?$/, n === '1' ? 'product' : 'products'); }],
     [/^(\d+) de (\d+)$/, '$1 of $2'],
     [/^Seguir 3 empresas \((\d)\/3\)$/, 'Follow 3 businesses ($1/3)'],
     [/^(\d+) horas?$/, function (m, n) { return n + (n === '1' ? ' hour' : ' hours'); }],

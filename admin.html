@@ -114,6 +114,7 @@
     <div class="abas" role="tablist">
       <button type="button" class="sel" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
+      <button type="button" data-aba="crescimento"><i class="fas fa-chart-line"></i> Crescimento</button>
       <button type="button" data-aba="novas"><i class="fas fa-hand-holding-heart"></i> Contas novas <span class="cont" id="cNovas">0</span></button>
       <button type="button" data-aba="contas"><i class="fas fa-users-gear"></i> Contas</button>
       <button type="button" data-aba="recibos"><i class="fas fa-receipt"></i> Dados dos recibos</button>
@@ -127,6 +128,29 @@
         <button type="button" data-f="">Todos</button>
       </div>
       <div class="lista" id="listaPag"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-crescimento" style="display:none">
+      <style>
+        .cr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:10px;margin-bottom:16px}
+        .cr-k{background:rgba(255,255,255,.03);border:1px solid var(--linha);border-radius:14px;padding:14px}
+        .cr-k span{display:block;color:var(--sub);font-size:12.5px;font-weight:600}
+        .cr-k b{display:block;font-size:26px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+        .cr-k small{color:var(--sub);font-size:12px}
+        .cr-g{background:rgba(255,255,255,.03);border:1px solid var(--linha);border-radius:14px;padding:14px;margin-bottom:12px}
+        .cr-g h3{font-size:14.5px;margin:0 0 2px}.cr-g p{margin:0 0 10px;color:var(--sub);font-size:12.5px}
+        .cr-b{display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:1px solid var(--linha)}
+        .cr-b div{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;position:relative}
+        .cr-b div i{display:block;width:100%;background:var(--ouro);border-radius:4px 4px 0 0;min-height:0}
+        .cr-b div:hover i{filter:brightness(1.2)}
+        .cr-b div:hover::after{content:attr(data-t);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:12px;padding:5px 8px;border-radius:8px;white-space:nowrap;z-index:2;pointer-events:none}
+        .cr-e{display:flex;justify-content:space-between;color:var(--sub);font-size:11.5px;margin-top:6px}
+      </style>
+      <div class="filtros" id="filtrosCresc">
+        <button type="button" class="sel" data-d="30">30 dias</button>
+        <button type="button" data-d="90">90 dias</button>
+      </div>
+      <div id="crescimento"><p class="vazio">A carregar…</p></div>
     </section>
 
     <section id="aba-novas" style="display:none">
@@ -324,10 +348,49 @@ async function guardarReclamacao(id) {
 // ─── navegação ───
 document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
-  ['pagamentos', 'reclamacoes', 'novas', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = b.dataset.aba === a ? '' : 'none'; });
+  if (b.dataset.aba === 'crescimento') carregarCrescimento();
+  ['pagamentos', 'reclamacoes', 'crescimento', 'novas', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = b.dataset.aba === a ? '' : 'none'; });
   if (b.dataset.aba === 'novas') carregarNovas();
   if (b.dataset.aba === 'contas' && !contas.length) carregarContas();
   if (b.dataset.aba === 'recibos') { carregarDadosRecibo(); carregarAssinatura(); }
+});
+
+// ─── Crescimento ───
+let diasCresc = 30;
+const mtF = v => Math.round(Number(v) || 0).toLocaleString('pt-PT') + ' MT';
+const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '—';
+function barras(serie, chave, nomeSerie) {
+  const max = Math.max(1, ...serie.map(d => d[chave] || 0));
+  const total = serie.reduce((s, d) => s + (d[chave] || 0), 0);
+  const fmt = d => new Date(d + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
+  return '<div class="cr-g"><h3>' + nomeSerie + '</h3><p>' + total + ' no período · máximo ' + max + ' num dia</p><div class="cr-b">' +
+    serie.map(d => '<div data-t="' + fmt(d.dia) + ': ' + (d[chave] || 0) + '"><i style="height:' + Math.round(100 * (d[chave] || 0) / max) + '%"></i></div>').join('') +
+    '</div><div class="cr-e"><span>' + fmt(serie[0].dia) + '</span><span>' + fmt(serie[serie.length - 1].dia) + '</span></div></div>';
+}
+async function carregarCrescimento() {
+  $('crescimento').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data: c, error } = await supabaseClient.rpc('admin_crescimento', { p_dias: diasCresc });
+  if (error || !c) { $('crescimento').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 034).</p>'; return; }
+  const k = (t, v, s) => '<div class="cr-k"><span>' + t + '</span><b>' + v + '</b>' + (s ? '<small>' + s + '</small>' : '') + '</div>';
+  const dif = c.receita_mes - c.receita_mes_anterior;
+  $('crescimento').innerHTML =
+    '<div class="cr-kpis">' +
+      k('Contas', c.contas, c.empresas + ' empresas · ' + c.pessoas + ' pessoas') +
+      k('Novas hoje', c.novas_hoje, c.novas_7d + ' nos últimos 7 dias') +
+      k('Ativas (7 dias)', c.ativos_7d, pct(c.ativos_7d, c.contas) + ' das contas entraram') +
+      k('Primeiros passos completos', pct(c.passos_completos, c.novas_periodo), c.passos_completos + ' de ' + c.novas_periodo + ' contas novas') +
+      k('Responderam à equipa', pct(c.responderam, c.novas_periodo), c.responderam + ' de ' + c.novas_periodo + ' contas novas') +
+      k('Empresas com mensalidade em dia', c.empresas_em_dia, 'de ' + c.empresas + ' empresas') +
+      k('Receita deste mês', mtF(c.receita_mes), (dif >= 0 ? '▲ ' : '▼ ') + mtF(Math.abs(dif)) + ' vs. mês anterior') +
+      k('Produtos no catálogo', c.produtos, c.pagamentos_pendentes ? c.pagamentos_pendentes + ' pagamento(s) por confirmar' : '') +
+    '</div>' +
+    barras(c.por_dia || [], 'contas', 'Contas novas por dia') +
+    barras(c.por_dia || [], 'publicacoes', 'Publicações por dia') +
+    barras(c.por_dia || [], 'mensagens', 'Mensagens por dia (sem as automáticas)');
+}
+document.querySelectorAll('#filtrosCresc [data-d]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#filtrosCresc [data-d]').forEach(x => x.classList.toggle('sel', x === b));
+  diasCresc = Number(b.dataset.d); carregarCrescimento();
 });
 
 // ─── Contas novas ───

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<script src="i18n.js"></script>
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Produtos | Feira Comercial</title>
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="atualizacao.js"></script>
+<script src="perfil-campos.js"></script>
+<script src="menu.js"></script>
+<style>
+.busca { display: flex; gap: 8px; margin-top: 18px; }
+.busca input { flex: 1; min-width: 0; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--linha); background: var(--campo); color: var(--texto); font: inherit; font-size: 15px; }
+.busca input:focus { outline: none; border-color: var(--ouro); }
+.filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.filtros select, .filtros input { padding: 9px 10px; border-radius: 10px; border: 1px solid var(--linha); background: var(--campo); color: var(--texto); font: inherit; font-size: 13.5px; min-width: 0; }
+.filtros input { width: 110px; }
+.res { color: var(--sub); font-size: 13.5px; margin: 14px 0 10px; }
+.grelha { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(165px, 100%), 1fr)); gap: 12px; }
+.prod { background: var(--cartao); border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+.prod .f { aspect-ratio: 1; background: var(--campo); display: flex; align-items: center; justify-content: center; color: var(--sub); font-size: 28px; }
+.prod .f img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.prod .t { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.prod b { font-size: 14px; line-height: 1.3; }
+.prod .p { color: var(--ouro); font-weight: 800; font-size: 15px; }
+.prod .loja { color: var(--sub); font-size: 12.5px; text-decoration: none; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.prod .loja img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.prod .loja span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod .acoes { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+.prod .acoes a { flex: 1; text-align: center; padding: 8px 6px; border-radius: 10px; font-size: 12.5px; font-weight: 700; text-decoration: none; }
+.prod .acoes .msg { background: linear-gradient(135deg, var(--ouro), var(--ouro-esc)); color: #111; }
+.prod .acoes .ver { background: var(--campo); color: var(--texto); border: 1px solid var(--linha); }
+.mais { display: block; margin: 16px auto 0; }
+.vazio { color: var(--sub); font-size: 14px; text-align: center; padding: 30px 10px; }
+</style>
+</head>
+<body>
+<header class="topo">
+  <div class="topo-in">
+    <a href="index.html" class="fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial">
+      <span class="fc-marca-txt"><b>Feira Comercial</b><small>Explore, Exiba, Expanda</small></span></a>
+    <div class="acoes" style="margin-left:auto">
+      <a class="entrar" href="index.html"><i class="fas fa-house"></i> Início</a>
+      <button class="menu" style="display:inline-flex;align-items:center;justify-content:center" onclick="FCMenu.abrir()" aria-label="Menu" title="Menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <span class="etiqueta"><i class="fas fa-magnifying-glass"></i> Produtos</span>
+  <h1 class="titulo">Procurar <em>produtos</em></h1>
+  <p class="intro">Encontre produtos de todas as empresas da Feira Comercial e fale diretamente com quem vende.</p>
+
+  <form class="busca" id="formBusca" onsubmit="event.preventDefault(); procurar(true);">
+    <input id="q" type="search" placeholder="O que procura? Ex.: ténis, cimento, telemóvel…" autocomplete="off">
+    <button class="btn" type="submit" aria-label="Procurar"><i class="fas fa-magnifying-glass"></i></button>
+  </form>
+  <div class="filtros">
+    <select id="prov" aria-label="Província"><option value="">Todas as províncias</option></select>
+    <input id="min" type="number" inputmode="numeric" min="0" placeholder="Preço mín." aria-label="Preço mínimo">
+    <input id="max" type="number" inputmode="numeric" min="0" placeholder="Preço máx." aria-label="Preço máximo">
+    <select id="ordem" aria-label="Ordenar">
+      <option value="relevancia">Mais relevantes</option>
+      <option value="recentes">Mais recentes</option>
+      <option value="preco_asc">Mais baratos</option>
+      <option value="preco_desc">Mais caros</option>
+    </select>
+  </div>
+
+  <p class="res" id="res"></p>
+  <div class="grelha" id="grelha"></div>
+  <button class="btn btn-sec mais" id="mais" type="button" style="display:none" onclick="procurar(false)">Ver mais</button>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const POR_PAGINA = 30;
+let pagina = 0, me = null, aProcurar = false;
+
+function cartao(p) {
+  const foto = FC.u(p.foto_url);
+  const logo = FC.u(p.logo) || esc('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.empresa || 'E') + '&background=random&color=fff&size=40');
+  const perfil = 'perfil.html?id=' + encodeURIComponent(p.empresa_id);
+  const texto = 'Olá! Vi o produto "' + p.nome + '"' + (p.preco != null ? ' (' + Math.round(p.preco).toLocaleString('pt-PT') + ' MT)' : '') + ' na Feira Comercial. Ainda está disponível?';
+  const meu = me && me.id === p.empresa_id;
+  return '<div class="prod"><a class="f" href="' + perfil + '">' + (foto ? '<img src="' + foto + '" alt="" loading="lazy">' : '<i class="fas fa-box-open"></i>') + '</a>' +
+    '<div class="t"><b>' + esc(p.nome) + '</b>' +
+    '<div class="p">' + (p.preco != null ? Math.round(p.preco).toLocaleString('pt-PT') + ' MT' : 'Preço sob consulta') + '</div>' +
+    '<a class="loja" href="' + perfil + '"><img src="' + logo + '" alt=""><span data-selo="' + esc(p.empresa_id) + '">' + esc(p.empresa) + (p.cidade ? ' · ' + esc(p.cidade) : '') + '</span></a>' +
+    '<div class="acoes">' + (meu ? '' : '<a class="msg" href="mensagen.html?para=' + encodeURIComponent(p.empresa_id) + '&texto=' + encodeURIComponent(texto) + '"><i class="fas fa-comment"></i> Perguntar</a>') +
+    '<a class="ver" href="' + perfil + '">Ver loja</a></div></div></div>';
+}
+
+async function procurar(novo) {
+  if (aProcurar) return;
+  aProcurar = true;
+  if (novo) { pagina = 0; $('grelha').innerHTML = ''; $('res').textContent = 'A procurar…'; }
+  const num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);
+  const { data, error } = await supabaseClient.rpc('procurar_produtos', {
+    p_q: $('q').value.trim(), p_provincia: $('prov').value, p_min: num($('min').value), p_max: num($('max').value),
+    p_ordem: $('ordem').value, p_limite: POR_PAGINA, p_offset: pagina * POR_PAGINA });
+  aProcurar = false;
+  if (error) { $('res').textContent = /procurar_produtos|function/i.test(error.message || '') ? 'A pesquisa ainda não está disponível. Tente mais tarde.' : FC.traduzirErro(error); return; }
+  const lista = data || [];
+  $('grelha').insertAdjacentHTML('beforeend', lista.map(cartao).join(''));
+  const total = $('grelha').children.length;
+  $('res').textContent = total ? (total + (lista.length === POR_PAGINA ? '+' : '') + (total === 1 ? ' produto' : ' produtos')) : '';
+  if (!total) $('grelha').innerHTML = '<p class="vazio" style="grid-column:1/-1">Nenhum produto encontrado. Experimente outra palavra ou tire os filtros.</p>';
+  $('mais').style.display = lista.length === POR_PAGINA ? 'block' : 'none';
+  pagina++;
+}
+
+(async function () {
+  me = await FC.boot();
+  if (!me) return;
+  (window.FCP && FCP.PROVINCIAS || []).forEach(p => $('prov').insertAdjacentHTML('beforeend', '<option value="' + esc(p) + '">' + esc(p) + '</option>'));
+  const q = new URLSearchParams(location.search).get('q'); if (q) $('q').value = q;
+  ['prov', 'ordem'].forEach(id => $(id).addEventListener('change', () => procurar(true)));
+  let t = null;
+  ['min', 'max'].forEach(id => $(id).addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => procurar(true), 600); }));
+  procurar(true);
+})();
+</script>
+</body>
+</html>

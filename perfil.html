@@ -2440,7 +2440,9 @@
     }
 
     function shareProfile() {
-        const profileUrl = location.origin + location.pathname + '?id=' + encodeURIComponent(alvoId || meuId || '');
+        // empresas: link da montra pública (abre mesmo sem conta); pessoas: link do perfil
+        const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
+        const profileUrl = location.origin + '/' + (emp ? 'loja.html' : 'perfil.html') + '?id=' + encodeURIComponent(alvoId || meuId || '');
         const profileName = document.getElementById('userName').innerText;
         const shareText = `Confira o perfil de ${profileName}: ${profileUrl}`;
 
