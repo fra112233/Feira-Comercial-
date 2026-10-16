@@ -40,13 +40,25 @@
   // botão PT / EN nas páginas sem menu (entrar, criar conta, recuperar palavra-passe, vídeos)
   function pilula() {
     if (window.FCMenu || document.getElementById('fc-lang')) return;
-    var b = document.createElement('button');
-    b.id = 'fc-lang'; b.type = 'button';
-    b.setAttribute('data-no-i18n', '');
-    b.innerHTML = lang === 'en' ? '🌐 Português' : '🌐 English';
-    b.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:5000;padding:8px 14px;border-radius:999px;border:1px solid rgba(243,198,78,.45);background:rgba(22,22,26,.92);color:#f3c64e;font:600 13px Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35)';
-    b.onclick = api.alternar;
-    document.body.appendChild(b);
+    if (!/(Portal|Formulario|password)\.html/i.test(location.pathname) && !/\/$/.test(location.pathname)) return;   // só nas páginas de entrada
+    // seletor "PT | EN" no canto de cima (páginas de entrar, criar conta, recuperar palavra-passe…)
+    var w = document.createElement('div');
+    w.id = 'fc-lang';
+    w.setAttribute('data-no-i18n', '');
+    w.setAttribute('role', 'group');
+    w.setAttribute('aria-label', 'Idioma / Language');
+    w.style.cssText = 'position:fixed;top:12px;right:12px;z-index:5000;display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;border:1px solid rgba(243,198,78,.45);background:rgba(22,22,26,.92);font:700 13px Inter,system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35)';
+    ['pt', 'en'].forEach(function (l) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = (l === 'pt' ? '🇲🇿 PT' : '🇬🇧 EN');
+      var on = l === lang;
+      b.style.cssText = 'border:none;cursor:pointer;padding:7px 12px;border-radius:999px;font:inherit;' + (on ? 'background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111' : 'background:transparent;color:#f3c64e');
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.onclick = function () { if (l !== lang) api.definir(l); };
+      w.appendChild(b);
+    });
+    document.body.appendChild(w);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(pilula, 50); });
   else setTimeout(pilula, 50);
