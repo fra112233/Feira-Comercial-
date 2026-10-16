@@ -125,6 +125,7 @@ window.FCMenu = (function () {
           tile('fa-comment-dots', 'Mensagens', 'mensagen.html',
             '<span data-fc-msgs class="fc-msg-menu" style="' + ((window.FC && FC._msgsNaoLidas) ? '' : 'display:none') + '">' + ((window.FC && FC._msgsNaoLidas) > 99 ? '99+' : ((window.FC && FC._msgsNaoLidas) || '')) + '</span>') +
           tile('fa-play-circle', 'Vídeos', 'videos.html') +
+          tile('fa-magnifying-glass', 'Produtos', 'produtos.html') +
           tile('fa-bullhorn', 'Anúncios', 'anuncio.html') +
           tile('fa-tower-broadcast', 'Live', 'live.html', (window.FC && FC._livesAgora && FC._livesAgora.length)
             ? '<span class="fc-aovivo-chip"><span class="fc-aovivo-ponto"></span>' + (FC._livesAgora.length === 1 ? 'AO VIVO' : FC._livesAgora.length + ' ao vivo') + '</span>' : '') +
