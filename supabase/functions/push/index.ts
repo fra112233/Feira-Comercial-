@@ -7,6 +7,7 @@
 //                       aparelhos do destinatário e apaga os que já não existem.
 // POST {notificacao: id} → chamado quando há um aviso novo no sino (gosto, comentário,
 //                       seguidor, publicação/vídeo/Live de quem segue).
+// Os textos saem no idioma de quem recebe (perfis.idioma: pt ou en).
 import * as webpush from "jsr:@negrel/webpush@0.5.0";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -43,15 +44,21 @@ async function carregar() {
   return cache;
 }
 
-function resumo(m: { content: string | null; media_type: string | null; file_url: string | null }) {
+function resumo(m: { content: string | null; media_type: string | null; file_url: string | null }, en = false) {
   const t = (m.content || "").trim();
   if (t) return t.length > 110 ? t.slice(0, 107) + "…" : t;
   const tipo = (m.media_type || "").toLowerCase();
-  if (tipo.startsWith("image")) return "📷 Foto";
-  if (tipo.startsWith("video")) return "🎥 Vídeo";
-  if (tipo.startsWith("audio")) return "🎤 Mensagem de voz";
-  if (m.file_url) return "📎 Ficheiro";
-  return "Nova mensagem";
+  if (tipo.startsWith("image")) return en ? "📷 Photo" : "📷 Foto";
+  if (tipo.startsWith("video")) return en ? "🎥 Video" : "🎥 Vídeo";
+  if (tipo.startsWith("audio")) return en ? "🎤 Voice message" : "🎤 Mensagem de voz";
+  if (m.file_url) return en ? "📎 File" : "📎 Ficheiro";
+  return en ? "New message" : "Nova mensagem";
+}
+
+// idioma de quem recebe o aviso (pt por omissão)
+async function idiomaDe(uid: string) {
+  const { data } = await sb.from("perfis").select("idioma").eq("id", uid).maybeSingle();
+  return data?.idioma === "en";
 }
 
 const TEXTOS: Record<string, string> = {
@@ -68,6 +75,21 @@ const TEXTOS: Record<string, string> = {
   resposta_avaliacao: "respondeu à sua avaliação",
   convite_aceite: "criou conta com o seu convite",
   convite_premio: "pagou a mensalidade: ganhou dias grátis",
+};
+const TEXTOS_EN: Record<string, string> = {
+  gosto: "liked your post",
+  comentario: "commented on your post",
+  resposta: "replied to your comment",
+  seguir: "started following you",
+  publicacao: "made a new post",
+  video: "posted a new video",
+  gosto_video: "liked your video",
+  comentario_video: "commented on your video",
+  live: "is live now 🔴",
+  avaliacao: "reviewed your business",
+  resposta_avaliacao: "replied to your review",
+  convite_aceite: "created an account with your invite",
+  convite_premio: "paid the subscription: you earned free days",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -101,7 +123,8 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     sb.from("notificacoes").select("id", { count: "exact", head: true }).eq("user_id", n.user_id).eq("lida", false),
   ]);
   if (!subs || !subs.length) return json({ ok: true, enviados: 0 });
-  const nome = autor?.full_name || "Alguém";
+  const en = await idiomaDe(n.user_id);
+  const nome = autor?.full_name || (en ? "Someone" : "Alguém");
   const url = n.tipo === "avaliacao" ? "/perfil.html#avaliacoes"
     : n.tipo === "resposta_avaliacao" ? "/perfil.html?id=" + n.autor_id + "#avaliacoes"
     : n.tipo.startsWith("convite") ? "/mensalidade.html#convites"
@@ -111,8 +134,8 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : "/perfil.html?id=" + n.autor_id;
   const extra = (n.texto || "").trim();
   const aviso = JSON.stringify({
-    title: nome + " " + (TEXTOS[n.tipo] || ""),
-    body: extra ? (extra.length > 110 ? extra.slice(0, 107) + "…" : extra) : "Toque para ver.",
+    title: nome + " " + ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || ""),
+    body: extra ? (extra.length > 110 ? extra.slice(0, 107) + "…" : extra) : (en ? "Tap to see." : "Toque para ver."),
     icon: autor?.avatar_url || "/images/icone-192.png",
     // gostos na mesma publicação substituem-se uns aos outros (não enchem o telemóvel)
     tag: n.tipo + "-" + (n.post_id ?? n.video_id ?? n.live_id ?? n.autor_id),
@@ -147,10 +170,11 @@ Deno.serve(async (req: Request) => {
         .eq("receiver_id", m.receiver_id).is("read_at", null).eq("deleted", false).eq("cleared_by_receiver", false),
     ]);
     if (!subs || !subs.length) return json({ ok: true, enviados: 0 });
+    const en = await idiomaDe(m.receiver_id);
 
     const aviso = JSON.stringify({
       title: autor?.full_name || "Feira Comercial",
-      body: resumo(m),
+      body: resumo(m, en),
       icon: autor?.avatar_url || "/images/icone-192.png",
       tag: "msg-" + m.sender_id,
       url: "/mensagen.html?para=" + m.sender_id,

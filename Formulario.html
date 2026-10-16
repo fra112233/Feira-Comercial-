@@ -532,6 +532,7 @@
             const dados = {
                 convidado_por: convite || undefined,
                 full_name: nome,
+                idioma: (window.FCI18N && FCI18N.lang) || 'pt',
                 type: tipo,
                 phone: celular,
                 morada: $('morada').value.trim(),

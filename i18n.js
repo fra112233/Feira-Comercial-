@@ -15,7 +15,24 @@
 
   var api = window.FCI18N = {
     lang: lang,
-    definir: function (l) { try { localStorage.setItem(CHAVE, l); } catch (e) {} location.reload(); },
+    // guarda no aparelho e, com sessão iniciada, também na conta (avisos, boas-vindas e e-mails nesse idioma)
+    definir: function (l) {
+      try { localStorage.setItem(CHAVE, l); } catch (e) {}
+      api.guardarNaConta(l).then(function () { location.reload(); }, function () { location.reload(); });
+    },
+    guardarNaConta: function (l) {
+      try {
+        if (typeof supabaseClient === 'undefined') return Promise.resolve();
+        return supabaseClient.auth.getSession().then(function (r) {
+          var s = r && r.data && r.data.session; if (!s) return;
+          return Promise.all([
+            supabaseClient.from('perfis').update({ idioma: l }).eq('id', s.user.id),
+            supabaseClient.auth.updateUser({ data: { idioma: l } })
+          ]);
+        }).catch(function () {});
+      } catch (e) { return Promise.resolve(); }
+    },
+    escolhido: function () { try { return localStorage.getItem(CHAVE); } catch (e) { return null; } },
     alternar: function () { api.definir(lang === 'en' ? 'pt' : 'en'); },
     t: function (s) { return s; }
   };

@@ -1,0 +1,20 @@
+<div style="background:#f4f4f5;padding:24px 12px;font-family:Arial,Helvetica,sans-serif">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e4e4e7">
+<div style="background:#0b0b0c;padding:18px 24px;text-align:center"><img src="https://www.feira-comercial.com/images/icone-192.png" width="48" height="48" alt="" style="vertical-align:middle;border-radius:10px"> <span style="color:#f3c64e;font-size:20px;font-weight:700;vertical-align:middle;margin-left:8px">Feira Comercial</span></div>
+<div style="padding:26px 24px">
+{{ if eq (printf "%v" .Data.idioma) "en" }}
+<h1 style="margin:0 0 12px;font-size:22px;color:#111">Reset your password</h1>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">We received a request to change your account password. Tap the button to choose a new one. The link is valid for 1 hour.</p>
+<p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px">Change password</a></p>
+<p style="margin:0 0 6px;font-size:14px;color:#333">Or type this code on the site:</p><p style="margin:0 0 4px;font-size:30px;font-weight:700;letter-spacing:6px;color:#111;font-family:monospace">{{ .Token }}</p><p style="margin:0;font-size:12px;color:#71717a">To copy on your phone: press and hold the code and choose Copy.</p>
+<p style="margin:18px 0 0;font-size:12px;color:#71717a">If you did not ask for this change, ignore this e-mail: your password stays the same.</p>
+{{ else }}
+<h1 style="margin:0 0 12px;font-size:22px;color:#111">Recuperar a palavra-passe</h1>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">Recebemos um pedido para mudar a palavra-passe da sua conta. Toque no botão para escolher uma nova. O link é válido durante 1 hora.</p>
+<p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px">Mudar palavra-passe</a></p>
+<p style="margin:0 0 6px;font-size:14px;color:#333">Ou escreva este código no site:</p><p style="margin:0 0 4px;font-size:30px;font-weight:700;letter-spacing:6px;color:#111;font-family:monospace">{{ .Token }}</p><p style="margin:0;font-size:12px;color:#71717a">Para copiar no telemóvel: carregue no código sem largar e escolha Copiar.</p>
+<p style="margin:18px 0 0;font-size:12px;color:#71717a">Se não pediu esta mudança, ignore este e-mail: a sua palavra-passe continua a mesma.</p>
+{{ end }}
+</div>
+<div style="background:#fafafa;padding:12px 24px;text-align:center;font-size:12px;color:#a1a1aa">Feira Comercial · Moçambique · www.feira-comercial.com</div>
+</div></div>
