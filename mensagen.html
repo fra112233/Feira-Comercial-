@@ -650,6 +650,10 @@ window.addEventListener('DOMContentLoaded', async () => {
         mostrarRefPendente();
     } else if (para && para !== ME.id) {
         await openContact(para);
+        // texto sugerido (ex.: boas-vindas da Administração) — a pessoa pode mudar antes de enviar
+        const sugerido = new URLSearchParams(location.search).get('texto');
+        const caixa = document.getElementById('msgInput');
+        if (sugerido && caixa && !caixa.value) { caixa.value = sugerido.slice(0, 2000); if (typeof autoResize === 'function') autoResize(caixa); caixa.focus(); }
     }
     if ('Notification' in window && Notification.permission === 'default') {
         setTimeout(() => { if (window.FC && FC.ativarPush) FC.ativarPush(true); else Notification.requestPermission().catch(() => {}); }, 4000);

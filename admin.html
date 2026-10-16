@@ -114,6 +114,7 @@
     <div class="abas" role="tablist">
       <button type="button" class="sel" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
+      <button type="button" data-aba="novas"><i class="fas fa-hand-holding-heart"></i> Contas novas <span class="cont" id="cNovas">0</span></button>
       <button type="button" data-aba="contas"><i class="fas fa-users-gear"></i> Contas</button>
       <button type="button" data-aba="recibos"><i class="fas fa-receipt"></i> Dados dos recibos</button>
     </div>
@@ -126,6 +127,15 @@
         <button type="button" data-f="">Todos</button>
       </div>
       <div class="lista" id="listaPag"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-novas" style="display:none">
+      <div class="filtros" id="filtrosNovas">
+        <button type="button" class="sel" data-n="7">Últimos 7 dias</button>
+        <button type="button" data-n="30">Últimos 30 dias</button>
+      </div>
+      <p style="color:var(--sub);font-size:13.5px;margin:0 0 10px;line-height:1.5">Quem chegou há pouco. Uma mensagem pessoal sua faz a pessoa sentir-se bem recebida — o botão abre o chat com um texto pronto que pode mudar antes de enviar.</p>
+      <div class="lista" id="listaNovas"><p class="vazio">A carregar…</p></div>
     </section>
 
     <section id="aba-contas" style="display:none">
@@ -314,9 +324,47 @@ async function guardarReclamacao(id) {
 // ─── navegação ───
 document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
-  ['pagamentos', 'reclamacoes', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = b.dataset.aba === a ? '' : 'none'; });
+  ['pagamentos', 'reclamacoes', 'novas', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = b.dataset.aba === a ? '' : 'none'; });
+  if (b.dataset.aba === 'novas') carregarNovas();
   if (b.dataset.aba === 'contas' && !contas.length) carregarContas();
   if (b.dataset.aba === 'recibos') { carregarDadosRecibo(); carregarAssinatura(); }
+});
+
+// ─── Contas novas ───
+let diasNovas = 7;
+function textoBoasVindas(c) {
+  const nome = String(c.full_name || '').trim().split(/\s+/)[0] || '';
+  if (c.idioma === 'en') return 'Hello' + (nome ? ' ' + nome : '') + '! I\'m Francisco, from the Feira Comercial team. Thank you for joining us 🙏 ' +
+    (c.type === 'empresa' ? 'If you need help setting up your business page or making your first post, just tell me.' : 'If you need anything, I\'m here to help.') + ' Welcome! 💛';
+  return 'Olá' + (nome ? ' ' + nome : '') + '! Sou o Francisco, da equipa da Feira Comercial. Obrigado por se juntar a nós 🙏 ' +
+    (c.type === 'empresa' ? 'Se precisar de ajuda para preparar a página da sua empresa ou fazer a primeira publicação, é só dizer.' : 'Se precisar de alguma coisa, estou aqui para ajudar.') + ' Seja muito bem-vindo(a)! 💛';
+}
+async function carregarNovas() {
+  $('listaNovas').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.rpc('admin_contas_novas', { p_dias: diasNovas });
+  if (error) { $('listaNovas').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 033).</p>'; return; }
+  const lista = data || [];
+  if (diasNovas === 7) $('cNovas').textContent = lista.filter(c => !c.cumprimentado).length;
+  if (!lista.length) { $('listaNovas').innerHTML = '<p class="vazio">Nenhuma conta nova neste período.</p>'; return; }
+  $('listaNovas').innerHTML = lista.map(c => {
+    const emp = c.type === 'empresa';
+    return '<article class="reg">' +
+      '<div class="cab"><a class="quem" href="perfil.html?id=' + esc(c.id) + '" style="color:inherit"><img src="' + esc(avatar(c)) + '" alt=""><div style="min-width:0"><b>' + esc(c.full_name || 'Sem nome') + '</b>' +
+        '<small>' + (emp ? '🏢 Empresa' : '👤 Pessoa') + ' · ' + esc([c.city, c.province].filter(Boolean).join(', ') || 'sem local') + (c.idioma === 'en' ? ' · 🇬🇧 inglês' : '') + '</small></div></a>' +
+        '<div style="text-align:right"><span class="estado-conta ' + (c.cumprimentado ? 'ok' : 'susp') + '">' + (c.cumprimentado ? '✓ Já falou com ela' : 'Por cumprimentar') + '</span></div></div>' +
+      '<div class="det">' +
+        '<div><span>Chegou</span><b>' + quando(c.criado) + '</b></div>' +
+        '<div><span>Primeiros passos</span><b>' + c.passos + ' de 4' + (c.passos === 4 ? ' 🎉' : '') + '</b></div>' +
+        '<div><span>Respondeu à equipa</span><b>' + (c.respondeu ? 'Sim 💬' : 'Ainda não') + '</b></div>' +
+      '</div>' +
+      '<div class="conta-acoes"><a class="btn ' + (c.cumprimentado ? 'btn-sec' : 'btn-ok') + '" href="mensagen.html?para=' + encodeURIComponent(c.id) + '&texto=' + encodeURIComponent(textoBoasVindas(c)) + '">' +
+        '<i class="fas fa-hand-holding-heart"></i> ' + (c.cumprimentado ? 'Abrir conversa' : 'Dar as boas-vindas') + '</a></div>' +
+    '</article>';
+  }).join('');
+}
+document.querySelectorAll('#filtrosNovas [data-n]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#filtrosNovas [data-n]').forEach(x => x.classList.toggle('sel', x === b));
+  diasNovas = Number(b.dataset.n); carregarNovas();
 });
 
 // ─── Contas ───
@@ -577,6 +625,7 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
   $('intro').textContent = 'Confirme pagamentos das empresas e responda a reclamações.';
   $('conteudo').style.display = 'block';
   carregarPagamentos(); carregarReclamacoes(); carregarAtivas();
+  supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
   // novos pagamentos aparecem sozinhos
   supabaseClient.channel('admin-pagamentos')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pagamentos' }, () => { toast('💰 Novo pagamento recebido.'); carregarPagamentos(); })
