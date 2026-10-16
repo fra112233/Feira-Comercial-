@@ -897,14 +897,14 @@ function buildBubble(msg) {
         inner += `<em style="color:var(--text-secondary);font-size:13px;"><i class="fas fa-ban" style="font-size:11px;"></i> Mensagem apagada</em>`;
     } else if (msg.media_type === 'image') {
         inner += `<img src="${escAttr(cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url)}" class="bubble-img" loading="lazy" onclick="if (this.src) openLightbox(this.src)">`;
-        if (msg.content) inner += `<br><span style="font-size:14px;">${escHtml(msg.content)}</span>`;
+        if (msg.content) inner += `<br><span style="font-size:14px;">${ligarLinks(escHtml(msg.content))}</span>`;
     } else if (msg.media_type === 'video') {
         inner += `<video controls preload="metadata" class="bubble-video" src="${escAttr(cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url)}"></video>`;
     } else if (msg.media_type === 'doc') {
         inner += `<a href="${escAttr(cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url)}" data-cm-attr="href" target="_blank" rel="noopener" class="bubble-doc" style="color:inherit;text-decoration:none;">
                     <i class="fas fa-file-lines"></i><div class="bubble-doc-info"><div class="bubble-doc-name">${escHtml(msg.file_name || 'Ficheiro')}</div><div class="bubble-doc-size">${escHtml(msg.file_size || '')}</div></div></a>`;
     } else {
-        inner += `<span>${escHtml(msg.content)}</span>`;
+        inner += `<span>${ligarLinks(escHtml(msg.content))}</span>`;
     }
 
     const ticks = minha
@@ -1273,6 +1273,14 @@ function mostrarAvisoOficial() {
 document.addEventListener('fc:selos', mostrarAvisoOficial);
 
 // denunciar: abre o formulário de denúncia já com a conta indicada (a conversa fica guardada mesmo que seja apagada)
+// endereços na mensagem passam a ser links (o texto já vem escapado; só http/https)
+function ligarLinks(t) {
+    return String(t).replace(/\b((?:https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?)\]'"])/gi, function (u) {
+        const href = /^https?:/i.test(u) ? u : 'https://' + u;
+        return '<a href="' + href + '" target="_blank" rel="noopener nofollow" style="color:inherit;text-decoration:underline">' + u + '</a>';
+    });
+}
+
 function denunciarConversa() {
     if (!activeContactId) return;
     location.href = 'reclamacao.html?tipo=denuncia&link=' + encodeURIComponent(location.origin + '/perfil.html?id=' + activeContactId);

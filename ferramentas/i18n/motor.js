@@ -91,6 +91,8 @@
     [/^Reenviar em (\d+) ?s$/, 'Resend in $1 s'],
     [/^Membro desde (.+)$/, 'Member since $1'],
     [/^Ver perfil de (.+)$/, 'View profile of $1'],
+    [/^(\d+) de (\d+)$/, '$1 of $2'],
+    [/^Seguir 3 empresas \((\d)\/3\)$/, 'Follow 3 businesses ($1/3)'],
     [/^(\d+) horas?$/, function (m, n) { return n + (n === '1' ? ' hour' : ' hours'); }],
     [/^\((\d+) avaliaç(ão|ões)\)$/, function (m, n) { return '(' + n + (n === '1' ? ' review)' : ' reviews)'); }],
     [/^(\d+) avaliaç(ão|ões)$/, function (m, n) { return n + (n === '1' ? ' review' : ' reviews'); }],
