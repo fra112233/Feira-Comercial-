@@ -62,6 +62,15 @@
     [/^Reenviar em (\d+) ?s$/, 'Resend in $1 s'],
     [/^Membro desde (.+)$/, 'Member since $1'],
     [/^Ver perfil de (.+)$/, 'View profile of $1'],
+    [/^(\d+) horas?$/, function (m, n) { return n + (n === '1' ? ' hour' : ' hours'); }],
+    [/^\((\d+) avaliaç(ão|ões)\)$/, function (m, n) { return '(' + n + (n === '1' ? ' review)' : ' reviews)'); }],
+    [/^(\d+) avaliaç(ão|ões)$/, function (m, n) { return n + (n === '1' ? ' review' : ' reviews'); }],
+    [/^(\d+)% vs\. (\d+) dias antes$/, '$1% vs. the previous $2 days'],
+    [/^Quantas pessoas viram e contactaram (.+)\. Cada pessoa só conta uma vez por visita\.$/, function (m, a) { return 'How many people saw and contacted ' + (a === 'a sua empresa' ? 'your business' : a) + '. Each person counts only once per visit.'; }],
+    [/^Resposta pública a (.+):$/, function (m, a) { return 'Public reply to ' + (a === 'este cliente' ? 'this customer' : a) + ':'; }],
+    [/^hoje às (\d{1,2}:\d{2})$/, 'today at $1'], [/^ontem às (\d{1,2}:\d{2})$/, 'yesterday at $1'], [/^amanhã às (\d{1,2}:\d{2})$/, 'tomorrow at $1'],
+    [/^hoje, (.+), às (\d{1,2}:\d{2})$/, 'today, $1, at $2'],
+    [/^(.*\d.*?),? às (\d{1,2}:\d{2})$/, '$1 at $2'],
     [/^Já estão (\d+) pessoas a ver, o máximo permitido\. Assim que alguém sair, pode entrar\.$/, 'There are already $1 people watching, the maximum allowed. As soon as someone leaves, you can join.'],
     [/^Esta foto tem (.+?)\. O máximo é 100 MB por foto\.$/, 'This photo is $1. The maximum is 100 MB per photo.'],
     [/^Este vídeo tem (.+?)\. Escolha um vídeo mais curto \(máximo 3 minutos\)\.$/, 'This video is $1. Choose a shorter video (maximum 3 minutes).'],
@@ -97,7 +106,7 @@
     if (k in cache) return cache[k];
     var r = null;
     if (D[k] != null) r = D[k];
-    if (r == null) for (var i = 0; i < REGRAS.length; i++) { if (REGRAS[i][0].test(k)) { r = k.replace(REGRAS[i][0], REGRAS[i][1]); break; } }
+    if (r == null) for (var i = 0; i < REGRAS.length; i++) { if (REGRAS[i][0].test(k)) { var r2 = k.replace(REGRAS[i][0], REGRAS[i][1]); if (r2 !== k) { r = r2; break; } } }
     if (r == null && (fundo || 0) < 3) {
       // "Texto conhecido" + resto (ex.: "Não foi possível publicar: <erro>")
       var lst = porInicio[k.split(' ')[0]] || [];
