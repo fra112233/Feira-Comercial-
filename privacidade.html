@@ -180,8 +180,9 @@ function iniciarVisibilidade() {
 
 // ---------- verificação em dois passos ----------
 async function desenhar2FA() {
-  const { data, error } = await supabaseClient.auth.mfa.listFactors();
-  if (error) { $('estado2fa').innerHTML = '<span class="erro-txt">Não foi possível ver o estado: ' + esc(FC.traduzirErro(error)) + '</span>'; return; }
+  let data = null, error = null;
+  try { ({ data, error } = await supabaseClient.auth.mfa.listFactors()); } catch (e) { error = e; }
+  if (error || !data) { $('estado2fa').innerHTML = '<span class="erro-txt">Não foi possível ver o estado: ' + esc(FC.traduzirErro(error)) + '</span>'; return; }
   const ativo = (data.totp || []).find(f => f.status === 'verified');
   $('estado2fa').innerHTML = ativo ? '<span class="estado2fa on"><i class="fas fa-circle-check"></i> Ativa</span>' : '<span class="estado2fa off"><i class="fas fa-circle-xmark"></i> Desligada</span>';
   $('caixa2fa').innerHTML = ativo
