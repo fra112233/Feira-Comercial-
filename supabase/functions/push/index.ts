@@ -75,6 +75,9 @@ const TEXTOS: Record<string, string> = {
   resposta_avaliacao: "respondeu à sua avaliação",
   convite_aceite: "criou conta com o seu convite",
   convite_premio: "pagou a mensalidade: ganhou dias grátis",
+  marco_publicacao: "🎉 Parabéns! A sua primeira publicação está no ar.",
+  marco_seguidor: "🎉 Parabéns! Tem o seu primeiro seguidor.",
+  marco_mensagem: "💬 Recebeu a sua primeira mensagem. Responda depressa!",
 };
 const TEXTOS_EN: Record<string, string> = {
   gosto: "liked your post",
@@ -90,6 +93,9 @@ const TEXTOS_EN: Record<string, string> = {
   resposta_avaliacao: "replied to your review",
   convite_aceite: "created an account with your invite",
   convite_premio: "paid the subscription: you earned free days",
+  marco_publicacao: "🎉 Congratulations! Your first post is live.",
+  marco_seguidor: "🎉 Congratulations! You have your first follower.",
+  marco_mensagem: "💬 You received your first message. Reply quickly!",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -125,7 +131,9 @@ async function avisoAtividade(cfg: Cfg, id: number) {
   if (!subs || !subs.length) return json({ ok: true, enviados: 0 });
   const en = await idiomaDe(n.user_id);
   const nome = autor?.full_name || (en ? "Someone" : "Alguém");
-  const url = n.tipo === "avaliacao" ? "/perfil.html#avaliacoes"
+  const url = n.tipo === "marco_mensagem" ? "/mensagen.html"
+    : n.tipo === "marco_seguidor" ? "/perfil.html"
+    : n.tipo === "avaliacao" ? "/perfil.html#avaliacoes"
     : n.tipo === "resposta_avaliacao" ? "/perfil.html?id=" + n.autor_id + "#avaliacoes"
     : n.tipo.startsWith("convite") ? "/mensalidade.html#convites"
     : n.post_id ? "/index.html?post=" + n.post_id

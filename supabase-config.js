@@ -284,12 +284,16 @@ FC._notifTextos = {
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
   gosto_video: 'gostou do seu vídeo', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴',
   avaliacao: 'avaliou a sua empresa', resposta_avaliacao: 'respondeu à sua avaliação',
-  convite_aceite: 'criou conta com o seu convite', convite_premio: 'pagou a mensalidade: ganhou dias grátis'
+  convite_aceite: 'criou conta com o seu convite', convite_premio: 'pagou a mensalidade: ganhou dias grátis',
+  marco_publicacao: '🎉 Parabéns! A sua primeira publicação está no ar.',
+  marco_seguidor: '🎉 Parabéns! Tem o seu primeiro seguidor.',
+  marco_mensagem: '💬 Recebeu a sua primeira mensagem. Responda depressa!'
 };
 FC._notifIcones = {
   gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
-  avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift'
+  avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
+  marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
@@ -339,6 +343,8 @@ FC.textoNotificacao = function (n) {
   return { txt: FC._notifTextos[n.tipo] || '', extra: n.texto };
 };
 FC.linkNotificacao = function (n) {
+  if (n.tipo === 'marco_mensagem') return 'mensagen.html';
+  if (n.tipo === 'marco_seguidor') return 'perfil.html';
   if (n.tipo === 'avaliacao') return 'perfil.html#avaliacoes';
   if (n.tipo === 'resposta_avaliacao') return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '') + '#avaliacoes';
   if (n.tipo && n.tipo.indexOf('convite') === 0) return 'mensalidade.html#convites';
