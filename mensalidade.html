@@ -205,7 +205,7 @@ async function carregarConvites() {
   $('convContas').textContent = data.contas || 0;
   $('convPremios').textContent = data.premios || 0;
   $('convGanhos').textContent = data.dias || 0;
-  $('convWa').href = 'https://wa.me/?text=' + encodeURIComponent('Olá! Estou a vender na Feira Comercial, a montra das empresas de Moçambique. Crie a conta da sua empresa pelo meu link (o primeiro mês é grátis): ' + link);
+  $('convWa').href = 'https://wa.me/?text=' + encodeURIComponent('Olá! Estou a vender na Feira Comercial, a rede social de negócios que chegou a Moçambique. Crie a conta da sua empresa pelo meu link e teste grátis: ' + link);
   $('convites').style.display = '';
   if (location.hash === '#convites') $('convites').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
