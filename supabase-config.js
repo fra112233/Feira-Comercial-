@@ -320,13 +320,14 @@ FC._notifTextos = {
   convite_aceite: 'criou conta com o seu convite', convite_premio: 'pagou a mensalidade: ganhou dias grátis',
   marco_publicacao: '🎉 Parabéns! A sua primeira publicação está no ar.',
   marco_seguidor: '🎉 Parabéns! Tem o seu primeiro seguidor.',
-  marco_mensagem: '💬 Recebeu a sua primeira mensagem. Responda depressa!'
+  marco_mensagem: '💬 Recebeu a sua primeira mensagem. Responda depressa!',
+  gratis_fim: '— os seus dias grátis acabaram ⏰', mensalidade_fim: '— a sua mensalidade terminou ⏰'
 };
 FC._notifIcones = {
   gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
-  marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots'
+  marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
@@ -381,6 +382,7 @@ FC.linkNotificacao = function (n) {
   if (n.tipo === 'avaliacao') return 'perfil.html#avaliacoes';
   if (n.tipo === 'resposta_avaliacao') return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '') + '#avaliacoes';
   if (n.tipo && n.tipo.indexOf('convite') === 0) return 'mensalidade.html#convites';
+  if (n.tipo === 'gratis_fim' || n.tipo === 'mensalidade_fim') return 'mensalidade.html';
   if (n.post_id) return 'index.html?post=' + n.post_id;
   if (n.video_id) return 'videos.html?v=' + n.video_id;
   if (n.live_id && n.live && FC.textoNotificacao(n).terminada) return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
@@ -860,6 +862,10 @@ FC.lembreteMensalidade = function (me) {
   const chave = 'fc_lembrete_mens_' + me.id;
   try { if (Date.now() - Number(localStorage.getItem(chave) || 0) < 48 * 3600 * 1000) return; localStorage.setItem(chave, String(Date.now())); } catch (e) { return; }
   const quando = m.ativa ? (m.dias <= 1 ? 'termina amanhã' : 'termina em ' + m.dias + ' dias') : 'terminou';
+  // ainda no período de teste? (a assinatura acaba até 16 dias depois de a conta ser criada)
+  const teste = me.created_at && m.ate && (m.ate - new Date(me.created_at)) < 16 * 864e5;
+  const oQue = teste ? (m.ativa ? 'Os seus dias grátis' : 'Os seus dias grátis') : 'A mensalidade';
+  const quando2 = teste ? (m.ativa ? (m.dias <= 1 ? 'acabam amanhã' : 'acabam em ' + m.dias + ' dias') : 'acabaram') : quando;
   const el = document.createElement('div');
   el.id = 'fc-lembrete';
   el.innerHTML =
@@ -868,7 +874,7 @@ FC.lembreteMensalidade = function (me) {
     '#fc-lembrete .i{font-size:40px}#fc-lembrete h3{margin:8px 0 6px;font-size:19px}#fc-lembrete p{color:#a1a1aa;font-size:14px;line-height:1.5;margin:0 0 18px}' +
     '#fc-lembrete a,#fc-lembrete button{display:block;width:100%;padding:13px;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;box-sizing:border-box}' +
     '#fc-lembrete a{background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#000;border:none;margin-bottom:8px}#fc-lembrete button{background:#1f1f25;color:#f4f4f5;border:1px solid #2c2c34}</style>' +
-    '<div class="c" role="dialog" aria-modal="true"><div class="i">💳</div><h3>A mensalidade ' + quando + '</h3>' +
+    '<div class="c" role="dialog" aria-modal="true"><div class="i">' + (teste ? '⏰' : '💳') + '</div><h3>' + oQue + ' ' + quando2 + '</h3>' +
     '<p>Pague <b style="color:#f3c64e">100 MT</b> por transferência bancária para a sua empresa <b>não ficar sem acesso</b> a publicações, anúncios e Live.</p>' +
     '<a href="mensalidade.html">Pagar agora</a><button type="button">Mais tarde</button></div>';
   el.querySelector('button').onclick = () => el.remove();
