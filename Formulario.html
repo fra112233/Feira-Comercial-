@@ -317,6 +317,21 @@
             </div>
         </div>
 
+        <div class="group" id="grupo-origem">
+            <label for="origem">Como conheceu a Feira Comercial? <span style="font-weight:400;color:var(--secondary)">(opcional)</span></label>
+            <select id="origem">
+                <option value="">Escolher...</option>
+                <option value="facebook">Facebook</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="tiktok">TikTok</option>
+                <option value="instagram">Instagram</option>
+                <option value="amigo">Um amigo ou familiar</option>
+                <option value="empresa">Uma empresa / loja</option>
+                <option value="google">Google</option>
+                <option value="outro">Outro</option>
+            </select>
+        </div>
+
         <div class="fc-captcha" style="display:flex;justify-content:center;margin:10px 0"></div>
         <button type="submit" class="submit-btn" id="submitBtn">Criar Conta</button>
         <p class="faltam" id="faltam"></p>
@@ -348,6 +363,8 @@
     $('provincia').innerHTML = FCP.opcoes(FCP.PROVINCIAS, 'Maputo Cidade', 'Escolher...');
     $('setor').innerHTML     = FCP.opcoes(FCP.SETORES, '', 'Escolher...');
     $('horario').innerHTML   = FCP.camposHorario('reg', FCP.horarioPadrao());
+    // veio por um link de publicidade ou convite: já sabemos a origem, não é preciso perguntar
+    if ((window.FC && FC.origem && FC.origem()) || /[?&]convite=/.test(location.search)) $('grupo-origem').style.display = 'none';
 
     function tipoAtual() { return document.querySelector('input[name="perfilType"]:checked').value; }
 
@@ -584,6 +601,7 @@
                 convidado_por: convite || undefined,
                 full_name: nome,
                 idioma: (window.FCI18N && FCI18N.lang) || 'pt',
+                origem: (window.FC && FC.origem && FC.origem()) || (convite ? 'convite' : '') || $('origem').value || undefined,
                 type: tipo,
                 phone: celular,
                 morada: $('morada').value.trim(),

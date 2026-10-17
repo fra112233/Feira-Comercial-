@@ -80,6 +80,10 @@
     {
       "source": "/sitemap-loja.xml",
       "destination": "https://bljnkwrhqnpawclybqrw.supabase.co/functions/v1/sitemap-lojas"
+    },
+    {
+      "source": "/loja/:id",
+      "destination": "/api/loja?id=:id"
     }
   ]
 }
