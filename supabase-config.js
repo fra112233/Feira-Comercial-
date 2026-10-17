@@ -909,6 +909,7 @@ FC.partilhar = function (o) {
   const f = document.createElement('div'); f.id = 'fc-part-f';
   const item = (href, ico, cor, nome) => '<a href="' + href + '" target="_blank" rel="noopener" data-p="1"><i class="' + ico + '" style="background:' + cor + '"></i>' + nome + '</a>';
   f.innerHTML = '<div id="fc-part" role="dialog" aria-label="Partilhar"><div class="cab"><b>Partilhar</b><button type="button" aria-label="Fechar">×</button></div><div class="gr">' +
+    '<button type="button" data-chat="1"><i class="fas fa-comment-dots" style="background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111"></i>No chat</button>' +
     item('https://wa.me/?text=' + enc(tudo), 'fab fa-whatsapp', '#25d366', 'WhatsApp') +
     item('https://www.facebook.com/sharer/sharer.php?u=' + enc(url), 'fab fa-facebook-f', '#1877f2', 'Facebook') +
     item('https://t.me/share/url?url=' + enc(url) + (texto ? '&text=' + enc(texto) : ''), 'fab fa-telegram', '#29a9eb', 'Telegram') +
@@ -921,6 +922,7 @@ FC.partilhar = function (o) {
     if (ev.target === f || (t && t.closest('.cab'))) return fechar();
     if (!t) return;
     if (t.dataset.p) { setTimeout(fechar, 300); return; }
+    if (t.dataset.chat) { fechar(); FC.enviarNoChat(o); return; }
     if (t.dataset.copiar) {
       try { await navigator.clipboard.writeText(url); }
       catch (e) { const i = document.createElement('textarea'); i.value = url; document.body.appendChild(i); i.select(); try { document.execCommand('copy'); } catch (x) {} i.remove(); }
@@ -929,4 +931,103 @@ FC.partilhar = function (o) {
     if (t.dataset.mais) { fechar(); try { await navigator.share({ title: o.titulo || 'Feira Comercial', text: texto, url }); } catch (e) {} }
   });
   document.body.appendChild(f);
+};
+
+/* Enviar no chat da Feira Comercial: escolher uma ou mais pessoas e enviar a foto, o vídeo
+   ou o link diretamente, sem sair da página.
+   o = { url, texto, media: { url, type: 'image'|'video' }, ref: { tipo, id, userName, text, thumb } } */
+FC.enviarNoChat = async function (o) {
+  o = o || {};
+  const T = FC.t, esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const eu = session && session.user && session.user.id;
+  if (!eu) { location.href = 'Portal.html'; return; }
+  if (!document.getElementById('fc-chat-css')) {
+    const css = document.createElement('style'); css.id = 'fc-chat-css';
+    css.textContent =
+      '#fc-nc .ls{max-height:min(46vh,360px);overflow-y:auto;margin:10px -4px;display:flex;flex-direction:column;gap:2px}' +
+      '#fc-nc label{display:flex;align-items:center;gap:12px;padding:8px 6px;border-radius:12px;cursor:pointer}' +
+      '#fc-nc label:hover{background:rgba(255,255,255,.06)}' +
+      '#fc-nc label img{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#475569;flex-shrink:0}' +
+      '#fc-nc label span{flex:1;min-width:0;font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '#fc-nc label input{width:22px;height:22px;accent-color:#d9a52e;flex-shrink:0}' +
+      '#fc-nc input[type=search],#fc-nc input.nota{width:100%;box-sizing:border-box;padding:11px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.1);color:inherit;font:inherit;font-size:15px;outline:none}' +
+      '#fc-nc .pre{display:flex;align-items:center;gap:10px;font-size:13px;opacity:.85;margin-bottom:10px}' +
+      '#fc-nc .pre img,#fc-nc .pre video{width:46px;height:46px;border-radius:8px;object-fit:cover;background:#000}' +
+      '#fc-nc .env{width:100%;margin-top:10px;padding:13px;border:none;border-radius:12px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111}' +
+      '#fc-nc .env:disabled{opacity:.45;cursor:default}' +
+      '#fc-nc .vz{padding:18px 6px;text-align:center;opacity:.7;font-size:14px}';
+    document.head.appendChild(css);
+  }
+  const f = document.createElement('div'); f.id = 'fc-part-f';
+  const m = o.media && FC.u(o.media.url) ? o.media : null;
+  const pre = m ? (m.type === 'video' ? '<video src="' + FC.u(m.url) + '#t=0.1" muted preload="metadata"></video>' + T('Vídeo') : '<img src="' + FC.u(m.url) + '" alt="">' + T('Foto'))
+                : '<i class="fas fa-link" style="font-size:18px"></i>' + esc((o.texto || '').slice(0, 60));
+  f.innerHTML = '<div id="fc-part" class="fc-nc" role="dialog" aria-label="' + T('Enviar no chat') + '"><div id="fc-nc">' +
+    '<div class="cab" style="display:flex;align-items:center;margin-bottom:10px"><b style="flex:1;font-size:17px">' + T('Enviar no chat') + '</b><button type="button" class="x" aria-label="Fechar" style="border:none;background:none;color:inherit;font-size:22px;width:36px;height:36px;cursor:pointer">×</button></div>' +
+    '<div class="pre">' + pre + '</div>' +
+    '<input type="search" placeholder="' + T('Procurar pessoa…') + '" autocomplete="off">' +
+    '<div class="ls"><p class="vz">' + T('A carregar…') + '</p></div>' +
+    '<input class="nota" maxlength="500" placeholder="' + T('Escreva algo (opcional)') + '">' +
+    '<button type="button" class="env" disabled>' + T('Enviar') + '</button></div></div>';
+  document.body.appendChild(f);
+  const $ = q => f.querySelector(q), escolhidos = new Map();
+  const fechar = () => f.remove();
+  f.addEventListener('click', e => { if (e.target === f || e.target.closest('.x')) fechar(); });
+  const avatar = p => FC.u(p.avatar_url) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.full_name || 'U') + '&background=random&color=fff&size=84');
+  const desenhar = lista => {
+    $('.ls').innerHTML = lista.length ? lista.map(p => '<label><img src="' + avatar(p) + '" alt=""><span>' + esc(p.full_name || T('Utilizador')) + '</span><input type="checkbox" value="' + esc(p.id) + '"' + (escolhidos.has(p.id) ? ' checked' : '') + '></label>').join('')
+      : '<p class="vz">' + T('Ninguém encontrado.') + '</p>';
+    lista.forEach(p => { if (!desenhar.cache[p.id]) desenhar.cache[p.id] = p; });
+  };
+  desenhar.cache = {};
+  const atualizarBotao = () => { const n = escolhidos.size; $('.env').disabled = !n; $('.env').textContent = T('Enviar') + (n ? ' (' + n + ')' : ''); };
+  $('.ls').addEventListener('change', e => {
+    const c = e.target; if (c.type !== 'checkbox') return;
+    if (c.checked) { if (escolhidos.size >= 10) { c.checked = false; FC.toast(T('Máximo 10 pessoas de cada vez.')); return; } escolhidos.set(c.value, desenhar.cache[c.value]); }
+    else escolhidos.delete(c.value);
+    atualizarBotao();
+  });
+  // sugestões: conversas recentes + quem segue
+  let sugestoes = [];
+  try {
+    const [r1, r2] = await Promise.all([
+      supabaseClient.from('messages').select('sender_id, receiver_id').or('sender_id.eq.' + eu + ',receiver_id.eq.' + eu).order('created_at', { ascending: false }).limit(300),
+      supabaseClient.from('followers').select('following_id').eq('follower_id', eu).limit(60)]);
+    const ids = [];
+    (r1.data || []).forEach(x => { const o2 = x.sender_id === eu ? x.receiver_id : x.sender_id; if (o2 && !ids.includes(o2)) ids.push(o2); });
+    (r2.data || []).forEach(x => { if (x.following_id && !ids.includes(x.following_id)) ids.push(x.following_id); });
+    const sel = ids.filter(i => i !== eu).slice(0, 40);
+    if (sel.length) {
+      const { data } = await supabaseClient.from('perfis').select('id, full_name, avatar_url').in('id', sel);
+      sugestoes = sel.map(i => (data || []).find(p => p.id === i)).filter(Boolean);
+    }
+  } catch (e) {}
+  desenhar(sugestoes);
+  if (!sugestoes.length) $('.ls').innerHTML = '<p class="vz">' + T('Escreva o nome da pessoa.') + '</p>';
+  let tp = null;
+  $('input[type=search]').addEventListener('input', e => {
+    clearTimeout(tp);
+    const q = e.target.value.replace(/[%,()]/g, ' ').trim();
+    tp = setTimeout(async () => {
+      if (q.length < 2) { desenhar(sugestoes); return; }
+      const { data } = await supabaseClient.from('perfis').select('id, full_name, avatar_url').ilike('full_name', '%' + q + '%').neq('id', eu).limit(20);
+      desenhar(data || []);
+    }, 300);
+  });
+  $('.env').addEventListener('click', async () => {
+    const b = $('.env'); b.disabled = true; b.textContent = T('A enviar…');
+    const nota = $('.nota').value.trim();
+    const conteudo = m ? nota : [nota, (o.texto || '') + ' ' + (o.url || '')].filter(x => x && x.trim()).join('\n').trim();
+    const linhas = [...escolhidos.keys()].map(id => ({
+      sender_id: eu, receiver_id: id, content: conteudo || '',
+      file_url: m ? m.url : null, media_type: m ? (m.type === 'video' ? 'video' : 'image') : null,
+      ref: o.ref || null }));
+    const res = await Promise.all(linhas.map(l => supabaseClient.from('messages').insert(l).then(r => !r.error, () => false)));
+    const ok = res.filter(Boolean).length, falhou = res.length - ok;
+    fechar();
+    if (ok && !falhou) FC.toast(ok === 1 ? T('Enviado ✓') : T('Enviado a') + ' ' + ok + ' ' + T('pessoas ✓'));
+    else if (ok) FC.toast(T('Enviado a') + ' ' + ok + '. ' + falhou + ' ' + T('não aceitam mensagens.'));
+    else FC.toast(T('Não foi possível enviar. Tente outra vez.'));
+  });
 };

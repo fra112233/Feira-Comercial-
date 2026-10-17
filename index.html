@@ -406,6 +406,8 @@
         #lb-prev { left: 16px; }
         #lb-next { right: 16px; }
         .lightbox video.lightbox-img { width: auto; background: #000; }
+        .lb-partilhar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.16); color: #fff; border: none; border-radius: 999px; padding: 10px 20px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; z-index: 2; }
+        .lb-partilhar:hover { background: rgba(255,255,255,.28); }
         .lb-contador { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,.8); font-size: 14px; font-weight: 600; }
         @media (max-width: 600px) {
             .lightbox-img { max-width: 100%; max-height: 82%; border-radius: 0; }
@@ -770,6 +772,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
     <img id="lb-img" class="lightbox-img" src="" alt="">
     <video id="lb-video" class="lightbox-img" controls playsinline preload="metadata" style="display:none"></video>
     <span class="lb-contador" id="lb-contador"></span>
+    <button class="lb-partilhar" type="button" onclick="partilharLb()"><i class="fas fa-share"></i> Partilhar</button>
     <button class="lightbox-nav" id="lb-next" onclick="changePhoto(1)">&#10095;</button>
 </div>
 
@@ -1596,6 +1599,25 @@ function replyToStory() {
     window.location.href = 'mensagen.html';
 }
 
+// Partilhar uma publicação (ou a foto/vídeo aberto no visualizador): redes sociais ou chat da Feira Comercial
+function partilharPost(postId, media) {
+    const p = posts.find(x => x.id === postId);
+    if (!p) return;
+    const m = media || (p.media && p.media[0]) || null;
+    const t = p.text ? String(p.text).slice(0, 80) : '';
+    FC.partilhar({
+        texto: FC.t('Veja na Feira Comercial:') + ' ' + (p.userName || '') + (t ? ' — "' + t + (p.text.length > 80 ? '…' : '') + '"' : ''),
+        url: location.origin + '/loja.html?id=' + encodeURIComponent(p.userId || ''),
+        media: m ? { url: m.url, type: m.type } : null,
+        ref: { tipo: 'post', id: p.id, userId: p.userId, userName: p.userName, text: t || '📷', thumb: m && m.type === 'image' ? m.url : null }
+    });
+}
+function partilharLb() {
+    const m = lbImages[lbIndex];
+    if (lbPostId != null && posts.find(x => x.id === lbPostId)) partilharPost(lbPostId, m);
+    else if (m) FC.partilhar({ url: m.url, media: m });
+}
+
 // Responder a uma publicação — envia para mensagen.html
 function responderNoChat(postId) {
     const p = posts.find(x => x.id === postId);
@@ -1903,6 +1925,9 @@ function htmlAcoes(p) {
             </div>
             <div class="btn-action" onclick="responderNoChat(${p.id})" title="Responder por mensagem">
                 <i class="fas fa-paper-plane"></i> <span class="rot">Responder</span>
+            </div>
+            <div class="btn-action btn-guardar" onclick="partilharPost(${p.id})" title="Partilhar" aria-label="Partilhar">
+                <i class="fas fa-share"></i>
             </div>${temGuardados ? `
             <div class="btn-action btn-guardar${p.guardado ? ' guardado' : ''}" onclick="alternarGuardado(${p.id})" title="${p.guardado ? 'Remover dos guardados' : 'Guardar para ver mais tarde'}" aria-label="Guardar">
                 <i class="${p.guardado ? 'fas' : 'far'} fa-bookmark"></i>
@@ -2207,8 +2232,10 @@ function mobileSearchHandler(valor) {
 //  LIGHTBOX
 // ─────────────────────────────────────
 // Visualizador de ecrã inteiro: fotos E vídeos da publicação, com setas / deslizar
+let lbPostId = null;
 function abrirVisualizador(postId, url, tipo) {
     const p = posts.find(x => x.id === postId);
+    lbPostId = p ? p.id : null;
     lbImages = p && p.media.length ? p.media.map(m => ({ url: m.url, type: m.type })) : [{ url, type: tipo || 'image' }];
     lbIndex = Math.max(0, lbImages.findIndex(m => m.url === url));
     // pára os vídeos do feed enquanto o visualizador está aberto

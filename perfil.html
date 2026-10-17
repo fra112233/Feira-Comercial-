@@ -668,6 +668,7 @@
             gap: 0;
         }
 
+        .post-action.so-icone { flex: 0 0 48px; }
         .post-action {
             flex: 1;
             background: none;
@@ -986,6 +987,7 @@
             z-index: 3001;
         }
         video.lightbox-media { max-height: 85vh; background: #000; }
+        .lightbox-partilhar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.16); color: #fff; border: none; border-radius: 999px; padding: 10px 20px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; z-index: 3002; }
         .lightbox-apagar {
             position: absolute;
             top: 20px;
@@ -1588,6 +1590,7 @@
         <i class="fas fa-chevron-left"></i>
     </button>
     <div class="lightbox-contador" id="lightboxContador"></div>
+    <button class="lightbox-partilhar" type="button" onclick="partilharLb()"><i class="fas fa-share"></i> Partilhar</button>
     <button class="lightbox-apagar" id="lightboxApagar" onclick="apagarMediaAtual()" style="display:none" title="Apagar do histórico">
         <i class="fas fa-trash"></i> Apagar
     </button>
@@ -1920,6 +1923,9 @@
                     </button>
                     <button class="post-action" onclick="responderNoChat(${p.id})">
                         <i class="far fa-paper-plane"></i> Responder
+                    </button>
+                    <button class="post-action so-icone" onclick="partilharPost(${p.id})" title="Partilhar" aria-label="Partilhar">
+                        <i class="fas fa-share"></i>
                     </button>
                 </div>
                 <div class="comments-section" id="comments-${postId}" style="display:${comentAbertos.has(String(postId)) ? 'block' : 'none'}">
@@ -2444,6 +2450,29 @@
         input.focus();
         input.dataset.replyTo = commentId;
         input.placeholder = "Responder a este comentário...";
+    }
+
+    // Partilhar uma publicação ou a foto/vídeo aberto: redes sociais ou chat da Feira Comercial
+    function partilharPost(id, media) {
+        const p = obterPostsFeed().find(x => x.id === id) || (historicoMedia || []).find(x => x.id === id);
+        const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
+        const url = location.origin + '/' + (emp ? 'loja.html' : 'perfil.html') + '?id=' + encodeURIComponent(alvoId || meuId || '');
+        const nome = (perfilAtual && perfilAtual.full_name) || '';
+        const m0 = media || (p && p.media && p.media[0]) || null;
+        const m = m0 ? { url: m0.url || m0.data, type: m0.type } : null;
+        const txt = p && (p.text || p.content) ? String(p.text || p.content) : '';
+        const t = txt.slice(0, 80);
+        FC.partilhar({
+            texto: FC.t('Veja na Feira Comercial:') + ' ' + nome + (t ? ' — "' + t + (txt.length > 80 ? '…' : '') + '"' : ''),
+            url, media: m,
+            ref: p ? { tipo: 'post', id: p.id, userId: alvoId || meuId, userName: nome, text: t || '📷', thumb: m && m.type === 'image' ? m.url : null } : null
+        });
+    }
+    function partilharLb() {
+        const it = lightboxImages[currentLightboxIndex];
+        if (!it) return;
+        if (it.postId != null) partilharPost(it.postId, it);
+        else FC.partilhar({ url: it.url, media: it });
     }
 
     function sharePost(postId) {
