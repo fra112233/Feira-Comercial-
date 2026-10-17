@@ -5,7 +5,26 @@
 const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* Sessão expirada (telemóvel adormecido, relógio do aparelho errado): se o servidor responder 401,
+   renova a sessão uma vez e repete o pedido, em vez de mostrar erros ou um feed vazio. */
+let _renovar = null;
+async function _fetchComRenovacao(url, init) {
+  const r = await fetch(url, init);
+  const u = String(url && url.url || url);
+  if (r.status !== 401 || u.indexOf('/auth/v1/') >= 0 || !window.supabaseClient) return r;
+  try {
+    const h = new Headers((init && init.headers) || {});
+    const antigo = h.get('Authorization') || '';
+    if (!_renovar) _renovar = supabaseClient.auth.refreshSession().finally(() => setTimeout(() => { _renovar = null; }, 5000));
+    const { data } = await _renovar;
+    const tok = data && data.session && data.session.access_token;
+    if (!tok || antigo === 'Bearer ' + tok) return r;
+    h.set('Authorization', 'Bearer ' + tok);
+    return await fetch(url, Object.assign({}, init, { headers: h }));
+  } catch (e) { return r; }
+}
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: _fetchComRenovacao } });
+window.supabaseClient = supabaseClient;
 
 window.FC = window.FC || {};
 
