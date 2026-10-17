@@ -397,10 +397,10 @@ document.querySelectorAll('#filtrosCresc [data-d]').forEach(b => b.onclick = () 
 let diasNovas = 7;
 function textoBoasVindas(c) {
   const nome = String(c.full_name || '').trim().split(/\s+/)[0] || '';
-  if (c.idioma === 'en') return 'Hello' + (nome ? ' ' + nome : '') + '! I\'m Francisco, from the Feira Comercial team. Thank you for joining us 🙏 ' +
-    (c.type === 'empresa' ? 'If you need help setting up your business page or making your first post, just tell me.' : 'If you need anything, I\'m here to help.') + ' Welcome! 💛';
-  return 'Olá' + (nome ? ' ' + nome : '') + '! Sou o Francisco, da equipa da Feira Comercial. Obrigado por se juntar a nós 🙏 ' +
-    (c.type === 'empresa' ? 'Se precisar de ajuda para preparar a página da sua empresa ou fazer a primeira publicação, é só dizer.' : 'Se precisar de alguma coisa, estou aqui para ajudar.') + ' Seja muito bem-vindo(a)! 💛';
+  if (c.idioma === 'en') return 'Hello' + (nome ? ' ' + nome : '') + '! I\'m Francisco, from Feira Comercial. Thanks for joining 🙏 ' +
+    (c.type === 'empresa' ? 'Need help with your first post? Just tell me.' : 'Need anything? Just tell me.') + ' 💛';
+  return 'Olá' + (nome ? ' ' + nome : '') + '! Sou o Francisco, da Feira Comercial. Obrigado por se juntar 🙏 ' +
+    (c.type === 'empresa' ? 'Precisa de ajuda com a 1.ª publicação? É só dizer.' : 'Precisa de alguma coisa? É só dizer.') + ' 💛';
 }
 async function carregarNovas() {
   $('listaNovas').innerHTML = '<p class="vazio">A carregar…</p>';
