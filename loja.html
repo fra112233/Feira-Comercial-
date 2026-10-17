@@ -157,6 +157,21 @@ h2.sec { font-size: 18px; margin: 28px 0 12px; }
     try { $('horario').innerHTML = FCP.horarioEmLinhas(m.horario); $('blocoHorario').style.display = ''; } catch (x) {}
   }
 
+  // para o Google: endereço oficial da página e ficha da empresa (sem contactos)
+  try {
+    const url = 'https://www.feira-comercial.com/loja.html?id=' + m.id;
+    let can = document.querySelector('link[rel=canonical]');
+    if (!can) { can = document.createElement('link'); can.rel = 'canonical'; document.head.appendChild(can); }
+    can.href = url;
+    const ficha = { '@context': 'https://schema.org', '@type': 'LocalBusiness', name: m.nome || 'Empresa', url,
+      description: (m.bio || m.setor || '').slice(0, 300) || undefined,
+      image: (FC.u && FC.u(m.logo)) ? m.logo : undefined,
+      address: (m.cidade || m.provincia) ? { '@type': 'PostalAddress', addressLocality: m.cidade || undefined, addressRegion: m.provincia || undefined, addressCountry: 'MZ' } : undefined,
+      aggregateRating: av.total > 0 ? { '@type': 'AggregateRating', ratingValue: av.media, reviewCount: av.total } : undefined };
+    const ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.textContent = JSON.stringify(ficha).replace(/</g, '\\u003c');
+    document.head.appendChild(ld);
+  } catch (x) {}
+
   $('aCarregar').style.display = 'none';
   $('conteudo').style.display = 'block';
 

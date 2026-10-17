@@ -53,5 +53,11 @@
       "destination": "https://www.feira-comercial.com/:path*",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/sitemap-lojas.xml",
+      "destination": "https://bljnkwrhqnpawclybqrw.supabase.co/functions/v1/sitemap-lojas"
+    }
   ]
 }
