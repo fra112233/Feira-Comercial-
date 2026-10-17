@@ -73,6 +73,8 @@
     'às': 'at', 'amanhã': 'tomorrow', 'hoje': 'today', 'e': 'and', 'dias': 'days', 'dia': 'day', 'meses': 'months', 'mês': 'month', 'em': 'in' };
 
   var REGRAS = [
+    [/^Faltam (\d+) campos: (.+)$/, function (m, n, l) { return n + ' fields missing: ' + l.split(', ').map(function (x) { return api.t(x); }).join(', '); }],
+    [/^Falta 1 campo: (.+)$/, function (m, l) { return '1 field missing: ' + api.t(l); }],
     [/^há (\d+) min$/, '$1 min ago'], [/^há (\d+) h$/, '$1 h ago'], [/^há (\d+) d$/, '$1 d ago'], [/^há (\d+) dias?$/, '$1 days ago'],
     [/^agora mesmo$/, 'just now'], [/^agora$/, 'now'],
     [/^(\d+) Gostos?$/, function (m, n) { return n + (n === '1' ? ' Like' : ' Likes'); }],
