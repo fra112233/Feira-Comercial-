@@ -2449,13 +2449,10 @@
     function sharePost(postId) {
         const profileUrl = location.origin + location.pathname + '?id=' + encodeURIComponent(alvoId || meuId || '');
         const post = allPosts.find(p => p.id === postId);
-        const shareText = `Confira esta publicação: "${post.text.substring(0, 50)}..." ${profileUrl}`;
-
-        navigator.clipboard.writeText(shareText).then(() => {
-            showToast('Publicação partilhada! Link copiado para a área de transferência.');
-        }).catch(() => {
-            alert('Erro ao copiar link. Tenta novamente.');
-        });
+        const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
+        const link = emp ? location.origin + '/loja.html?id=' + encodeURIComponent(alvoId || meuId || '') : profileUrl;
+        const t = post && post.text ? String(post.text).slice(0, 80) : '';
+        FC.partilhar({ texto: FC.t('Veja na Feira Comercial:') + (t ? ' "' + t + (post.text.length > 80 ? '…' : '') + '"' : ''), url: link });
     }
 
     function shareProfile() {
@@ -2463,13 +2460,7 @@
         const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
         const profileUrl = location.origin + '/' + (emp ? 'loja.html' : 'perfil.html') + '?id=' + encodeURIComponent(alvoId || meuId || '');
         const profileName = document.getElementById('userName').innerText;
-        const shareText = `Confira o perfil de ${profileName}: ${profileUrl}`;
-
-        navigator.clipboard.writeText(shareText).then(() => {
-            showToast('Perfil partilhado! Link copiado para a área de transferência.');
-        }).catch(() => {
-            alert('Erro ao copiar link. Tenta novamente.');
-        });
+        FC.partilhar({ titulo: profileName, texto: FC.t('Veja na Feira Comercial:') + ' ' + profileName, url: profileUrl });
     }
 
     function updateMediaGallery() {

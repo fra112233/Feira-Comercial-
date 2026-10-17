@@ -882,3 +882,51 @@ FC.boot = async function (opts = {}) {
   if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
   return me;
 };
+
+/* Partilhar: abre uma folha com WhatsApp, Facebook, Telegram, SMS, Copiar link e "Mais"
+   (o menu do próprio telemóvel), em vez de só copiar o link. */
+FC.t = s => (window.FCI18N && FCI18N.t) ? FCI18N.t(s) : s;   // traduz textos montados em JavaScript (modo inglês)
+FC.partilhar = function (o) {
+  o = o || {};
+  const url = o.url || location.href, texto = o.texto || '';
+  const tudo = (texto ? texto + ' ' : '') + url;
+  const enc = encodeURIComponent;
+  if (!document.getElementById('fc-part-css')) {
+    const css = document.createElement('style'); css.id = 'fc-part-css';
+    css.textContent =
+      '#fc-part-f{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:7000;display:flex;align-items:flex-end;justify-content:center}' +
+      '#fc-part{width:min(520px,100%);background:var(--bg-card,var(--bg-secondary,#1c1e21));color:var(--text-main,var(--text-primary,#e4e6eb));border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));font-family:inherit;animation:fcPartSobe .2s ease}' +
+      '@keyframes fcPartSobe{from{transform:translateY(40px);opacity:0}}' +
+      '#fc-part .cab{display:flex;align-items:center;margin-bottom:14px}#fc-part .cab b{flex:1;font-size:17px}' +
+      '#fc-part .cab button{border:none;background:none;color:inherit;font-size:22px;width:36px;height:36px;border-radius:50%;cursor:pointer}' +
+      '#fc-part .gr{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 8px}' +
+      '#fc-part .gr a,#fc-part .gr button{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:inherit;font-size:13px;font-weight:600;font-family:inherit;background:none;border:none;cursor:pointer;padding:0}' +
+      '#fc-part .gr i{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:25px;color:#fff}';
+    document.head.appendChild(css);
+  }
+  const fechar = () => { const f = document.getElementById('fc-part-f'); if (f) f.remove(); };
+  fechar();
+  const f = document.createElement('div'); f.id = 'fc-part-f';
+  const item = (href, ico, cor, nome) => '<a href="' + href + '" target="_blank" rel="noopener" data-p="1"><i class="' + ico + '" style="background:' + cor + '"></i>' + nome + '</a>';
+  f.innerHTML = '<div id="fc-part" role="dialog" aria-label="Partilhar"><div class="cab"><b>Partilhar</b><button type="button" aria-label="Fechar">×</button></div><div class="gr">' +
+    item('https://wa.me/?text=' + enc(tudo), 'fab fa-whatsapp', '#25d366', 'WhatsApp') +
+    item('https://www.facebook.com/sharer/sharer.php?u=' + enc(url), 'fab fa-facebook-f', '#1877f2', 'Facebook') +
+    item('https://t.me/share/url?url=' + enc(url) + (texto ? '&text=' + enc(texto) : ''), 'fab fa-telegram', '#29a9eb', 'Telegram') +
+    item('sms:?&body=' + enc(tudo), 'fas fa-comment-sms', '#64748b', 'SMS') +
+    '<button type="button" data-copiar="1"><i class="fas fa-link" style="background:#475569"></i>Copiar link</button>' +
+    (navigator.share ? '<button type="button" data-mais="1"><i class="fas fa-ellipsis" style="background:#334155"></i>Mais</button>' : '') +
+    '</div></div>';
+  f.addEventListener('click', async ev => {
+    const t = ev.target.closest('a,button');
+    if (ev.target === f || (t && t.closest('.cab'))) return fechar();
+    if (!t) return;
+    if (t.dataset.p) { setTimeout(fechar, 300); return; }
+    if (t.dataset.copiar) {
+      try { await navigator.clipboard.writeText(url); }
+      catch (e) { const i = document.createElement('textarea'); i.value = url; document.body.appendChild(i); i.select(); try { document.execCommand('copy'); } catch (x) {} i.remove(); }
+      fechar(); FC.toast('Link copiado!'); return;
+    }
+    if (t.dataset.mais) { fechar(); try { await navigator.share({ title: o.titulo || 'Feira Comercial', text: texto, url }); } catch (e) {} }
+  });
+  document.body.appendChild(f);
+};

@@ -374,10 +374,7 @@ async function seguir(uid, btn) {
 async function partilhar(id) {
   const url = location.origin + location.pathname + '?v=' + id;
   const v = videos.find(x => x.id === id);
-  try {
-    if (navigator.share) await navigator.share({ title: 'Feira Comercial', text: v && v.caption ? v.caption : 'Vê este vídeo', url });
-    else { await navigator.clipboard.writeText(url); toast('Link copiado!'); }
-  } catch (e) {}
+  FC.partilhar({ titulo: 'Feira Comercial', texto: v && v.caption ? v.caption.slice(0, 80) : FC.t('Veja este vídeo'), url });
 }
 
 async function apagarVideo(id) {
