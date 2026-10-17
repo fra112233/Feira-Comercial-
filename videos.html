@@ -69,6 +69,15 @@ a { color:inherit; text-decoration:none; }
 .info .legenda { margin-top:6px; font-size:14px; line-height:1.4; max-height:4.2em; overflow:hidden; }
 .info .legenda.aberta { max-height:none; }
 .info .meta { margin-top:6px; font-size:12px; color:var(--sub); }
+.info .cta { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.info .cta a { display:inline-flex; align-items:center; gap:7px; padding:9px 14px; border-radius:999px; font-size:13.5px; font-weight:800; text-shadow:none; }
+.info .cta .preco { background:var(--ouro); color:#111; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+.info .cta .loja { background:rgba(255,255,255,.18); color:#fff; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+/* dados móveis: o vídeo só descarrega quando a pessoa toca */
+.toque { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:3; cursor:pointer; text-align:center; padding:20px; }
+.slide.espera .toque { display:flex; }
+.toque i { font-size:64px; color:rgba(255,255,255,.9); }
+.toque span { font-size:13.5px; color:var(--sub); background:rgba(0,0,0,.45); padding:6px 12px; border-radius:999px; }
 
 .vazio { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:30px; color:var(--sub); }
 .vazio i { font-size:56px; color:var(--ouro); }
@@ -251,8 +260,9 @@ function criarSlide(v) {
   div.className = 'slide';
   div.dataset.id = v.id;
   div.innerHTML = `
-    <video src="${esc(v.video_url)}" loop playsinline preload="metadata" ${somLigado ? '' : 'muted'}></video>
+    <video data-src="${esc(v.video_url)}" loop playsinline preload="none" ${somLigado ? '' : 'muted'}></video>
     <div class="pausa"><i class="fas fa-play"></i></div>
+    <div class="toque"><i class="fas fa-circle-play"></i><span>Dados móveis · toque para ver</span></div>
     <div class="acoes">
       <div class="autor-foto">
         <a href="${meu ? 'perfil.html' : 'perfil.html?id=' + a.id}"><img src="${esc(avatar(a))}" alt=""></a>
@@ -265,14 +275,23 @@ function criarSlide(v) {
       ${meu ? `<button class="acao" onclick="apagarVideo(${v.id})"><i class="fas fa-trash"></i><span>Apagar</span></button>` : ''}
     </div>
     <div class="info">
-      <a class="nome" href="${meu ? 'perfil.html' : 'perfil.html?id=' + a.id}">@${esc(a.full_name || 'utilizador')}
+      <a class="nome" href="${meu ? 'perfil.html' : 'perfil.html?id=' + a.id}"><span data-selo="${esc(a.id || '')}">@${esc(a.full_name || 'utilizador')}</span>
         ${a.type === 'empresa' ? '<span class="selo"><i class="fas fa-building"></i> Empresa</span>' : ''}</a>
       ${v.caption ? `<div class="legenda" onclick="this.classList.toggle('aberta')">${esc(v.caption)}</div>` : ''}
-      <div class="meta"><i class="fas fa-play"></i> ${numero(v.views)} · ${haQuanto(v.created_at)}
-        ${!meu ? ` · <a href="mensagen.html?para=${a.id}" style="text-decoration:underline;">Enviar mensagem</a>` : ''}</div>
+      <div class="meta"><i class="fas fa-eye"></i> ${numero(v.views)} <span>${v.views == 1 ? 'visualização' : 'visualizações'}</span> · ${haQuanto(v.created_at)}
+        ${!meu && a.type !== 'empresa' ? ` · <a href="mensagen.html?para=${a.id}" style="text-decoration:underline;">Enviar mensagem</a>` : ''}</div>
+      ${!meu && a.type === 'empresa' ? `<div class="cta">
+        <a class="preco" href="mensagen.html?para=${encodeURIComponent(a.id)}&texto=${encodeURIComponent(textoPreco(v))}"><i class="fas fa-comment-dollar"></i> Perguntar preço</a>
+        <a class="loja" href="perfil.html?id=${encodeURIComponent(a.id)}"><i class="fas fa-store"></i> Ver loja</a></div>` : ''}
     </div>`;
 
   const video = div.querySelector('video');
+  div.querySelector('.toque').addEventListener('click', () => {
+    autorizouDados = true;
+    try { sessionStorage.setItem('fc_videos_dados', '1'); } catch (e) {}
+    document.querySelectorAll('.slide.espera').forEach(x => x.classList.remove('espera'));
+    carregar(div); video.play().catch(() => {});
+  });
   let ultimoToque = 0;
   video.addEventListener('click', e => {
     const agora = Date.now();
@@ -282,7 +301,7 @@ function criarSlide(v) {
       clearTimeout(video._t);
     } else {
       video._t = setTimeout(() => {           // toque simples = pausa / continua
-        if (video.paused) { video.play().catch(() => {}); div.classList.remove('parado'); }
+        if (video.paused) { carregar(div); video.play().catch(() => {}); div.classList.remove('parado'); }
         else { video.pause(); div.classList.add('parado'); }
       }, 260);
     }
@@ -302,11 +321,44 @@ function coracao(slide, e) {
   setTimeout(() => h.remove(), 900);
 }
 
+// texto já escrito para perguntar o preço à loja
+function textoPreco(v) {
+  const leg = v.caption ? ' ("' + String(v.caption).replace(/\s+/g, ' ').slice(0, 60) + (v.caption.length > 60 ? '…' : '') + '")' : '';
+  return FC.t('Olá! Vi o seu vídeo na Feira Comercial') + leg + '. ' + FC.t('Qual é o preço?');
+}
+
+// Poupar dados: o vídeo só é descarregado quando chega ao ecrã (ou é o seguinte, em Wi-Fi).
+// Em dados móveis / "Poupança de dados", só descarrega depois de a pessoa tocar.
+const ligacao = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+const emDadosMoveis = () => !!(ligacao && (ligacao.saveData || ligacao.type === 'cellular' || /(^|-)2g$|3g/.test(ligacao.effectiveType || '')));
+let autorizouDados = false;
+try { autorizouDados = sessionStorage.getItem('fc_videos_dados') === '1'; } catch (e) {}
+function carregar(slide, so) {
+  const v = slide && slide.querySelector('video');
+  if (!v || v.getAttribute('src')) return;
+  v.preload = so || 'auto';
+  v.src = v.dataset.src;
+}
+// liberta a memória dos vídeos que já ficaram longe (o telemóvel não aguenta dezenas de vídeos abertos)
+function libertarLonge(atual) {
+  const todos = [...document.querySelectorAll('#feed .slide')], i = todos.indexOf(atual);
+  todos.forEach((s, j) => {
+    if (Math.abs(j - i) > 2) { const v = s.querySelector('video'); if (v && v.getAttribute('src')) { v.pause(); v.removeAttribute('src'); v.load(); } }
+  });
+}
+
 // só toca o vídeo que está no ecrã; conta a visualização depois de 2 s
 const observador = new IntersectionObserver(entradas => {
   entradas.forEach(en => {
     const slide = en.target, video = slide.querySelector('video');
     if (en.isIntersecting && en.intersectionRatio > 0.6) {
+      libertarLonge(slide);
+      if (emDadosMoveis() && !autorizouDados) {
+        slide.classList.add('espera');
+        if (videos.length - [...slide.parentNode.children].indexOf(slide) <= 3) carregarMais();
+        return;
+      }
+      carregar(slide);
       video.muted = !somLigado;
       video.currentTime = video.currentTime || 0;
       video.play().catch(() => { slide.classList.add('parado'); });
@@ -317,7 +369,8 @@ const observador = new IntersectionObserver(entradas => {
         if (!vistos.has(id)) { vistos.add(id); supabaseClient.rpc('ver_video', { vid: id }); }
       }, 2000);
       // pré-carregar o seguinte e pedir mais vídeos perto do fim
-      const seg = slide.nextElementSibling; if (seg && seg.querySelector('video') && !(window.FC && FC.POUPAR_TRAFEGO)) seg.querySelector('video').preload = 'auto';
+      const seg = slide.nextElementSibling;
+      if (seg && !emDadosMoveis()) carregar(seg, (window.FC && FC.POUPAR_TRAFEGO) ? 'metadata' : 'auto');
       if (videos.length - [...slide.parentNode.children].indexOf(slide) <= 3) carregarMais();
     } else {
       video.pause();
