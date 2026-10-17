@@ -37,6 +37,15 @@
           "value": "application/xml; charset=utf-8"
         }
       ]
+    },
+    {
+      "source": "/sitemap-loja.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        }
+      ]
     }
   ],
   "redirects": [
@@ -66,6 +75,10 @@
   "rewrites": [
     {
       "source": "/sitemap-lojas.xml",
+      "destination": "https://bljnkwrhqnpawclybqrw.supabase.co/functions/v1/sitemap-lojas"
+    },
+    {
+      "source": "/sitemap-loja.xml",
       "destination": "https://bljnkwrhqnpawclybqrw.supabase.co/functions/v1/sitemap-lojas"
     }
   ]
