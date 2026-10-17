@@ -104,6 +104,13 @@
         .so-empresa, .so-singular { display: none; }
         body.tipo-empresa .so-empresa, body.tipo-singular .so-singular { display: block; }
         input.invalid { border-color: var(--error); }
+        input.falta, select.falta { border: 2px solid var(--error) !important; background: rgba(239,68,68,.07) !important; }
+        small.msg-falta::before { content: '⚠ '; }
+        small.msg-falta { display: block; margin-top: 5px; font-size: 12.5px; font-weight: 600; color: var(--error); }
+        .legenda-req { font-size: 12.5px; color: var(--secondary); margin: -6px 0 12px; }
+        .faltam { font-size: 13px; color: var(--secondary); text-align: center; margin: 8px 0 0; min-height: 1em; }
+        @keyframes abanar { 0%,100% { transform: none } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+        .abanar { animation: abanar .3s ease 2; }
         input.valid { border-color: var(--success); }
 
         small.hint { display: block; margin-top: 5px; font-size: 12px; color: var(--secondary); }
@@ -181,6 +188,7 @@
 <div class="form-card">
     <h2>Criar Conta</h2>
     <p class="subtitle">Só precisamos do essencial. O resto completas no teu perfil.</p>
+    <p class="legenda-req"><span class="req">*</span> Obrigatório</p>
 
     <form id="mainForm" novalidate>
         <!-- Tipo de conta -->
@@ -197,20 +205,20 @@
 
         <!-- Nome -->
         <div class="group">
-            <label id="label-nome" for="nome">Nome completo:</label>
+            <label id="label-nome" for="nome">Nome completo <span class="req">*</span></label>
             <input type="text" id="nome" placeholder="O teu nome" autocomplete="name" required>
         </div>
 
         <!-- Email -->
         <div class="group">
-            <label for="email">E-mail:</label>
+            <label for="email">E-mail <span class="req">*</span></label>
             <input type="email" id="email" placeholder="exemplo@dominio.com" autocomplete="email" required>
             <small class="hint" id="email-hint"></small>
         </div>
 
         <!-- Palavra-passe (nova — simples e amigável) -->
         <div class="group">
-            <label for="password">Palavra-passe (mínimo 8 letras/números):</label>
+            <label for="password">Palavra-passe <span class="req">*</span> <span style="font-weight:400;color:var(--secondary)">(mínimo 8)</span></label>
             <input type="password" id="password" placeholder="Ex: gatoazul42" autocomplete="new-password" required>
             <button type="button" class="pw-toggle" onclick="togglePw('password', this)" title="Mostrar/ocultar">👁</button>
             <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
@@ -221,7 +229,7 @@
 
         <!-- Confirmar -->
         <div class="group">
-            <label for="password_confirm">Confirmar palavra-passe:</label>
+            <label for="password_confirm">Confirmar palavra-passe <span class="req">*</span></label>
             <input type="password" id="password_confirm" placeholder="Repita a palavra-passe" autocomplete="new-password" required>
             <button type="button" class="pw-toggle" onclick="togglePw('password_confirm', this)" title="Mostrar/ocultar">👁</button>
             <small class="hint" id="pw-confirm-hint"></small>
@@ -310,7 +318,8 @@
         </div>
 
         <div class="fc-captcha" style="display:flex;justify-content:center;margin:10px 0"></div>
-        <button type="submit" class="submit-btn" id="submitBtn" disabled>Criar Conta</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Criar Conta</button>
+        <p class="faltam" id="faltam"></p>
 
         <div id="submit-status"></div>
 
@@ -364,7 +373,7 @@
         const empresa = tipo === 'empresa';
         document.body.classList.toggle('tipo-empresa', empresa);
         document.body.classList.toggle('tipo-singular', !empresa);
-        document.getElementById('label-nome').textContent = empresa ? 'Nome da empresa:' : 'Nome completo:';
+        document.getElementById('label-nome').innerHTML = (empresa ? 'Nome da empresa' : 'Nome completo') + ' <span class="req">*</span>';
         nomeEl.placeholder = empresa ? 'Ex: Ferragens Machava, Lda' : 'O teu nome';
         $('label-celular').innerHTML = (empresa ? 'Telefone da empresa' : 'Celular') + ' <span class="req">*</span>';
         $('label-morada').innerHTML = (empresa ? 'Morada da empresa' : 'Morada') + ' <span class="req">*</span>';
@@ -449,18 +458,54 @@
         return ok;
     }
 
-    function validateAll() {
+    // campos obrigatórios: [elemento, nome curto, está bem?, mensagem]
+    function obrigatorios() {
         const empresa = tipoAtual() === 'empresa';
-        const telefoneOk = celEl.value.replace(/\D/g, '').length >= 9;
-        const ok = nomeEl.value.trim().length >= 2
-                && checkEmail()
-                && pwEl.value.length >= MIN_PW
-                && pwConf.value === pwEl.value
-                && telefoneOk
-                && $('morada').value.trim().length >= 3
-                && (empresa ? $('setor').value !== '' : $('genero').value !== '');
-        btn.disabled = !ok;
-        return ok;
+        const lista = [
+            [nomeEl, empresa ? 'Nome da empresa' : 'Nome', nomeEl.value.trim().length >= 2, 'Escreva o nome.'],
+            [emailEl, 'E-mail', EMAIL_REGEX.test(emailEl.value.trim()), emailEl.value.trim() ? 'E-mail inválido.' : 'Escreva o seu e-mail.'],
+            [pwEl, 'Palavra-passe', pwEl.value.length >= MIN_PW, pwEl.value ? 'Mínimo ' + MIN_PW + ' caracteres.' : 'Escolha uma palavra-passe.'],
+            [pwConf, 'Confirmar palavra-passe', pwConf.value.length > 0 && pwConf.value === pwEl.value, pwConf.value ? 'Não coincide.' : 'Repita a palavra-passe.'],
+            [celEl, empresa ? 'Telefone' : 'Celular', celEl.value.replace(/\D/g, '').length >= 9, 'Escreva o número (9 dígitos).'],
+            [$('morada'), 'Morada', $('morada').value.trim().length >= 3, 'Escreva a morada.'],
+            empresa ? [$('setor'), 'Setor', $('setor').value !== '', 'Escolha o setor.']
+                    : [$('genero'), 'Género', $('genero').value !== '', 'Escolha uma opção.']
+        ];
+        return lista;
+    }
+    // marca (ou desmarca) um campo em falta, com a mensagem por baixo
+    function marcar(el, falta, msg) {
+        el.classList.toggle('falta', !!falta);
+        let m = el.parentElement.querySelector('small.msg-falta');
+        if (falta) {
+            if (!m) { m = document.createElement('small'); m.className = 'msg-falta'; el.insertAdjacentElement('afterend', m); }
+            m.textContent = msg;
+        } else if (m) m.remove();
+    }
+    const tocados = new Set();   // só se marca depois de a pessoa passar pelo campo (ou tentar enviar)
+    function validateAll() {
+        checkEmail();
+        const lista = obrigatorios();
+        lista.forEach(([el, , ok, msg]) => { if (tocados.has(el.id) || el.classList.contains('falta')) marcar(el, !ok, msg); });
+        // sem mensagens repetidas: a mensagem a vermelho substitui a dica normal
+        if (emailEl.classList.contains('falta')) $('email-hint').textContent = '';
+        if (pwConf.classList.contains('falta')) $('pw-confirm-hint').textContent = '';
+        const faltam = lista.filter(x => !x[2]);
+        const f = $('faltam');
+        const st = $('submit-status');
+        if (!faltam.length && st && /error/.test(st.className) && st.dataset.faltas) { st.className = ''; st.textContent = ''; delete st.dataset.faltas; }
+        if (f) f.textContent = faltam.length ? (faltam.length === 1 ? 'Falta 1 campo: ' : 'Faltam ' + faltam.length + ' campos: ') + faltam.map(x => x[1]).join(', ') : '';
+        return !faltam.length;
+    }
+    function mostrarFaltas() {
+        const lista = obrigatorios();
+        lista.forEach(([el, , ok, msg]) => { tocados.add(el.id); marcar(el, !ok, msg); });
+        const primeiro = lista.find(x => !x[2]);
+        if (primeiro) {
+            primeiro[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => { try { primeiro[0].focus({ preventScroll: true }); } catch (e) {} }, 350);
+            btn.classList.remove('abanar'); void btn.offsetWidth; btn.classList.add('abanar');
+        }
     }
 
     // os outros campos também revalidam o formulário
@@ -472,6 +517,12 @@
     });
     $('whatsapp').disabled = true;
 
+    // ao sair de um campo obrigatório vazio, fica logo marcado
+    ['nome', 'email', 'password', 'password_confirm', 'celular', 'morada', 'setor', 'genero'].forEach(id => {
+        const el = $(id); if (!el) return;
+        el.addEventListener('blur', () => { tocados.add(id); validateAll(); });
+        el.addEventListener('change', () => { tocados.add(id); validateAll(); });
+    });
     [nomeEl, emailEl, pwEl, pwConf].forEach(el => {
         el.addEventListener('input', () => {
             if (el === emailEl) checkEmail();
@@ -512,7 +563,7 @@
     // ── Submissão ──
     document.getElementById('mainForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!validateAll()) return;
+        if (!validateAll()) { mostrarFaltas(); setStatus('Preencha os campos marcados a vermelho.', 'error'); $('submit-status').dataset.faltas = '1'; return; }
         if (window.FC && FC.nomeReservado(nomeEl.value)) {
             setStatus('O nome "' + nomeEl.value.trim().replace(/[<>&"]/g, '') + '" é reservado à Feira Comercial. Escolha outro nome.', 'error');
             nomeEl.focus(); return;
