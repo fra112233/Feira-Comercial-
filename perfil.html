@@ -2456,7 +2456,7 @@
     function partilharPost(id, media) {
         const p = obterPostsFeed().find(x => x.id === id) || (historicoMedia || []).find(x => x.id === id);
         const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
-        const url = location.origin + '/' + (emp ? 'loja.html' : 'perfil.html') + '?id=' + encodeURIComponent(alvoId || meuId || '');
+        const url = (emp ? 'https://www.feira-comercial.com/loja/' : location.origin + '/perfil.html?id=') + encodeURIComponent(alvoId || meuId || '');
         const nome = (perfilAtual && perfilAtual.full_name) || '';
         const m0 = media || (p && p.media && p.media[0]) || null;
         const m = m0 ? { url: m0.url || m0.data, type: m0.type } : null;
@@ -2479,7 +2479,7 @@
         const profileUrl = location.origin + location.pathname + '?id=' + encodeURIComponent(alvoId || meuId || '');
         const post = allPosts.find(p => p.id === postId);
         const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
-        const link = emp ? location.origin + '/loja.html?id=' + encodeURIComponent(alvoId || meuId || '') : profileUrl;
+        const link = emp ? 'https://www.feira-comercial.com/loja/' + encodeURIComponent(alvoId || meuId || '') : profileUrl;
         const t = post && post.text ? String(post.text).slice(0, 80) : '';
         FC.partilhar({ texto: FC.t('Veja na Feira Comercial:') + (t ? ' "' + t + (post.text.length > 80 ? '…' : '') + '"' : ''), url: link });
     }
@@ -2487,7 +2487,7 @@
     function shareProfile() {
         // empresas: link da montra pública (abre mesmo sem conta); pessoas: link do perfil
         const emp = typeof perfilAtual !== 'undefined' && perfilAtual && perfilAtual.type === 'empresa';
-        const profileUrl = location.origin + '/' + (emp ? 'loja.html' : 'perfil.html') + '?id=' + encodeURIComponent(alvoId || meuId || '');
+        const profileUrl = (emp ? 'https://www.feira-comercial.com/loja/' : location.origin + '/perfil.html?id=') + encodeURIComponent(alvoId || meuId || '');
         const profileName = document.getElementById('userName').innerText;
         FC.partilhar({ titulo: profileName, texto: FC.t('Veja na Feira Comercial:') + ' ' + profileName, url: profileUrl });
     }

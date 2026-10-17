@@ -28,6 +28,20 @@ window.supabaseClient = supabaseClient;
 
 window.FC = window.FC || {};
 
+/* De onde veio a pessoa: links de publicidade como www.feira-comercial.com/?o=facebook.
+   Guarda-se a primeira origem durante 30 dias; vai com o registo da conta. */
+(function () {
+  try {
+    const q = new URLSearchParams(location.search);
+    const o = (q.get('o') || q.get('origem') || q.get('utm_source') || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 30);
+    const atual = JSON.parse(localStorage.getItem('fc_origem') || 'null');
+    if (o && !(atual && atual.t > Date.now() - 30 * 864e5)) localStorage.setItem('fc_origem', JSON.stringify({ o: o, t: Date.now() }));
+  } catch (e) {}
+})();
+FC.origem = function () {
+  try { const a = JSON.parse(localStorage.getItem('fc_origem') || 'null'); return a && a.t > Date.now() - 30 * 864e5 ? a.o : ''; } catch (e) { return ''; }
+};
+
 /* Hora certa: usa a hora do SERVIDOR, não a do relógio do aparelho (que pode estar adiantado
    ou atrasado). Mostra-se sempre no fuso horário do aparelho. */
 FC._desvio = 0;

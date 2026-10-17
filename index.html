@@ -1608,7 +1608,7 @@ function partilharPost(postId, media) {
     const t = p.text ? String(p.text).slice(0, 80) : '';
     FC.partilhar({
         texto: FC.t('Veja na Feira Comercial:') + ' ' + (p.userName || '') + (t ? ' — "' + t + (p.text.length > 80 ? '…' : '') + '"' : ''),
-        url: location.origin + '/loja.html?id=' + encodeURIComponent(p.userId || ''),
+        url: 'https://www.feira-comercial.com/loja/' + encodeURIComponent(p.userId || ''),
         media: m ? { url: m.url, type: m.type } : null,
         ref: { tipo: 'post', id: p.id, userId: p.userId, userName: p.userName, text: t || '📷', thumb: m && m.type === 'image' ? m.url : null }
     });
