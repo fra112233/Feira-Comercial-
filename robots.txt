@@ -6,3 +6,4 @@ Disallow: /mensalidade.html
 Disallow: /supabase/
 
 Sitemap: https://www.feira-comercial.com/sitemap.xml
+Sitemap: https://www.feira-comercial.com/sitemap-lojas.xml
