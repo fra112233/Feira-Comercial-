@@ -66,7 +66,7 @@ const TEXTOS: Record<string, string> = {
   comentario: "comentou a sua publicação",
   resposta: "respondeu ao seu comentário",
   seguir: "começou a segui-lo",
-  publicacao: "fez uma publicação nova",
+  publicacao: "publicou:",
   video: "publicou um vídeo novo",
   gosto_video: "gostou do seu vídeo",
   comentario_video: "comentou o seu vídeo",
@@ -84,7 +84,7 @@ const TEXTOS_EN: Record<string, string> = {
   comentario: "commented on your post",
   resposta: "replied to your comment",
   seguir: "started following you",
-  publicacao: "made a new post",
+  publicacao: "posted:",
   video: "posted a new video",
   gosto_video: "liked your video",
   comentario_video: "commented on your video",
@@ -140,9 +140,14 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
     : "/perfil.html?id=" + n.autor_id;
-  const extra = (n.texto || "").trim();
+  let extra = (n.texto || "").trim();
+  const oferta = n.tipo === "publicacao" && extra.startsWith("⚡");
+  if (en) extra = extra.replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video");
+  const acao = oferta ? (en ? "posted a flash offer ⚡" : "publicou uma oferta relâmpago ⚡")
+    : n.tipo === "publicacao" && !extra ? (en ? "made a new post" : "fez uma publicação nova")
+    : ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || "");
   const aviso = JSON.stringify({
-    title: nome + " " + ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || ""),
+    title: nome + " " + acao,
     body: extra ? (extra.length > 110 ? extra.slice(0, 107) + "…" : extra) : (en ? "Tap to see." : "Toque para ver."),
     icon: autor?.avatar_url || "/images/icone-192.png",
     // gostos na mesma publicação substituem-se uns aos outros (não enchem o telemóvel)
