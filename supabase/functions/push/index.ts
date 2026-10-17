@@ -78,6 +78,8 @@ const TEXTOS: Record<string, string> = {
   marco_publicacao: "🎉 Parabéns! A sua primeira publicação está no ar.",
   marco_seguidor: "🎉 Parabéns! Tem o seu primeiro seguidor.",
   marco_mensagem: "💬 Recebeu a sua primeira mensagem. Responda depressa!",
+  gratis_fim: "— os seus dias grátis acabaram ⏰",
+  mensalidade_fim: "— a sua mensalidade terminou ⏰",
 };
 const TEXTOS_EN: Record<string, string> = {
   gosto: "liked your post",
@@ -96,6 +98,8 @@ const TEXTOS_EN: Record<string, string> = {
   marco_publicacao: "🎉 Congratulations! Your first post is live.",
   marco_seguidor: "🎉 Congratulations! You have your first follower.",
   marco_mensagem: "💬 You received your first message. Reply quickly!",
+  gratis_fim: "— your free days are over ⏰",
+  mensalidade_fim: "— your subscription has ended ⏰",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -136,13 +140,14 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : n.tipo === "avaliacao" ? "/perfil.html#avaliacoes"
     : n.tipo === "resposta_avaliacao" ? "/perfil.html?id=" + n.autor_id + "#avaliacoes"
     : n.tipo.startsWith("convite") ? "/mensalidade.html#convites"
+    : n.tipo === "gratis_fim" || n.tipo === "mensalidade_fim" ? "/mensalidade.html"
     : n.post_id ? "/index.html?post=" + n.post_id
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
     : "/perfil.html?id=" + n.autor_id;
   let extra = (n.texto || "").trim();
   const oferta = n.tipo === "publicacao" && extra.startsWith("⚡");
-  if (en) extra = extra.replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video");
+  if (en) extra = extra.replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video");
   const acao = oferta ? (en ? "posted a flash offer ⚡" : "publicou uma oferta relâmpago ⚡")
     : n.tipo === "publicacao" && !extra ? (en ? "made a new post" : "fez uma publicação nova")
     : ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || "");

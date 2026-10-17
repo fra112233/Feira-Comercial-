@@ -885,6 +885,8 @@
 "Os meus pedidos": "My requests",
 "Os meus produtos": "My products",
 "Os pagamentos ainda não estão disponíveis.": "Payments are not available yet.",
+"Os seus dias grátis acabam amanhã": "Your free days end tomorrow",
+"Os seus dias grátis acabaram": "Your free days are over",
 "Os seus direitos": "Your rights",
 "Outro": "Other",
 "Outros": "Others",
@@ -1368,6 +1370,8 @@
 "Última atualização: 13 de outubro de 2026": "Last updated: 13 October 2026",
 "Última confirmação: apagar a conta e tudo o que publicou? Não pode ser desfeito.": "Final confirmation: delete the account and everything you posted? It cannot be undone.",
 "às": "at",
+"— a sua mensalidade terminou ⏰": "— your subscription has ended ⏰",
+"— os seus dias grátis acabaram ⏰": "— your free days are over ⏰",
 "— pessoas e empresas num só lugar": "— people and businesses in one place",
 "⚡ OFERTA": "⚡ OFFER",
 "⚡ OFERTA TERMINADA": "⚡ OFFER ENDED",
@@ -1426,6 +1430,9 @@
     'às': 'at', 'amanhã': 'tomorrow', 'hoje': 'today', 'e': 'and', 'dias': 'days', 'dia': 'day', 'meses': 'months', 'mês': 'month', 'em': 'in' };
 
   var REGRAS = [
+    [/^Os seus dias grátis acabam em (\d+) dias$/, 'Your free days end in $1 days'],
+    [/^A mensalidade termina em (\d+) dias$/, 'The subscription ends in $1 days'],
+    [/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, 'Pay $1 MT to keep showing your shop.'],
     [/^Faltam (\d+) campos: (.+)$/, function (m, n, l) { return n + ' fields missing: ' + l.split(', ').map(function (x) { return api.t(x); }).join(', '); }],
     [/^Falta 1 campo: (.+)$/, function (m, l) { return '1 field missing: ' + api.t(l); }],
     [/^há (\d+) min$/, '$1 min ago'], [/^há (\d+) h$/, '$1 h ago'], [/^há (\d+) d$/, '$1 d ago'], [/^há (\d+) dias?$/, '$1 days ago'],
