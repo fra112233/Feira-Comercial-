@@ -350,10 +350,7 @@ async function mostrarDetalhes(id) {
 
 async function partilharAnuncio(id) {
   const url = location.origin + location.pathname + '?a=' + id;
-  try {
-    if (navigator.share) await navigator.share({ title: 'Anúncio na Feira Comercial', url });
-    else { await navigator.clipboard.writeText(url); toast('Link copiado!'); }
-  } catch (e) {}
+  FC.partilhar({ titulo: 'Anúncio na Feira Comercial', texto: FC.t('Veja este anúncio na Feira Comercial:'), url });
 }
 
 // ─── PUBLICAR / EDITAR (só empresas) ───
