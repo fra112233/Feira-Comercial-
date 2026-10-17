@@ -414,7 +414,14 @@
 
         .profile-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
+        }
+        .profile-actions .btn { white-space: nowrap; }
+        @media (max-width: 520px) {
+            .profile-actions .btn { flex: 1 1 auto; padding: 10px 12px; gap: 6px; }
+            .profile-actions .btn.so-icone { flex: 0 0 46px; padding: 10px 0; }
+            .profile-actions .btn.so-icone .rot { display: none; }
         }
 
         .btn {
@@ -1455,10 +1462,10 @@
                     <button class="btn btn-secondary" onclick="window.location.href='mensagen.html?para=' + encodeURIComponent(alvoId)">
                         <i class="fas fa-comment-dots"></i> Mensagem
                     </button>
-                    <button class="btn btn-secondary" onclick="shareProfile()">
-                        <i class="fas fa-share"></i> Partilhar
+                    <button class="btn btn-secondary so-icone" onclick="shareProfile()" title="Partilhar" aria-label="Partilhar">
+                        <i class="fas fa-share"></i><span class="rot"> Partilhar</span>
                     </button>
-                    <button class="btn btn-secondary" title="Denunciar este perfil" aria-label="Denunciar" onclick="location.href='reclamacao.html?tipo=denuncia&assunto=' + encodeURIComponent('Denúncia de perfil: ' + ((perfilAtual && perfilAtual.full_name) || '')) + '&link=' + encodeURIComponent(location.origin + '/perfil.html?id=' + alvoId)">
+                    <button class="btn btn-secondary so-icone" title="Denunciar este perfil" aria-label="Denunciar" onclick="location.href='reclamacao.html?tipo=denuncia&assunto=' + encodeURIComponent('Denúncia de perfil: ' + ((perfilAtual && perfilAtual.full_name) || '')) + '&link=' + encodeURIComponent(location.origin + '/perfil.html?id=' + alvoId)">
                         <i class="fas fa-flag"></i>
                     </button>
                 </div>
@@ -1469,8 +1476,8 @@
                     <button class="btn btn-secondary" onclick="openModal('modalEdit')">
                         <i class="fas fa-pen"></i> Editar
                     </button>
-                    <button class="btn btn-secondary" onclick="shareProfile()">
-                        <i class="fas fa-share"></i> Partilhar
+                    <button class="btn btn-secondary so-icone" onclick="shareProfile()" title="Partilhar" aria-label="Partilhar">
+                        <i class="fas fa-share"></i><span class="rot"> Partilhar</span>
                     </button>
                 </div>
             </div>
@@ -1765,6 +1772,7 @@
     // ═══ AS MINHAS PUBLICAÇÕES — vêm da base de dados (tabela posts, últimos 4 dias) ═══
     const TEMPO_VIDA = 4 * 24 * 60 * 60 * 1000;
     let meuId = null;
+    const comentAbertos = new Set();   // publicações com os comentários abertos
     let meusPosts = [];
 
     // Histórico de Média: fotos e vídeos de TODAS as publicações (ficam depois dos 4 dias)
@@ -1914,7 +1922,7 @@
                         <i class="far fa-paper-plane"></i> Responder
                     </button>
                 </div>
-                <div class="comments-section" id="comments-${postId}">
+                <div class="comments-section" id="comments-${postId}" style="display:${comentAbertos.has(String(postId)) ? 'block' : 'none'}">
                     <div class="comments-list" id="comments-list-${postId}"></div>
                     <div class="comment-input-area">
                         <img src="${FC.u(avatar)}" class="avatar-sm" alt="Avatar" >
@@ -2339,8 +2347,18 @@
         if (a) a.likes = p.reactCount;
     }
 
+    // Comentar abre e fecha a caixa de comentários (como na página inicial)
+    function abrirComentarios(postId) {
+        comentAbertos.add(String(postId));
+        const el = document.getElementById(`comments-${postId}`);
+        if (el) el.style.display = 'block';
+    }
     function focusComment(postId) {
-        document.getElementById(`comment-input-${postId}`).focus();
+        const el = document.getElementById(`comments-${postId}`);
+        if (el && el.style.display === 'block') { el.style.display = 'none'; comentAbertos.delete(String(postId)); return; }
+        abrirComentarios(postId);
+        const i = document.getElementById(`comment-input-${postId}`);
+        if (i) i.focus();
     }
 
     // ── Comentários: lidos e gravados na base de dados ──
@@ -2421,6 +2439,7 @@
     }
 
     function focusReply(postId, commentId) {
+        abrirComentarios(postId);
         const input = document.getElementById(`comment-input-${postId}`);
         input.focus();
         input.dataset.replyTo = commentId;
