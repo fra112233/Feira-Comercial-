@@ -564,13 +564,14 @@ html, body { max-width: 100%; overflow-x: hidden; }
         .oferta .conta { margin-left: auto; font-size: 13px; font-weight: 700; color: #ef4444; display: inline-flex; align-items: center; gap: 5px; }
         .oferta.fim { background: var(--hover-bg); border-color: var(--border); }
         .oferta.fim .raio { background: #6b7280; } .oferta.fim .preco { font-size: 16px; color: var(--text-secondary); } .oferta.fim .conta { color: var(--text-secondary); }
-        .btn-action.btn-guardar { flex: 0 0 auto; padding: 8px 12px; }
+        .btn-action.btn-guardar { flex: 0 0 auto; min-width: 44px; padding: 8px 12px; justify-content: center; }
         .post-card > .oferta { margin-right: 40px; }
         /* telemóvel: 4 botões por baixo de cada publicação sem partir o texto em 2 linhas */
         @media (max-width: 480px) {
             .post-actions .btn-action { font-size: 12.5px; padding: 8px 4px; gap: 4px; white-space: nowrap; }
             .post-actions .btn-action .rot { display: none; }
-            .post-actions .btn-action.btn-guardar { padding: 8px 10px; }
+            .post-actions .btn-action { min-width: 0; flex: 1 1 0; justify-content: center; }
+            .post-actions .btn-action.btn-guardar { flex: 0 0 42px; min-width: 42px; padding: 8px 0; justify-content: center; }
             .feed-filtros { gap: 6px; }
             .feed-filtros button { padding: 7px 11px; font-size: 13px; }
             .feed-filtros button .rot, .compose-btn .rot { display: none; }
@@ -1914,7 +1915,7 @@ function htmlAcoes(p) {
     const emoji = emojiMap[p.myReaction] || '👍';
     const label = p.myReaction || 'Curtir';
     return `<div class="btn-action btn-react ${p.myReaction ? 'reacted' : ''}" id="react-btn-${p.id}" data-post="${p.id}">
-                <span class="react-label">${emoji} ${label}${p.reactCount > 0 ? ' (' + p.reactCount + ')' : ''}</span>
+                <span class="react-label">${emoji} <span class="rot">${label}</span>${p.reactCount > 0 ? ' (' + p.reactCount + ')' : ''}</span>
                 <span class="react-mais" title="Escolher reação" aria-label="Escolher reação"><i class="fas fa-chevron-up"></i></span>
                 <div class="reactions-box" role="menu">
                     ${['Curtir','Amei','Haha','Triste','Uau'].map(r => `<button type="button" class="react-icon${p.myReaction === r ? ' atual' : ''}" data-react="${r}" title="${r}">${emojiMap[r]}<small>${r}</small></button>`).join('')}
