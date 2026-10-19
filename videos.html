@@ -281,7 +281,7 @@ function criarSlide(v) {
       <div class="meta"><i class="fas fa-eye"></i> ${numero(v.views)} <span>${v.views == 1 ? 'visualização' : 'visualizações'}</span> · ${haQuanto(v.created_at)}
         ${!meu && a.type !== 'empresa' ? ` · <a href="mensagen.html?para=${a.id}" style="text-decoration:underline;">Enviar mensagem</a>` : ''}</div>
       ${!meu && a.type === 'empresa' ? `<div class="cta">
-        <a class="preco" href="mensagen.html?para=${encodeURIComponent(a.id)}&texto=${encodeURIComponent(textoPreco(v))}"><i class="fas fa-comment-dollar"></i> Perguntar preço</a>
+        <a class="preco" href="mensagen.html?para=${encodeURIComponent(a.id)}&texto=${encodeURIComponent(textoPreco(v))}" onclick="return perguntarPreco(${v.id})"><i class="fas fa-comment-dollar"></i> Perguntar preço</a>
         <a class="loja" href="perfil.html?id=${encodeURIComponent(a.id)}"><i class="fas fa-store"></i> Ver loja</a></div>` : ''}
     </div>`;
 
@@ -322,6 +322,17 @@ function coracao(slide, e) {
 }
 
 // texto já escrito para perguntar o preço à loja
+// abre o chat com a loja já com o VÍDEO marcado na mensagem (a loja toca e vê qual foi)
+function perguntarPreco(id) {
+  const v = videos.find(x => x.id === id); if (!v) return true;
+  try {
+    localStorage.setItem('fc_reply_draft', JSON.stringify({
+      refId: 'video-' + v.id, userId: v.user_id, userName: (v.autor && v.autor.full_name) || '',
+      text: v.caption ? String(v.caption).slice(0, 200) : '🎬 Vídeo', thumb: null }));
+  } catch (e) { return true; }
+  location.href = 'mensagen.html?texto=' + encodeURIComponent(textoPreco(v));
+  return false;
+}
 function textoPreco(v) {
   const leg = v.caption ? ' ("' + String(v.caption).replace(/\s+/g, ' ').slice(0, 60) + (v.caption.length > 60 ? '…' : '') + '")' : '';
   return FC.t('Olá! Vi o seu vídeo na Feira Comercial') + leg + '. ' + FC.t('Qual é o preço?');
@@ -427,7 +438,8 @@ async function seguir(uid, btn) {
 async function partilhar(id) {
   const url = location.origin + location.pathname + '?v=' + id;
   const v = videos.find(x => x.id === id);
-  FC.partilhar({ titulo: 'Feira Comercial', texto: v && v.caption ? v.caption.slice(0, 80) : FC.t('Veja este vídeo'), url, media: v && v.video_url ? { url: v.video_url, type: 'video' } : null });
+  FC.partilhar({ titulo: 'Feira Comercial', texto: v && v.caption ? v.caption.slice(0, 80) : FC.t('Veja este vídeo'), url, media: v && v.video_url ? { url: v.video_url, type: 'video' } : null,
+    ref: v ? { tipo: 'video', id: v.id, userId: v.user_id, userName: (v.autor && v.autor.full_name) || '', text: v.caption ? String(v.caption).slice(0, 120) : '🎬', thumb: null } : null });
 }
 
 async function apagarVideo(id) {

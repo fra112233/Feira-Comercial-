@@ -1243,6 +1243,8 @@
 "Ver perfil": "View profile",
 "Ver perfil completo": "View full profile",
 "Ver perfil de \u0000": "View profile of",
+"Ver publicação": "View post",
+"Ver status": "View status",
 "Ver sugestões": "See suggestions",
 "Ver vídeo": "Watch video",
 "Ver ›": "Watch ›",
