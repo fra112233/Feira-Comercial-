@@ -1064,26 +1064,27 @@ function faltaTexto(ate) {
     const s = Math.floor((new Date(ate) - Date.now()) / 1000);
     if (s <= 0) return null;
     const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-    if (d) return 'termina em ' + d + 'd ' + h + 'h';
-    if (h) return 'termina em ' + h + 'h ' + String(m).padStart(2, '0') + 'm';
-    return 'termina em ' + m + ' min';
+    const t = FC.t('termina em');
+    if (d) return t + ' ' + d + 'd ' + h + 'h';
+    if (h) return t + ' ' + h + 'h ' + String(m).padStart(2, '0') + 'm';
+    return t + ' ' + m + ' min';
 }
 function htmlOferta(p) {
     if (!p.ofertaAte) return '';
     const falta = faltaTexto(p.ofertaAte);
     const desc = p.ofertaAntes && p.ofertaPreco < p.ofertaAntes ? Math.round((1 - p.ofertaPreco / p.ofertaAntes) * 100) : 0;
     return `<div class="oferta${falta ? '' : ' fim'}" data-ate="${escHtml(p.ofertaAte)}">
-        <span class="raio">⚡ ${falta ? 'OFERTA' : 'OFERTA TERMINADA'}</span>
+        <span class="raio">⚡ ${falta ? FC.t('OFERTA') : FC.t('OFERTA TERMINADA')}</span>
         <span class="preco">${mtFmt(p.ofertaPreco)}</span>
         ${p.ofertaAntes ? `<s>${mtFmt(p.ofertaAntes)}</s>` : ''}${desc && falta ? `<span class="desc">-${desc}%</span>` : ''}
-        <span class="conta"><i class="fas fa-clock"></i> <span>${falta || 'terminou'}</span></span></div>`;
+        <span class="conta"><i class="fas fa-clock"></i> <span>${falta || FC.t('terminou')}</span></span></div>`;
 }
 setInterval(() => {
     document.querySelectorAll('.oferta[data-ate]:not(.fim)').forEach(el => {
         const t = faltaTexto(el.dataset.ate);
         if (t) { el.querySelector('.conta span').textContent = t; return; }
-        el.classList.add('fim'); el.querySelector('.raio').textContent = '⚡ OFERTA TERMINADA';
-        el.querySelector('.conta span').textContent = 'terminou'; const d = el.querySelector('.desc'); if (d) d.remove();
+        el.classList.add('fim'); el.querySelector('.raio').textContent = '⚡ ' + FC.t('OFERTA TERMINADA');
+        el.querySelector('.conta span').textContent = FC.t('terminou'); const d = el.querySelector('.desc'); if (d) d.remove();
     });
 }, 30000);
 
