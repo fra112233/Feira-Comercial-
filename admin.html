@@ -113,6 +113,7 @@
 
     <div class="abas" role="tablist">
       <button type="button" class="sel" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
+      <button type="button" data-aba="caixa"><i class="fas fa-inbox"></i> Caixa da Equipa <span class="cont" id="cCaixa">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
       <button type="button" data-aba="crescimento"><i class="fas fa-chart-line"></i> Crescimento</button>
       <button type="button" data-aba="novas"><i class="fas fa-hand-holding-heart"></i> Contas novas <span class="cont" id="cNovas">0</span></button>
@@ -151,6 +152,40 @@
         <button type="button" data-d="90">90 dias</button>
       </div>
       <div id="crescimento"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-caixa" style="display:none">
+      <style>
+        .cx-info{font-size:13px;color:var(--sub);margin:0 0 12px;line-height:1.45}
+        .cx-lista{display:grid;gap:6px}
+        .cx-c{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--cartao);border:1px solid var(--linha);cursor:pointer;text-align:left;width:100%;color:inherit;font:inherit}
+        .cx-c img{width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#333}
+        .cx-c .t{flex:1;min-width:0}.cx-c b{display:block;font-size:15px}.cx-c small{display:block;color:var(--sub);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cx-c .h{font-size:11.5px;color:var(--sub);text-align:right;flex-shrink:0}.cx-c .n{display:inline-block;margin-top:4px;background:var(--ouro);color:#000;font-weight:800;font-size:12px;border-radius:999px;padding:1px 8px}
+        .cx-c.nova{border-color:rgba(243,198,78,.6)}
+        .cx-conv{display:none;background:var(--cartao);border:1px solid var(--linha);border-radius:16px;overflow:hidden}
+        .cx-cab{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--linha)}
+        .cx-cab img{width:40px;height:40px;border-radius:50%;object-fit:cover}.cx-cab b{flex:1;font-size:15px}
+        .cx-cab button{background:none;border:none;color:var(--texto);font-size:18px;cursor:pointer;padding:6px}
+        .cx-msgs{height:min(55vh,460px);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+        .cx-m{max-width:80%;padding:9px 13px;border-radius:16px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+        .cx-m.eu{align-self:flex-end;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;border-bottom-right-radius:5px}
+        .cx-m.ela{align-self:flex-start;background:var(--campo);border-bottom-left-radius:5px}
+        .cx-m small{display:block;font-size:10.5px;opacity:.65;margin-top:3px}
+        .cx-m .ref{font-size:12px;opacity:.8;border-left:3px solid currentColor;padding-left:7px;margin-bottom:5px}
+        .cx-esc{display:flex;gap:8px;padding:10px;border-top:1px solid var(--linha)}
+        .cx-esc textarea{flex:1;min-height:44px;max-height:140px;resize:vertical;border-radius:12px;border:1px solid var(--linha);background:var(--campo);color:var(--texto);font:inherit;padding:10px 12px}
+      </style>
+      <p class="cx-info"><i class="fas fa-circle-info"></i> Aqui lê e responde às conversas da conta oficial <b>Equipa Feira Comercial</b> — sem trocar de conta. As respostas saem em nome da Equipa, com o selo oficial.</p>
+      <div class="cx-lista" id="cxLista"><p class="vazio">A carregar…</p></div>
+      <div class="cx-conv" id="cxConv">
+        <div class="cx-cab"><button type="button" onclick="fecharConversaEquipa()" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><img id="cxFoto" alt=""><b id="cxNome"></b><a id="cxPerfil" class="btn btn-sec" style="padding:7px 12px;font-size:13px" href="#">Perfil</a></div>
+        <div class="cx-msgs" id="cxMsgs"></div>
+        <form class="cx-esc" onsubmit="event.preventDefault(); responderEquipa();">
+          <textarea id="cxTexto" maxlength="2000" placeholder="Responder como Equipa Feira Comercial…"></textarea>
+          <button class="btn" type="submit" id="cxEnviar" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button>
+        </form>
+      </div>
     </section>
 
     <section id="aba-novas" style="display:none">
@@ -349,7 +384,8 @@ async function guardarReclamacao(id) {
 document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
   if (b.dataset.aba === 'crescimento') carregarCrescimento();
-  ['pagamentos', 'reclamacoes', 'crescimento', 'novas', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = b.dataset.aba === a ? '' : 'none'; });
+  ['pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'novas', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = b.dataset.aba === a ? '' : 'none'; });
+  if (b.dataset.aba === 'caixa') carregarCaixa();
   if (b.dataset.aba === 'novas') carregarNovas();
   if (b.dataset.aba === 'contas' && !contas.length) carregarContas();
   if (b.dataset.aba === 'recibos') { carregarDadosRecibo(); carregarAssinatura(); }
@@ -410,14 +446,81 @@ document.querySelectorAll('#filtrosCresc [data-d]').forEach(b => b.onclick = () 
   diasCresc = Number(b.dataset.d); carregarCrescimento();
 });
 
+// ─── Caixa da Equipa (conversas da conta oficial) ───
+let cxAberta = null, cxTimer = null;
+const horaCurta = d => { const x = new Date(d), hoje = new Date().toDateString() === x.toDateString();
+  return hoje ? x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }); };
+async function carregarCaixa(silencioso) {
+  if (!silencioso) $('cxLista').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.rpc('equipa_conversas');
+  if (error) { $('cxLista').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 042).</p>'; return; }
+  const lista = data || [];
+  $('cCaixa').textContent = lista.reduce((s, c) => s + (c.por_ler || 0), 0);
+  $('cxLista').innerHTML = lista.length ? lista.map(c =>
+    '<button type="button" class="cx-c' + (c.por_ler ? ' nova' : '') + '" data-id="' + esc(c.outro) + '" data-nome="' + esc(c.nome || '') + '" data-foto="' + esc(avatar({ avatar_url: c.avatar, full_name: c.nome })) + '">' +
+      '<img src="' + esc(avatar({ avatar_url: c.avatar, full_name: c.nome })) + '" alt=""><div class="t"><b>' + esc(c.nome || 'Utilizador') + (c.tipo === 'empresa' ? ' <small style="display:inline;font-size:11px">🏢</small>' : '') + '</b>' +
+      '<small>' + (c.de_mim ? 'Equipa: ' : '') + esc(c.ultima || '') + '</small></div>' +
+      '<div class="h">' + horaCurta(c.ultima_em) + (c.por_ler ? '<br><span class="n">' + c.por_ler + '</span>' : '') + '</div></button>').join('')
+    : '<p class="vazio">Ainda não há conversas.</p>';
+  document.querySelectorAll('#cxLista .cx-c').forEach(b => b.onclick = () => abrirConversaEquipa(b.dataset.id, b.dataset.nome, b.dataset.foto));
+}
+async function abrirConversaEquipa(id, nome, foto, textoSugerido) {
+  cxAberta = id;
+  $('cxNome').textContent = nome || 'Utilizador'; $('cxFoto').src = foto || avatar({ full_name: nome });
+  $('cxPerfil').href = 'perfil.html?id=' + encodeURIComponent(id);
+  $('cxLista').style.display = 'none'; $('cxConv').style.display = 'block';
+  if (textoSugerido && !$('cxTexto').value) $('cxTexto').value = textoSugerido;
+  await desenharConversaEquipa();
+  clearInterval(cxTimer); cxTimer = setInterval(() => { if (cxAberta && !document.hidden) desenharConversaEquipa(true); }, 15000);
+  $('cxTexto').focus();
+}
+async function desenharConversaEquipa(silencioso) {
+  const id = cxAberta; if (!id) return;
+  if (!silencioso) $('cxMsgs').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.rpc('equipa_mensagens', { p_outro: id });
+  if (error || id !== cxAberta) { if (error) $('cxMsgs').innerHTML = '<p class="vazio">' + esc(FC.traduzirErro(error)) + '</p>'; return; }
+  const msgs = (data || []).slice().reverse();
+  const caixa = $('cxMsgs'), noFundo = caixa.scrollHeight - caixa.scrollTop - caixa.clientHeight < 80;
+  caixa.innerHTML = msgs.length ? msgs.map(m => '<div class="cx-m ' + (m.de_mim ? 'eu' : 'ela') + '">' +
+    (m.ref && m.ref.tipo ? '<div class="ref">' + (m.ref.tipo === 'video' ? '🎬 ' : m.ref.tipo === 'post' ? '📰 ' : '') + esc(m.ref.text || '') + '</div>' : '') +
+    (m.content ? esc(m.content) : '') + (m.media_type ? (m.content ? '\n' : '') + (m.media_type === 'image' ? '📷 Foto' : m.media_type === 'video' ? '🎥 Vídeo' : '📎 Ficheiro') : '') +
+    '<small>' + horaCurta(m.created_at) + (m.de_mim ? (m.read_at ? ' · ✓✓ lida' : ' · ✓ enviada') : '') + '</small></div>').join('')
+    : '<p class="vazio">Sem mensagens.</p>';
+  if (!silencioso || noFundo) caixa.scrollTop = caixa.scrollHeight;
+}
+async function responderEquipa() {
+  const t = $('cxTexto').value.trim(); if (!t || !cxAberta) return;
+  $('cxEnviar').disabled = true;
+  const { error } = await supabaseClient.rpc('equipa_enviar', { p_para: cxAberta, p_texto: t });
+  $('cxEnviar').disabled = false;
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  $('cxTexto').value = '';
+  await desenharConversaEquipa(true);
+  $('cxMsgs').scrollTop = $('cxMsgs').scrollHeight;
+}
+function fecharConversaEquipa() {
+  cxAberta = null; clearInterval(cxTimer);
+  $('cxConv').style.display = 'none'; $('cxLista').style.display = '';
+  carregarCaixa(true);
+}
+// abrir a Caixa da Equipa já numa conversa (ex.: dar as boas-vindas a uma conta nova)
+function irParaCaixa(id, nome, foto, texto) {
+  const b = document.querySelector('[data-aba="caixa"]');
+  document.querySelectorAll('[data-aba]').forEach(x => x.classList.toggle('sel', x === b));
+  ['pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'novas', 'contas', 'recibos'].forEach(a => { $('aba-' + a).style.display = a === 'caixa' ? '' : 'none'; });
+  carregarCaixa(true);
+  abrirConversaEquipa(id, nome, foto, texto);
+  window.scrollTo({ top: $('aba-caixa').offsetTop - 20, behavior: 'smooth' });
+}
+
 // ─── Contas novas ───
 let diasNovas = 7;
 function textoBoasVindas(c) {
   const nome = String(c.full_name || '').trim().split(/\s+/)[0] || '';
-  if (c.idioma === 'en') return 'Hello' + (nome ? ' ' + nome : '') + '! I\'m Francisco, from Feira Comercial. Thanks for joining 🙏 ' +
-    (c.type === 'empresa' ? 'Need help with your first post? Just tell me.' : 'Need anything? Just tell me.') + ' 💛';
-  return 'Olá' + (nome ? ' ' + nome : '') + '! Sou o Francisco, da Feira Comercial. Obrigado por se juntar 🙏 ' +
-    (c.type === 'empresa' ? 'Precisa de ajuda com a 1.ª publicação? É só dizer.' : 'Precisa de alguma coisa? É só dizer.') + ' 💛';
+  if (c.idioma === 'en') return 'Hello' + (nome ? ' ' + nome : '') + '! Thanks for joining Feira Comercial 🙏 ' +
+    (c.type === 'empresa' ? 'Need help with your first post? Just reply here.' : 'Need anything? Just reply here.') + '\nFeira Comercial Team 💛';
+  return 'Olá' + (nome ? ' ' + nome : '') + '! Obrigado por se juntar à Feira Comercial 🙏 ' +
+    (c.type === 'empresa' ? 'Precisa de ajuda com a 1.ª publicação? Responda aqui.' : 'Precisa de alguma coisa? Responda aqui.') + '\nEquipa Feira Comercial 💛';
 }
 async function carregarNovas() {
   $('listaNovas').innerHTML = '<p class="vazio">A carregar…</p>';
@@ -437,10 +540,14 @@ async function carregarNovas() {
         '<div><span>Primeiros passos</span><b>' + c.passos + ' de 4' + (c.passos === 4 ? ' 🎉' : '') + '</b></div>' +
         '<div><span>Respondeu à equipa</span><b>' + (c.respondeu ? 'Sim 💬' : 'Ainda não') + '</b></div>' +
       '</div>' +
-      '<div class="conta-acoes"><a class="btn ' + (c.cumprimentado ? 'btn-sec' : 'btn-ok') + '" href="mensagen.html?para=' + encodeURIComponent(c.id) + '&texto=' + encodeURIComponent(textoBoasVindas(c)) + '">' +
-        '<i class="fas fa-hand-holding-heart"></i> ' + (c.cumprimentado ? 'Abrir conversa' : 'Dar as boas-vindas') + '</a></div>' +
+      '<div class="conta-acoes"><button type="button" class="btn ' + (c.cumprimentado ? 'btn-sec' : 'btn-ok') + '" data-cx="' + esc(c.id) + '">' +
+        '<i class="fas fa-hand-holding-heart"></i> ' + (c.cumprimentado ? 'Abrir conversa' : 'Dar as boas-vindas') + '</button></div>' +
     '</article>';
   }).join('');
+  document.querySelectorAll('#listaNovas [data-cx]').forEach(b => b.onclick = () => {
+    const c = lista.find(x => x.id === b.dataset.cx); if (!c) return;
+    irParaCaixa(c.id, c.full_name, avatar(c), c.cumprimentado ? '' : textoBoasVindas(c));
+  });
 }
 document.querySelectorAll('#filtrosNovas [data-n]').forEach(b => b.onclick = () => {
   document.querySelectorAll('#filtrosNovas [data-n]').forEach(x => x.classList.toggle('sel', x === b));
@@ -702,10 +809,12 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
   const me = await FC.boot();
   if (!me) return;
   if (me.role !== 'admin') { $('intro').textContent = ''; $('semAcesso').style.display = 'block'; return; }
-  $('intro').textContent = 'Confirme pagamentos das empresas e responda a reclamações.';
+  $('intro').textContent = 'Gestão da Feira Comercial: pagamentos, conversas da Equipa, reclamações e contas.';
   $('conteudo').style.display = 'block';
   carregarPagamentos(); carregarReclamacoes(); carregarAtivas();
   supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
+  carregarCaixa(true);
+  setInterval(() => { if (!document.hidden && !cxAberta) carregarCaixa(true); }, 30000);
   // novos pagamentos aparecem sozinhos
   supabaseClient.channel('admin-pagamentos')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pagamentos' }, () => { toast('💰 Novo pagamento recebido.'); carregarPagamentos(); })
