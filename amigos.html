@@ -85,7 +85,7 @@ a{text-decoration:none;color:inherit}
 .filtro{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:30px;padding:10px 14px;font-size:13px;max-width:200px}
 .btn-full.seguindo{background:var(--hover);color:var(--text)}
 a.card-top{color:inherit}
-.accept{background:var(--ok)} .decline{background:var(--hover);color:var(--sub)}
+.accept{background:var(--ok)} .decline{background:var(--hover);color:var(--text)}
 
 .empty{text-align:center;padding:50px 20px;color:var(--sub);grid-column:1/-1}
 .empty i{font-size:44px;opacity:.35;display:block;margin-bottom:12px}
@@ -318,7 +318,7 @@ function cartao(u){
       <button class="btn-full ${sigo ? 'seguindo' : (empresa ? 'pro' : '')}" onclick="alternarSeguir('${u.id}', this)">
         ${sigo ? '<i class="fas fa-check"></i> A seguir' : '<i class="fas fa-plus"></i> Seguir'}
       </button>
-      <button class="btn-full decline" onclick="enviarMensagem('${u.id}')" title="Enviar mensagem"><i class="fas fa-comment-dots"></i></button>
+      <button class="btn-full decline" onclick="enviarMensagem('${u.id}')" title="Enviar mensagem"><i class="fas fa-comment-dots"></i> Mensagem</button>
     </div>
   </div>`;
 }
