@@ -1078,3 +1078,11 @@ FC.verVideo = function (url) {
   try { history.pushState({ fcVideo: 1 }, ''); } catch (e) {}
   window.addEventListener('popstate', aoVoltar);
 };
+
+/* Denunciar um comentário ofensivo: abre o Livro de Reclamações já preenchido
+   (a equipa vê o comentário, quem o escreveu e o link da publicação/vídeo). */
+FC.denunciarComentario = function (autor, texto, link) {
+  const t = String(texto || '').replace(/\s+/g, ' ').slice(0, 90);
+  const assunto = 'Denúncia de comentário de ' + String(autor || 'utilizador').slice(0, 40) + ': "' + t + (String(texto || '').length > 90 ? '…' : '') + '"';
+  location.href = 'reclamacao.html?tipo=denuncia&assunto=' + encodeURIComponent(assunto.slice(0, 150)) + '&link=' + encodeURIComponent(link || location.href);
+};

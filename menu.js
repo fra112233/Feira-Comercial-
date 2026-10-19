@@ -131,7 +131,7 @@ window.FCMenu = (function () {
             ? '<span class="fc-aovivo-chip"><span class="fc-aovivo-ponto"></span>' + (FC._livesAgora.length === 1 ? 'AO VIVO' : FC._livesAgora.length + ' ao vivo') + '</span>' : '') +
           (empresa ? tile('fa-chart-column', 'Estatísticas', 'estatisticas.html') : '') +
           (empresa ? tile('fa-credit-card', 'Mensalidade', 'mensalidade.html', mensalidadeTxt(p)) : '') +
-          (p.role === 'admin' ? tile('fa-user-shield', 'Administração', 'admin.html') : '') +
+          (p.role === 'admin' ? tile('fa-user-shield', 'Administração', 'admin.html') : p.role === 'ajudante' ? tile('fa-headset', 'Ajuda da Equipa', 'admin.html') : '') +
         '</div>' +
         '<div class="linha"></div>' +
 

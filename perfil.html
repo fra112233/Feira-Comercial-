@@ -2390,6 +2390,7 @@
                     <div class="comment-actions-bar">
                         ${resposta ? '' : `<button class="comment-action-btn" onclick="focusReply('${postId}', ${c.id})">Responder</button>`}
                         ${podeApagar ? `<button class="comment-action-btn" onclick="apagarComentario(${p.id}, ${c.id})">Apagar</button>` : ''}
+                        ${meuId && c.userId !== meuId ? `<button class="comment-action-btn" style="opacity:.65" title="Denunciar comentário" data-n="${escTxt(c.nome)}" data-t="${escTxt(c.text)}" onclick="FC.denunciarComentario(this.dataset.n, this.dataset.t, location.origin + '/index.html?post=${p.id}')"><i class="fas fa-flag"></i></button>` : ''}
                     </div>
                 </div>
             </div>`;
