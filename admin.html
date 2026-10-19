@@ -447,7 +447,7 @@ document.querySelectorAll('#filtrosCresc [data-d]').forEach(b => b.onclick = () 
 });
 
 // ─── Caixa da Equipa (conversas da conta oficial) ───
-let cxAberta = null, cxTimer = null;
+let cxAberta = null, cxTimer = null, SOU_AJUDANTE = false;
 const horaCurta = d => { const x = new Date(d), hoje = new Date().toDateString() === x.toDateString();
   return hoje ? x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }); };
 async function carregarCaixa(silencioso) {
@@ -484,7 +484,7 @@ async function desenharConversaEquipa(silencioso) {
   caixa.innerHTML = msgs.length ? msgs.map(m => '<div class="cx-m ' + (m.de_mim ? 'eu' : 'ela') + '">' +
     (m.ref && m.ref.tipo ? '<div class="ref">' + (m.ref.tipo === 'video' ? '🎬 ' : m.ref.tipo === 'post' ? '📰 ' : '') + esc(m.ref.text || '') + '</div>' : '') +
     (m.content ? esc(m.content) : '') + (m.media_type ? (m.content ? '\n' : '') + (m.media_type === 'image' ? '📷 Foto' : m.media_type === 'video' ? '🎥 Vídeo' : '📎 Ficheiro') : '') +
-    '<small>' + horaCurta(m.created_at) + (m.de_mim ? (m.read_at ? ' · ✓✓ lida' : ' · ✓ enviada') : '') + '</small></div>').join('')
+    '<small>' + horaCurta(m.created_at) + (m.de_mim && m.autor ? ' · por ' + esc(m.autor) : '') + (m.de_mim ? (m.read_at ? ' · ✓✓ lida' : ' · ✓ enviada') : '') + '</small></div>').join('')
     : '<p class="vazio">Sem mensagens.</p>';
   if (!silencioso || noFundo) caixa.scrollTop = caixa.scrollHeight;
 }
@@ -597,12 +597,27 @@ function desenharContas() {
           (c.bloqueado
             ? '<button type="button" class="btn btn-ok" onclick="suspender(\'' + c.id + '\', false)"><i class="fas fa-unlock"></i> Reativar</button>'
             : '<button type="button" class="btn btn-nao" onclick="suspender(\'' + c.id + '\', true)"><i class="fas fa-ban"></i> Suspender</button>') +
-          '<button type="button" class="btn btn-sec" onclick="terminarSessoes(\'' + c.id + '\')"><i class="fas fa-right-from-bracket"></i> Terminar sessões</button>') +
+          '<button type="button" class="btn btn-sec" onclick="terminarSessoes(\'' + c.id + '\')"><i class="fas fa-right-from-bracket"></i> Terminar sessões</button>' +
+          (c.role === 'ajudante'
+            ? '<button type="button" class="btn btn-nao" onclick="definirAjudante(\'' + c.id + '\', false)"><i class="fas fa-user-minus"></i> Tirar de Ajudante</button>'
+            : '<button type="button" class="btn btn-sec" onclick="definirAjudante(\'' + c.id + '\', true)"><i class="fas fa-user-plus"></i> Tornar Ajudante</button>')) +
       '</div>' +
       '<div class="acessos" id="acessos-' + c.id + '"></div>' +
       '<div class="acessos" id="conversas-' + c.id + '"></div>' +
     '</article>';
   }).join('');
+}
+// Ajudante: pode responder na Caixa da Equipa, tratar reclamações e acolher contas novas (sem pagamentos nem conversas privadas)
+async function definirAjudante(id, sim) {
+  const c = contas.find(x => x.id === id); const nome = (c && c.full_name) || 'esta conta';
+  const pergunta = sim
+    ? 'Tornar ' + nome + ' Ajudante?\n\nPode: responder na Caixa da Equipa, tratar reclamações e dar boas-vindas a contas novas.\nNão pode: ver pagamentos, configurações, conversas privadas nem suspender contas.'
+    : 'Tirar ' + nome + ' de Ajudante?';
+  if (!confirm(pergunta)) return;
+  const { error } = await supabaseClient.rpc('admin_definir_ajudante', { p_uid: id, p_sim: sim });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast(sim ? nome + ' é agora Ajudante. Deve sair e voltar a entrar na conta.' : nome + ' já não é Ajudante.');
+  carregarContas();
 }
 async function verAcessos(id) {
   const box = $('acessos-' + id);
@@ -808,9 +823,21 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
 (async function () {
   const me = await FC.boot();
   if (!me) return;
-  if (me.role !== 'admin') { $('intro').textContent = ''; $('semAcesso').style.display = 'block'; return; }
-  $('intro').textContent = 'Gestão da Feira Comercial: pagamentos, conversas da Equipa, reclamações e contas.';
+  if (me.role !== 'admin' && me.role !== 'ajudante') { $('intro').textContent = ''; $('semAcesso').style.display = 'block'; return; }
   $('conteudo').style.display = 'block';
+  if (me.role === 'ajudante') {
+    // Ajudante: só Caixa da Equipa, Reclamações e Contas novas (sem dinheiro, sem contas, sem conversas privadas)
+    SOU_AJUDANTE = true;
+    $('intro').textContent = 'Olá ' + (String(me.full_name || '').split(' ')[0] || '') + '! Ajude as pessoas em nome da Equipa Feira Comercial.';
+    document.querySelector('.resumo').style.display = 'none';
+    document.querySelectorAll('[data-aba]').forEach(b => { if (!['caixa', 'reclamacoes', 'novas'].includes(b.dataset.aba)) b.remove(); });
+    document.querySelector('[data-aba="caixa"]').click();
+    carregarReclamacoes();
+    supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
+    setInterval(() => { if (!document.hidden && !cxAberta) carregarCaixa(true); }, 30000);
+    return;
+  }
+  $('intro').textContent = 'Gestão da Feira Comercial: pagamentos, conversas da Equipa, reclamações e contas.';
   carregarPagamentos(); carregarReclamacoes(); carregarAtivas();
   supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
   carregarCaixa(true);

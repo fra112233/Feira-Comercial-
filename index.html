@@ -1888,6 +1888,7 @@ function renderComments(comments, postId) {
                     <span>${timeAgo(c.timestamp)}</span>
                     <span class="reply-btn" onclick="showReplyBox(${postId}, ${c.id})">Responder</span>
                     ${(c.userId === currentUser.id || donoDoPost(postId)) ? `<span class="reply-btn" onclick="deleteComment(${c.id})">Apagar</span>` : ''}
+                    ${c.userId !== currentUser.id ? `<span class="reply-btn" style="opacity:.65" title="Denunciar comentário" onclick="FC.denunciarComentario(this.dataset.n, this.dataset.t, location.origin + '/index.html?post=${postId}')" data-n="${escHtml(c.userName)}" data-t="${escHtml(c.text)}"><i class="fas fa-flag"></i></span>` : ''}
                 </div>
                 ${c.replies && c.replies.length > 0 ? `<div class="replies-wrap">${renderComments(c.replies, postId)}</div>` : ''}
                 <div id="reply-box-${c.id}" style="display:none;margin-top:6px;" class="comment-input-row">

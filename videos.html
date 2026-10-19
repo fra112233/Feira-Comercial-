@@ -488,7 +488,7 @@ async function carregarComentarios() {
       <img src="${esc(avatar(c.autor))}" alt="">
       <div><div class="n">${esc((c.autor && c.autor.full_name) || 'Utilizador')}</div>
         <div class="t">${esc(c.content)}</div>
-        <div class="q">${haQuanto(c.created_at)}${(c.user_id === me.id || (v && v.user_id === me.id)) ? `<button onclick="apagarComentario(${c.id})">Apagar</button>` : ''}</div></div>
+        <div class="q">${haQuanto(c.created_at)}${(c.user_id === me.id || (v && v.user_id === me.id)) ? `<button onclick="apagarComentario(${c.id})">Apagar</button>` : ''}${c.user_id !== me.id ? `<button title="Denunciar comentário" data-n="${esc((c.autor && c.autor.full_name) || '')}" data-t="${esc(c.content)}" onclick="FC.denunciarComentario(this.dataset.n, this.dataset.t, location.origin + '/videos.html?v=${id}')"><i class="fas fa-flag"></i> Denunciar</button>` : ''}</div></div>
     </div>`).join('') || '<p style="text-align:center;color:#777;padding:30px;">Sê o primeiro a comentar.</p>';
   lista.scrollTop = lista.scrollHeight;
   if (v) { v.comments_count = (data || []).length; const s = slideDe(id); if (s) s.querySelector('[data-ncom]').textContent = numero(v.comments_count); }
