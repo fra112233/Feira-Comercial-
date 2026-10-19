@@ -197,20 +197,27 @@ FC.loadMyProfile = async function () {
   const session = await FC.getSession();
   if (!session) return null;
 
-  // cache só para render imediato, e só se for do utilizador atual
-  const cached = localStorage.getItem('fc_profile');
-  if (cached) {
-    try {
-      const c = JSON.parse(cached);
-      if (c && c.id === session.user.id) FC.me = c;
-    } catch (e) {}
-  }
+  // perfil guardado neste telemóvel: a página usa-o logo e atualiza-o em segundo plano
+  // (poupa uma ida ao servidor em cada mudança de página)
+  let guardado = null;
+  try {
+    const c = JSON.parse(localStorage.getItem('fc_profile') || 'null');
+    if (c && c.id === session.user.id && c._em && Date.now() - c._em < 6 * 3600 * 1000) guardado = c;
+  } catch (e) {}
+  const buscar = FC.lerPerfil(session.user.id).then(({ data, error }) => {
+    if (error || !data) return null;
+    FC.me = { ...data, email: session.user.email };
+    try { localStorage.setItem('fc_profile', JSON.stringify({ ...FC.me, _em: Date.now() })); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('fc:perfil', { detail: FC.me }));
+    return FC.me;
+  }, () => null);
+  if (guardado) { FC.me = guardado; return FC.me; }
 
-  const { data, error } = await FC.lerPerfil(session.user.id);
+  const data = await buscar;
+  const error = data ? null : true;
 
   if (!error && data) {
-    FC.me = { ...data, email: session.user.email };
-    localStorage.setItem('fc_profile', JSON.stringify(FC.me));
+    FC.me = data;
   } else if (!FC.me) {
     FC.me = {
       id: session.user.id,

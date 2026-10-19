@@ -39,10 +39,16 @@
     return true;
   }
 
+  // a página pode ter vindo da cópia guardada no telemóvel (sw.js): antes de recarregar,
+  // limpa-se essa cópia para vir mesmo a versão nova
+  function limparCopia() {
+    try { return window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k.indexOf('fc-site') === 0; }).map(function (k) { return caches.delete(k); })); }) : Promise.resolve(); }
+    catch (e) { return Promise.resolve(); }
+  }
   function recarregar() {
     if (aCarregar) return;
     aCarregar = true;
-    location.reload();
+    limparCopia().then(function () { location.reload(); }, function () { location.reload(); });
   }
 
   function mostrarAviso() {
@@ -70,10 +76,27 @@
     document.body.appendChild(aviso);
   }
 
+  function lerGuardada() { try { return localStorage.getItem('fc_versao'); } catch (e) { return null; } }
+  function guardar(v) { try { localStorage.setItem('fc_versao', v); } catch (e) {} }
+
   function verificar(aoRegressar) {
     return obterVersao().then(function (v) {
       if (!v) return;
-      if (!versaoInicial) { versaoInicial = v; return; }
+      if (!versaoInicial) {
+        // primeira verificação desta página: se a última versão vista neste telemóvel é outra,
+        // esta página pode ter vindo da cópia antiga → limpa e recarrega (uma vez)
+        var antes = lerGuardada();
+        guardar(v);
+        versaoInicial = v;
+        var jaTentou = false;
+        try { jaTentou = sessionStorage.getItem('fc_recarregou') === v; } catch (e) {}
+        if (antes && antes !== v && !jaTentou && navigator.serviceWorker && navigator.serviceWorker.controller) {
+          try { sessionStorage.setItem('fc_recarregou', v); } catch (e) {}
+          if (podeRecarregarSozinho()) recarregar(); else if (document.body) mostrarAviso();
+        }
+        return;
+      }
+      if (v !== versaoInicial) guardar(v);
       if (v === versaoInicial) return;
       if (aoRegressar && podeRecarregarSozinho()) recarregar();
       else if (document.body) mostrarAviso();

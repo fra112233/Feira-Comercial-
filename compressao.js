@@ -3,7 +3,7 @@
    Otimiza fotos e vídeos NO TELEMÓVEL antes de enviar, para poupar
    dados e espaço sem perder qualidade visível.
 
-   • Fotos: até 100 MB à entrada → JPG de alta qualidade (lado maior 2560 px).
+   • Fotos: até 100 MB à entrada → JPG de boa qualidade (lado maior 1920 px — nítido no telemóvel e mais rápido a enviar).
    • Vídeos: até 3 minutos → MP4 (H.264) 720p, 30 fps, com o som original;
      o resultado fica sempre abaixo do limite de envio. Vídeos que já são
      leves vão como estão. A otimização começa logo ao escolher o vídeo
@@ -162,14 +162,14 @@
     }
     try {
       var bmp = await createImageBitmap(file);
-      var lado = 2560, k = Math.min(1, lado / Math.max(bmp.width, bmp.height));
+      var lado = 1920, k = Math.min(1, lado / Math.max(bmp.width, bmp.height));
       var c = document.createElement('canvas');
       c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
       var ctx = c.getContext('2d');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);   // PNG transparente → fundo branco
       ctx.drawImage(bmp, 0, 0, c.width, c.height);
       if (bmp.close) bmp.close();
-      var blob = await new Promise(function (r) { c.toBlob(r, 'image/jpeg', 0.88); });
+      var blob = await new Promise(function (r) { c.toBlob(r, 'image/jpeg', 0.85); });
       if (blob && blob.size < file.size) {
         var nome = (file.name || 'foto').replace(/\.\w+$/, '') + '.jpg';
         return new File([blob], nome, { type: 'image/jpeg' });
