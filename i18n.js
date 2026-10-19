@@ -1393,6 +1393,8 @@
 "sugestões": "suggestions",
 "só empresas com a mensalidade em dia podem adicionar produtos.": "only businesses with an up-to-date subscription can add products.",
 "termina amanhã": "ends tomorrow",
+"termina em": "ends in",
+"terminou": "ended",
 "visualização": "view",
 "visualizações": "views",
 "© 2026 Feira Comercial · Moçambique": "© 2026 Feira Comercial · Mozambique",
