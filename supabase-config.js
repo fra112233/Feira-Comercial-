@@ -323,14 +323,14 @@ FC._notifTextos = {
   marco_mensagem: '💬 Recebeu a sua primeira mensagem. Responda depressa!',
   gratis_fim: '— os seus dias grátis acabaram ⏰', mensalidade_fim: '— a sua mensalidade terminou ⏰',
   oferta_guardado: 'pôs em oferta algo que guardou ⚡', oferta_loja: 'fez uma oferta para si ⚡',
-  resumo_semanal: '— o seu resumo da semana 📰'
+  resumo_semanal: '— o seu resumo da semana 📰', lojas_hoje: 'publicou hoje 🛍️'
 };
 FC._notifIcones = {
   gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
   marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock',
-  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper'
+  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper', lojas_hoje: 'fa-store'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
@@ -359,6 +359,12 @@ FC.dataHora = function (d) {
 };
 // texto da notificação conforme o estado ATUAL da live / da oferta
 FC.textoNotificacao = function (n) {
+  // uma só linha por dia: "Sapataria Boa e mais 10 lojas publicaram hoje"
+  if (n.tipo === 'lojas_hoje') {
+    const k = Math.max(0, ((n.lojas && n.lojas.length) || 1) - 1);
+    return { txt: k ? FC.t('e mais') + ' ' + k + ' ' + FC.t(k === 1 ? 'loja publicaram hoje 🛍️' : 'lojas publicaram hoje 🛍️') : FC.t('publicou hoje 🛍️'),
+             extra: FC.t('Toque para ver no feed') };
+  }
   if (n.tipo === 'live' && n.live) {
     const l = n.live;
     // o servidor fecha sozinho as lives sem sinal (migração 030); com a hora certa basta uma margem de 3 min
@@ -386,7 +392,7 @@ FC.linkNotificacao = function (n) {
   if (n.tipo === 'resposta_avaliacao') return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '') + '#avaliacoes';
   if (n.tipo && n.tipo.indexOf('convite') === 0) return 'mensalidade.html#convites';
   if (n.tipo === 'gratis_fim' || n.tipo === 'mensalidade_fim') return 'mensalidade.html';
-  if (n.tipo === 'resumo_semanal') return 'index.html';
+  if (n.tipo === 'resumo_semanal' || n.tipo === 'lojas_hoje') return 'index.html';
   if (n.post_id) return 'index.html?post=' + n.post_id;
   if (n.video_id) return 'videos.html?v=' + n.video_id;
   if (n.live_id && n.live && FC.textoNotificacao(n).terminada) return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
@@ -425,6 +431,10 @@ FC.sino = async function () {
       '#fcn .av i.fa-heart{background:#ef4444;color:#fff}#fcn .av i.fa-tower-broadcast{background:#ef4444;color:#fff}#fcn .av i.fa-user-plus{background:#22c55e;color:#fff}' +
       '#fcn .tx{flex:1;min-width:0;font-size:14px;line-height:1.4}#fcn .tx small{display:block;opacity:.75;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '#fcn .tx .q{font-size:12px;opacity:.6;margin-top:3px}#fcn .ponto{width:9px;height:9px;border-radius:50%;background:#f3c64e;flex-shrink:0;margin-top:6px}' +
+      '#fcn .pref-btn{width:36px;height:36px;border-radius:50%;font-size:15px!important;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))!important;color:inherit!important}#fcn .tx small.todo{white-space:normal}' +
+      '#fcn .pref{padding:12px 16px;border-bottom:1px solid var(--border-color,var(--border,#334155));background:rgba(243,198,78,.06)}#fcn .pref>span{font-weight:700;font-size:14px}' +
+      '#fcn .pref .ops{display:flex;gap:6px;margin:8px 0 6px;flex-wrap:wrap}#fcn .pref .ops button{flex:1;min-width:0;padding:9px 6px;border-radius:20px;border:1px solid var(--border-color,var(--border,#334155));background:none;color:inherit;font:600 13px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}' +
+      '#fcn .pref .ops button.on{background:#f3c64e;border-color:#f3c64e;color:#111}#fcn .pref small{font-size:12px;opacity:.75}' +
       '#fcn .vazio{text-align:center;opacity:.7;padding:50px 24px;font-size:14px;line-height:1.5}#fcn .vazio i{font-size:36px;display:block;margin-bottom:10px;opacity:.6}';
     document.head.appendChild(css);
   }
@@ -461,8 +471,12 @@ FC.sino = async function () {
   // painel
   const fundo = document.createElement('div'); fundo.id = 'fcn-fundo';
   const painel = document.createElement('aside'); painel.id = 'fcn'; painel.setAttribute('aria-label', 'Notificações');
-  painel.innerHTML = '<div class="cab"><b>Notificações</b><button type="button" data-ler>Marcar tudo como lido</button>' +
-    '<button type="button" class="fechar" aria-label="Fechar"><i class="fas fa-times"></i></button></div><div class="lista"></div>';
+  painel.innerHTML = '<div class="cab"><b>Notificações</b><button type="button" data-ler title="Marcar tudo como lido">Ler tudo</button>' +
+    '<button type="button" class="pref-btn" data-pref aria-label="Avisos de lojas" title="Avisos de lojas"><i class="fas fa-sliders"></i></button>' +
+    '<button type="button" class="fechar" aria-label="Fechar"><i class="fas fa-times"></i></button></div>' +
+    '<div class="pref" hidden><span>🛍️ Avisos de lojas</span><div class="ops">' +
+    '<button type="button" data-v="todos">Todos</button><button type="button" data-v="ofertas">Só ofertas ⚡</button><button type="button" data-v="nenhum">Nenhum</button>' +
+    '</div><small></small></div><div class="lista"></div>';
   document.body.appendChild(fundo); document.body.appendChild(painel);
   const fechar = () => { painel.classList.remove('aberto'); fundo.classList.remove('aberto'); document.body.style.overflow = ''; };
   fundo.onclick = fechar; painel.querySelector('.fechar').onclick = fechar;
@@ -472,14 +486,36 @@ FC.sino = async function () {
     painel.querySelectorAll('.n.nova').forEach(el => { el.classList.remove('nova'); const p = el.querySelector('.ponto'); if (p) p.remove(); });
     mostrar(0);
   };
+  // escolher que avisos de lojas receber (para ninguém se sentir sufocado)
+  const pref = painel.querySelector('.pref');
+  const EXPLICA = { todos: 'Uma linha por dia com as lojas que publicaram, e as ofertas.', ofertas: 'Só as ofertas ⚡ das lojas.', nenhum: 'Nenhum aviso de lojas. Mensagens e comentários continuam.' };
+  const marcarPref = v => {
+    pref.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    pref.querySelector('small').textContent = FC.t(EXPLICA[v] || '');
+  };
+  painel.querySelector('[data-pref]').onclick = async () => {
+    pref.hidden = !pref.hidden;
+    if (pref.hidden) return;
+    let v = FC.me && FC.me.avisos_lojas;
+    if (!v) { const { data } = await supabaseClient.from('perfis').select('avisos_lojas').eq('id', uid).maybeSingle(); v = (data && data.avisos_lojas) || 'todos'; }
+    marcarPref(v);
+  };
+  pref.addEventListener('click', async e => {
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    const antes = pref.querySelector('.on'); marcarPref(b.dataset.v);
+    const { error } = await supabaseClient.from('perfis').update({ avisos_lojas: b.dataset.v }).eq('id', uid);
+    if (error) { if (antes) marcarPref(antes.dataset.v); FC.toast(FC.t('Não foi possível guardar. Tente outra vez.')); return; }
+    if (FC.me) FC.me.avisos_lojas = b.dataset.v;
+    FC.toast(FC.t('Guardado ✓'));
+  });
   const lista = painel.querySelector('.lista');
   const desenhar = async () => {
     await FC.sincronizarHora();
     const base = 'id, tipo, autor_id, post_id, video_id, live_id, texto, lida, criado, autor:perfis!notificacoes_autor_id_fkey(full_name, avatar_url)';
     let { data, error } = await supabaseClient.from('notificacoes')
-      .select(base + ', live:lives!notificacoes_live_id_fkey(estado, atualizado_em, ended_at), post:posts!notificacoes_post_id_fkey(oferta_ate, oferta_preco)')
+      .select(base + ', lojas, live:lives!notificacoes_live_id_fkey(estado, atualizado_em, ended_at), post:posts!notificacoes_post_id_fkey(oferta_ate, oferta_preco)')
       .eq('user_id', uid).order('criado', { ascending: false }).limit(60);
-    if (error) ({ data, error } = await supabaseClient.from('notificacoes').select(base)   // base antiga sem colunas de oferta
+    if (error) ({ data, error } = await supabaseClient.from('notificacoes').select(base)   // base antiga sem colunas de oferta/lojas
       .eq('user_id', uid).order('criado', { ascending: false }).limit(60));
     if (error) { lista.innerHTML = '<div class="vazio">Não foi possível carregar as notificações.</div>'; return; }
     if (!data || !data.length) {
@@ -493,7 +529,7 @@ FC.sino = async function () {
       return '<a class="n' + (n.lida ? '' : ' nova') + (t.terminada ? ' fim' : '') + '" href="' + esc(FC.linkNotificacao(n)) + '" data-id="' + n.id + '">' +
         '<span class="av"><img src="' + FC.u(foto) + '" alt="" loading="lazy"><i class="fas ' + (FC._notifIcones[n.tipo] || 'fa-bell') + '"></i></span>' +
         '<span class="tx"><b>' + esc(nome) + '</b> ' + esc(t.txt) +
-        (t.extra ? '<small>' + esc(t.extra) + '</small>' : '') +
+        (t.extra ? '<small' + (n.tipo === 'resumo_semanal' ? ' class="todo"' : '') + '>' + esc(t.extra) + '</small>' : '') +
         '<span class="q" style="display:block">' + FC.haQuanto(n.criado) + ' · ' + FC.dataHora(n.criado) + '</span></span>' +
         (n.lida ? '' : '<span class="ponto"></span>') + '</a>';
     }).join('');
@@ -528,7 +564,7 @@ FC.sino = async function () {
           FC.toast('⏹ ' + ((l.autor && l.autor.full_name) || 'A live') + ' terminou a live' + (l.ended_at ? ' ' + FC.dataHora(l.ended_at).replace(/^hoje, [^,]+, /, '') : ''));
         }
       }
-      else if (payload.eventType === 'INSERT' && document.visibilityState === 'visible') {
+      else if (payload.eventType === 'INSERT' && payload.new && payload.new.tipo !== 'lojas_hoje' && document.visibilityState === 'visible') {
         const n = payload.new;
         const { data: a } = await supabaseClient.from('perfis').select('full_name').eq('id', n.autor_id).maybeSingle();
         const oferta = n.tipo === 'publicacao' && /^⚡/.test(n.texto || '');
