@@ -80,6 +80,9 @@ const TEXTOS: Record<string, string> = {
   marco_mensagem: "💬 Recebeu a sua primeira mensagem. Responda depressa!",
   gratis_fim: "— os seus dias grátis acabaram ⏰",
   mensalidade_fim: "— a sua mensalidade terminou ⏰",
+  oferta_guardado: "pôs em oferta algo que guardou ⚡",
+  oferta_loja: "fez uma oferta para si ⚡",
+  resumo_semanal: "— o seu resumo da semana 📰",
 };
 const TEXTOS_EN: Record<string, string> = {
   gosto: "liked your post",
@@ -100,6 +103,9 @@ const TEXTOS_EN: Record<string, string> = {
   marco_mensagem: "💬 You received your first message. Reply quickly!",
   gratis_fim: "— your free days are over ⏰",
   mensalidade_fim: "— your subscription has ended ⏰",
+  oferta_guardado: "put something you saved on sale ⚡",
+  oferta_loja: "made an offer for you ⚡",
+  resumo_semanal: "— your weekly summary 📰",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -141,13 +147,14 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : n.tipo === "resposta_avaliacao" ? "/perfil.html?id=" + n.autor_id + "#avaliacoes"
     : n.tipo.startsWith("convite") ? "/mensalidade.html#convites"
     : n.tipo === "gratis_fim" || n.tipo === "mensalidade_fim" ? "/mensalidade.html"
+    : n.tipo === "resumo_semanal" ? "/index.html"
     : n.post_id ? "/index.html?post=" + n.post_id
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
     : "/perfil.html?id=" + n.autor_id;
   let extra = (n.texto || "").trim();
   const oferta = n.tipo === "publicacao" && extra.startsWith("⚡");
-  if (en) extra = extra.replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video");
+  if (en) extra = extra.replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video").replace(/ \(antes (.+?) MT\)/, " (was $1 MT)");
   const acao = oferta ? (en ? "posted a flash offer ⚡" : "publicou uma oferta relâmpago ⚡")
     : n.tipo === "publicacao" && !extra ? (en ? "made a new post" : "fez uma publicação nova")
     : ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || "");

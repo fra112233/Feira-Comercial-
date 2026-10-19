@@ -590,6 +590,24 @@ html, body { max-width: 100%; overflow-x: hidden; }
         #oferta-campos input, #oferta-campos select { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border);
             background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 14px; }
         .compose-btn.ativo { background: rgba(243,198,78,.15); color: #d9a52e; }
+        /* ⚡ pôr uma publicação já feita em oferta (quem a guardou recebe aviso) */
+        .por-oferta { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 10px; padding: 7px 12px; border-radius: 20px; cursor: pointer;
+            border: 1px dashed rgba(243,198,78,.7); background: rgba(243,198,78,.08); color: #d9a52e; font: 700 13px inherit; font-family: inherit; }
+        #modal-oferta { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.55); display: none; align-items: flex-end; justify-content: center; }
+        #modal-oferta.aberto { display: flex; }
+        #modal-oferta .cx { width: 100%; max-width: 460px; background: var(--bg-card); color: var(--text-main); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+        @media (min-width: 600px) { #modal-oferta { align-items: center; } #modal-oferta .cx { border-radius: 18px; } }
+        #modal-oferta h3 { margin: 0 0 4px; font-size: 18px; }
+        #modal-oferta p { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
+        #modal-oferta label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 8px 0 4px; }
+        #modal-oferta input, #modal-oferta select { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-body, transparent); color: var(--text-main); font: inherit; font-size: 15px; }
+        #modal-oferta .bts { display: flex; gap: 8px; margin-top: 14px; }
+        #modal-oferta .bts button { flex: 1; padding: 12px; border-radius: 12px; border: 0; font: inherit; font-weight: 700; cursor: pointer; }
+        #modal-oferta .ok { background: #ef4444; color: #fff; } #modal-oferta .nao { background: var(--border); color: var(--text-main); }
+        /* 📍 ofertas perto de si (topo do feed) */
+        #perto-ofertas { display: none; align-items: center; gap: 10px; margin: 0 0 12px; padding: 11px 14px; border-radius: 14px; cursor: pointer;
+            background: linear-gradient(135deg, rgba(243,198,78,.2), rgba(239,68,68,.12)); border: 1px solid rgba(243,198,78,.5); font-weight: 700; font-size: 14px; color: var(--text-main); }
+        #perto-ofertas.ver { display: flex; } #perto-ofertas .ir { margin-left: auto; color: #ef4444; white-space: nowrap; }
 </style>
 
 <base target="_self">
@@ -727,8 +745,21 @@ html, body { max-width: 100%; overflow-x: hidden; }
             <button type="button" data-f="guardados"><i class="fas fa-bookmark"></i> Guardados</button>
         </div>
 
+        <div id="perto-ofertas" role="button" tabindex="0" onclick="verOfertasPerto()"><span>📍</span><span id="perto-ofertas-txt"></span><span class="ir">Ver ⚡</span></div>
         <div id="feed"></div>
     </section>
+    <div id="modal-oferta" onclick="if(event.target===this)fecharModalOferta()">
+        <div class="cx">
+            <h3>⚡ Pôr em oferta</h3>
+            <p>Quem guardou esta publicação recebe logo um aviso.</p>
+            <label for="mo-preco">Preço da oferta (MT)</label><input id="mo-preco" type="number" inputmode="numeric" min="1" step="1" placeholder="1500">
+            <label for="mo-antes">Preço antes (opcional)</label><input id="mo-antes" type="number" inputmode="numeric" min="1" step="1" placeholder="2000">
+            <label for="mo-dur">Termina daqui a</label>
+            <select id="mo-dur"><option value="3">3 horas</option><option value="6">6 horas</option><option value="12">12 horas</option>
+                <option value="24" selected>1 dia</option><option value="48">2 dias</option><option value="72">3 dias</option><option value="168">7 dias</option></select>
+            <div class="bts"><button type="button" class="nao" onclick="fecharModalOferta()">Cancelar</button><button type="button" class="ok" id="mo-ok" onclick="guardarOfertaPost()">Pôr em oferta</button></div>
+        </div>
+    </div>
 
     <!-- RIGHT SIDEBAR -->
     <aside class="col-right">
@@ -866,7 +897,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     initRollingFeed();
     ligarTempoReal();
     abrirDoLink();
-    setInterval(() => { carregarPosts(); carregarStories(); }, 5 * 60 * 1000);
+    contarOfertasPerto();
+    setInterval(() => { carregarPosts(); carregarStories(); contarOfertasPerto(); }, 5 * 60 * 1000);
 });
 
 function renderTudo() { renderPosts(); renderStories(); }
@@ -955,6 +987,12 @@ async function carregarPosts() {
     // Perto de mim: primeiro as da minha cidade
     const cidade = ((FC.me && FC.me.city) || '').toLowerCase();
     if (perto && cidade) lista = lista.filter(Boolean).sort((a, b) => (b.cidade === cidade) - (a.cidade === cidade) || b.timestamp - a.timestamp);
+    // Ofertas: primeiro as da minha cidade, depois as da minha província
+    if (filtro === 'ofertas') {
+        const prv = ((FC.me && FC.me.province) || '').toLowerCase();
+        const peso = p => (cidade && p.cidade === cidade ? 2 : 0) + (prv && p.provincia === prv ? 1 : 0);
+        lista = lista.filter(Boolean).sort((a, b) => peso(b) - peso(a) || new Date(a.ofertaAte) - new Date(b.ofertaAte));
+    }
     posts = lista;
     renderPosts();
     if (filtro === 'todos') guardarCache();
@@ -963,6 +1001,7 @@ async function carregarPosts() {
 function mudarFiltroFeed(f) {
     if (f === filtroFeed) return;
     filtroFeed = f;
+    contarOfertasPerto();
     document.querySelectorAll('#feed-filtros button').forEach(b => b.classList.toggle('ativo', b.dataset.f === f));
     document.getElementById('feed').innerHTML = '<div class="feed-vazio"><i class="fas fa-spinner fa-spin"></i>A carregar…</div>';
     carregarPosts();
@@ -1018,6 +1057,47 @@ setInterval(() => {
     });
 }, 30000);
 
+// ⚡ pôr em oferta uma publicação já feita
+let ofertaPostId = null;
+function abrirModalOferta(id) {
+    ofertaPostId = id;
+    ['mo-preco', 'mo-antes'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('modal-oferta').classList.add('aberto');
+    setTimeout(() => document.getElementById('mo-preco').focus(), 50);
+}
+function fecharModalOferta() { document.getElementById('modal-oferta').classList.remove('aberto'); ofertaPostId = null; }
+async function guardarOfertaPost() {
+    const id = ofertaPostId; if (!id) return;
+    const preco = Number(document.getElementById('mo-preco').value);
+    const antes = Number(document.getElementById('mo-antes').value) || null;
+    if (!(preco > 0)) { FCMedia.aviso('Falta o preço', 'Escreva o preço da oferta.', { erro: true }); return; }
+    if (antes && antes <= preco) { FCMedia.aviso('Preço antes', 'O preço antes deve ser maior do que o preço da oferta.', { erro: true }); return; }
+    const horas = Number(document.getElementById('mo-dur').value) || 24;
+    const dados = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(Date.now() + horas * 3600000).toISOString() };
+    const b = document.getElementById('mo-ok'); b.disabled = true;
+    const { error } = await supabaseClient.from('posts').update(dados).eq('id', id).eq('user_id', currentUser.id);
+    b.disabled = false;
+    if (error) { FCMedia.aviso('Não foi possível', (error.message || '').replace(/^.*?: /, '') || 'Tente outra vez.', { erro: true }); return; }
+    fecharModalOferta();
+    const p = posts.find(x => x.id === id);
+    if (p) { p.ofertaPreco = preco; p.ofertaAntes = antes; p.ofertaAte = dados.oferta_ate; const el = document.getElementById('post-' + id); if (el) el.outerHTML = renderPostCard(p, true); }
+    FCMedia.aviso('Oferta ativa ⚡', 'Quem guardou esta publicação já foi avisado.', { icone: 'fa-bolt' });
+}
+
+// 📍 "3 ofertas perto de si agora" no topo de "Para si"
+async function contarOfertasPerto() {
+    const el = document.getElementById('perto-ofertas'); if (!el) return;
+    const prov = (FC.me && FC.me.province) || '';
+    if (!prov || !temOfertas || filtroFeed !== 'todos') { el.classList.remove('ver'); return; }
+    const { count, error } = await supabaseClient.from('posts')
+        .select('id, autor:perfis!posts_user_id_fkey!inner(province)', { count: 'exact', head: true })
+        .gt('oferta_ate', new Date().toISOString()).eq('autor.province', prov).neq('user_id', currentUser.id);
+    if (error || !count || filtroFeed !== 'todos') { el.classList.remove('ver'); return; }
+    document.getElementById('perto-ofertas-txt').textContent = count + ' ' + FC.t(count === 1 ? 'oferta perto de si agora' : 'ofertas perto de si agora');
+    el.classList.add('ver');
+}
+function verOfertasPerto() { mudarFiltroFeed('ofertas'); window.scrollTo({ top: document.getElementById('feed-filtros').offsetTop - 70, behavior: 'smooth' }); }
+
 function alternarCamposOferta() {
     const c = document.getElementById('oferta-campos');
     const aberto = c.classList.toggle('aberto');
@@ -1045,6 +1125,7 @@ function mapearPost(r) {
         myReaction: meu ? meu.reaction : null,
         guardado: guardados.has(r.id),
         cidade: ((r.autor && r.autor.city) || '').toLowerCase(),
+        provincia: ((r.autor && r.autor.province) || '').toLowerCase(),
         ofertaPreco: r.oferta_preco != null ? Number(r.oferta_preco) : null,
         ofertaAntes: r.oferta_preco_antigo != null ? Number(r.oferta_preco_antigo) : null,
         ofertaAte: r.oferta_ate || null,
@@ -1862,6 +1943,7 @@ function renderPostCard(p, isMe) {
         ${isMe ? `<div class="btn-delete" onclick="deletePost(${p.id})" title="Apagar publicação"><i class="fas fa-trash"></i></div>`
                : `<a class="btn-delete btn-denunciar" href="reclamacao.html?tipo=denuncia&assunto=${encodeURIComponent('Denúncia de publicação de ' + p.userName)}&link=${encodeURIComponent(location.origin + '/index.html?post=' + p.id)}" title="Denunciar publicação" aria-label="Denunciar publicação"><i class="fas fa-flag"></i></a>`}
         ${htmlOferta(p)}
+        ${isMe && temOfertas && (currentUser.empresa || currentUser.equipa) && !(p.ofertaAte && faltaTexto(p.ofertaAte)) ? `<button type="button" class="por-oferta" onclick="abrirModalOferta(${p.id})"><i class="fas fa-bolt"></i> Pôr em oferta</button>` : ''}
         ${p.text ? `<p class="post-text">${escHtml(p.text)}</p>` : ''}
         ${mediaHtml}
         <div class="post-actions">${htmlAcoes(p)}</div>

@@ -321,13 +321,16 @@ FC._notifTextos = {
   marco_publicacao: '🎉 Parabéns! A sua primeira publicação está no ar.',
   marco_seguidor: '🎉 Parabéns! Tem o seu primeiro seguidor.',
   marco_mensagem: '💬 Recebeu a sua primeira mensagem. Responda depressa!',
-  gratis_fim: '— os seus dias grátis acabaram ⏰', mensalidade_fim: '— a sua mensalidade terminou ⏰'
+  gratis_fim: '— os seus dias grátis acabaram ⏰', mensalidade_fim: '— a sua mensalidade terminou ⏰',
+  oferta_guardado: 'pôs em oferta algo que guardou ⚡', oferta_loja: 'fez uma oferta para si ⚡',
+  resumo_semanal: '— o seu resumo da semana 📰'
 };
 FC._notifIcones = {
   gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
-  marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock'
+  marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock',
+  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
@@ -367,10 +370,10 @@ FC.textoNotificacao = function (n) {
     }
     return { txt: FC._notifTextos.live, extra: n.texto };
   }
-  if (n.tipo === 'publicacao' && n.post && n.post.oferta_ate) {
+  if ((n.tipo === 'publicacao' || n.tipo === 'oferta_guardado' || n.tipo === 'oferta_loja') && n.post && n.post.oferta_ate) {
     const fim = new Date(n.post.oferta_ate).getTime(), acabou = fim <= FC.agora();
     const preco = n.post.oferta_preco != null ? Math.round(n.post.oferta_preco).toLocaleString('pt-PT') + ' MT' : '';
-    return { txt: 'publicou uma oferta relâmpago ⚡',
+    return { txt: n.tipo === 'publicacao' ? 'publicou uma oferta relâmpago ⚡' : FC._notifTextos[n.tipo],
              extra: [preco, acabou ? 'Terminou ' + FC.dataHora(fim) : 'Válida até ' + FC.dataHora(fim)].filter(Boolean).join(' · '),
              terminada: acabou };
   }
@@ -383,6 +386,7 @@ FC.linkNotificacao = function (n) {
   if (n.tipo === 'resposta_avaliacao') return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '') + '#avaliacoes';
   if (n.tipo && n.tipo.indexOf('convite') === 0) return 'mensalidade.html#convites';
   if (n.tipo === 'gratis_fim' || n.tipo === 'mensalidade_fim') return 'mensalidade.html';
+  if (n.tipo === 'resumo_semanal') return 'index.html';
   if (n.post_id) return 'index.html?post=' + n.post_id;
   if (n.video_id) return 'videos.html?v=' + n.video_id;
   if (n.live_id && n.live && FC.textoNotificacao(n).terminada) return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
