@@ -1281,6 +1281,9 @@ document.addEventListener('fc:selos', mostrarAvisoOficial);
 function ligarLinks(t) {
     return String(t).replace(/\b((?:https?:\/\/|www\.)[^\s<]+[^\s<.,;:!?)\]'"])/gi, function (u) {
         const href = /^https?:/i.test(u) ? u : 'https://' + u;
+        // vídeos da própria Feira Comercial (ex.: boas-vindas): abrem aqui mesmo, com botão para voltar
+        if (/^https:\/\/(www\.)?feira-comercial\.com\/media\/[\w-]+\.mp4$/i.test(href))
+            return '<a href="' + href + '" onclick="FC.verVideo(this.href);return false;" style="display:inline-flex;align-items:center;gap:6px;margin:4px 0;padding:8px 14px;border-radius:999px;background:rgba(243,198,78,.18);color:inherit;font-weight:700;text-decoration:none"><i class="fas fa-circle-play"></i> Ver o vídeo</a>';
         return '<a href="' + href + '" target="_blank" rel="noopener nofollow" style="color:inherit;text-decoration:underline">' + u + '</a>';
     });
 }

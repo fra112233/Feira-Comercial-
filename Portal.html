@@ -71,6 +71,15 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .btn.carregando .girar { display: inline-block; }
 @keyframes girar { to { transform: rotate(360deg); } }
 
+.novo { display: block; text-decoration: none; color: inherit; margin: 4px 0 18px; padding: 16px; border-radius: 16px;
+  border: 2px solid rgba(243,198,78,.6); background: linear-gradient(135deg, rgba(243,198,78,.16), rgba(243,198,78,.05)); text-align: center; }
+.novo b { display: block; font-size: 17px; margin-bottom: 4px; }
+.novo small { display: block; color: var(--sub); font-size: 13px; margin-bottom: 12px; line-height: 1.4; }
+.novo span.btn { display: flex; align-items: center; justify-content: center; gap: 8px; animation: chamar 2.4s ease-in-out infinite; }
+@keyframes chamar { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .novo span.btn { animation: none; } }
+.ja-tem { font-size: 13px; color: var(--sub); text-align: center; margin: 0 0 12px; font-weight: 600; }
+.dica-senha { font-size: 12px; color: var(--sub); margin: -4px 0 12px; }
 .ou { display: flex; align-items: center; gap: 12px; color: var(--sub); font-size: 12px; margin: 18px 0; }
 .ou::before, .ou::after { content: ''; flex: 1; height: 1px; background: var(--linha); }
 
@@ -116,6 +125,13 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 
   <!-- formulário de entrada -->
   <form id="formEntrar" onsubmit="entrar(event)" novalidate>
+    <!-- quem chega pela primeira vez (ex.: convidado por WhatsApp) vê logo como criar conta -->
+    <a class="novo" id="caixaNovo" href="Formulario.html">
+      <b>👋 É a primeira vez aqui?</b>
+      <small>Crie a sua conta grátis — leva 1 minuto.<br>Não precisa da palavra-passe do seu e-mail.</small>
+      <span class="btn"><i class="fas fa-user-plus"></i> Criar conta grátis</span>
+    </a>
+    <p class="ja-tem">Já tem conta? Entre aqui:</p>
     <label for="email">E-mail</label>
     <div class="campo"><i class="fas fa-envelope"></i>
       <input type="email" id="email" placeholder="exemplo@email.com" autocomplete="username" required></div>
@@ -125,6 +141,7 @@ label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     <div class="campo"><i class="fas fa-lock"></i>
       <input type="password" id="senha" placeholder="A sua palavra-passe" autocomplete="current-password" required>
       <button type="button" class="ver" onclick="verSenha(this)" aria-label="Mostrar palavra-passe"><i class="fas fa-eye"></i></button></div>
+    <p class="dica-senha">É a palavra-passe que escolheu na Feira Comercial (não a do e-mail).</p>
     <div class="caps" id="caps"><i class="fas fa-triangle-exclamation"></i> As maiúsculas (Caps Lock) estão ligadas</div>
 
     <label class="termos" id="caixaTermos"><input type="checkbox" id="termos">
@@ -230,6 +247,13 @@ async function outraConta() {
   const q = new URLSearchParams(location.search);
   if (q.get('email')) $('email').value = q.get('email');
   try { if (localStorage.getItem(CHAVE_TERMOS)) { $('termos').checked = true; $('caixaTermos').style.display = 'none'; } } catch (x) {}
+  // quem já entrou neste aparelho vê primeiro o "Entrar"; quem é novo vê primeiro o "Criar conta"
+  try {
+    const conhecido = !!localStorage.getItem(CHAVE_TERMOS);
+    $('caixaNovo').style.display = conhecido ? 'none' : '';
+    document.querySelector('.ja-tem').style.display = conhecido ? 'none' : '';
+    document.querySelectorAll('.ou, .ou + .btn-sec').forEach(el => el.style.display = conhecido ? '' : 'none');
+  } catch (x) {}
   if (q.get('voltar')) aviso('Entre na sua conta para continuar.', 'ok');
   if (q.get('confirmado')) aviso('E-mail confirmado! Já pode entrar.', 'ok');
   if (!$('email').value) setTimeout(() => $('email').focus(), 300); else $('senha').focus();

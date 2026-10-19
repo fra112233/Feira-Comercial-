@@ -1051,3 +1051,30 @@ FC.enviarNoChat = async function (o) {
     else FC.toast(T('Não foi possível enviar. Tente outra vez.'));
   });
 };
+
+/* Ver um vídeo da Feira Comercial por cima da página, com botão "Voltar" bem visível.
+   O botão "voltar" do telemóvel também fecha o vídeo (em vez de sair da página). */
+FC.verVideo = function (url) {
+  if (!/^https:\/\/(www\.)?feira-comercial\.com\/media\/[\w-]+\.mp4$/i.test(url) && !/^\/?media\/[\w-]+\.mp4$/.test(url)) { location.href = url; return; }
+  const ant = document.getElementById('fc-vv'); if (ant) ant.remove();
+  const d = document.createElement('div'); d.id = 'fc-vv';
+  d.innerHTML = '<style>#fc-vv{position:fixed;inset:0;z-index:8000;background:#000;display:flex;align-items:center;justify-content:center}' +
+    '#fc-vv video{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;background:#000}' +
+    '#fc-vv button{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;z-index:2;display:flex;align-items:center;gap:8px;padding:11px 18px;border:none;border-radius:999px;' +
+    'background:rgba(255,255,255,.92);color:#111;font:700 15px Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)}</style>' +
+    '<button type="button"><i class="fas fa-arrow-left"></i> Voltar</button>' +
+    '<video src="' + url.replace(/"/g, '') + '" controls autoplay playsinline></video>';
+  let fechado = false;
+  const fechar = (doHistorico) => {
+    if (fechado) return; fechado = true;
+    try { d.querySelector('video').pause(); } catch (e) {}
+    d.remove(); window.removeEventListener('popstate', aoVoltar);
+    if (doHistorico !== true) { try { history.back(); } catch (e) {} }
+  };
+  const aoVoltar = () => fechar(true);
+  d.querySelector('button').onclick = () => fechar();
+  d.querySelector('video').addEventListener('ended', () => fechar());
+  document.body.appendChild(d);
+  try { history.pushState({ fcVideo: 1 }, ''); } catch (e) {}
+  window.addEventListener('popstate', aoVoltar);
+};

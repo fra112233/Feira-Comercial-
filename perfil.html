@@ -987,7 +987,11 @@
             z-index: 3001;
         }
         video.lightbox-media { max-height: 85vh; background: #000; }
-        .lightbox-partilhar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.16); color: #fff; border: none; border-radius: 999px; padding: 10px 20px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; z-index: 3002; }
+        .lb-barra { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 3002; }
+        .lb-barra button { background: rgba(255,255,255,.16); color: #fff; border: none; border-radius: 999px; padding: 10px 18px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; white-space: nowrap; }
+        /* no visualizador não há zoom da página com dois dedos (deslizar muda de foto) */
+        #lightbox { touch-action: none; overscroll-behavior: contain; }
+        @media (max-width: 600px) { .lb-barra { bottom: 86px; } }
         .lightbox-apagar {
             position: absolute;
             top: 20px;
@@ -1590,7 +1594,7 @@
         <i class="fas fa-chevron-left"></i>
     </button>
     <div class="lightbox-contador" id="lightboxContador"></div>
-    <button class="lightbox-partilhar" type="button" onclick="partilharLb()"><i class="fas fa-share"></i> Partilhar</button>
+    <div class="lb-barra"><button type="button" id="lbComentarios" onclick="comentariosLb()"><i class="fas fa-comment"></i> Comentários</button><button type="button" onclick="partilharLb()"><i class="fas fa-share"></i> Partilhar</button></div>
     <button class="lightbox-apagar" id="lightboxApagar" onclick="apagarMediaAtual()" style="display:none" title="Apagar do histórico">
         <i class="fas fa-trash"></i> Apagar
     </button>
@@ -2467,6 +2471,17 @@
             url, media: m,
             ref: p ? { tipo: 'post', id: p.id, userId: alvoId || meuId, userName: nome, text: t || '📷', thumb: m && m.type === 'image' ? m.url : null } : null
         });
+    }
+    // ver os comentários da publicação desta foto/vídeo
+    function comentariosLb() {
+        const it = lightboxImages[currentLightboxIndex];
+        if (!it || it.postId == null) { showToast('Esta foto não tem comentários.'); return; }
+        closeLightbox();
+        let sec = document.getElementById('comments-post-' + it.postId);
+        if (sec && !sec.offsetParent) { const b = document.querySelector('.tab-btn[onclick*="\'posts\'"]'); if (b) switchTab('posts', b); }
+        sec = document.getElementById('comments-post-' + it.postId);
+        if (sec) { abrirComentarios('post-' + it.postId); setTimeout(() => sec.closest('.post-card, .post, div').scrollIntoView({ behavior: 'smooth', block: 'center' }), 60); }
+        else location.href = 'index.html?post=' + encodeURIComponent(it.postId);
     }
     function partilharLb() {
         const it = lightboxImages[currentLightboxIndex];
