@@ -643,11 +643,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     localStorage.removeItem('fc_reply_draft');
 
     if (draft && draft.userId && draft.userId !== ME.id) {
-        const origem = /^(story|post)-(\d+)$/.exec(draft.refId || '');
+        const origem = /^(story|post|video)-(\d+)$/.exec(draft.refId || '');
         refPendente = { userName: draft.userName, text: draft.text, thumb: draft.thumb || null,
                         tipo: origem ? origem[1] : null, id: origem ? Number(origem[2]) : null, userId: draft.userId };
         await openContact(draft.userId);
         mostrarRefPendente();
+        // texto sugerido junto (ex.: "Vi o seu vídeo… Qual é o preço?") — a pessoa pode mudar antes de enviar
+        const sugerido0 = new URLSearchParams(location.search).get('texto');
+        const caixa0 = document.getElementById('msgInput');
+        if (sugerido0 && caixa0 && !caixa0.value) { caixa0.value = sugerido0.slice(0, 2000); if (typeof autoResize === 'function') autoResize(caixa0); caixa0.focus(); }
     } else if (para && para !== ME.id) {
         await openContact(para);
         // texto sugerido (ex.: boas-vindas da Administração) — a pessoa pode mudar antes de enviar
@@ -887,9 +891,9 @@ function buildBubble(msg) {
 
     let inner = '';
     if (msg.ref && !msg.deleted) {
-        inner += `<div class="reply-ref" style="cursor:pointer;" title="Ver a publicação / status" onclick="abrirReferencia(${msg.id})">${msg.ref.thumb ? `<img src="${escAttr(msg.ref.thumb)}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;float:right;margin-left:8px;">` : ''}
+        inner += `<div class="reply-ref" style="cursor:pointer;" title="Ver a publicação / status" onclick="abrirReferencia(${msg.id})">${msg.ref.thumb ? `<img src="${escAttr(msg.ref.thumb)}" style="width:42px;height:42px;object-fit:cover;border-radius:6px;float:right;margin-left:8px;">` : (msg.ref.tipo === 'video' ? `<span style="width:42px;height:42px;border-radius:6px;float:right;margin-left:8px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);font-size:20px;">🎬</span>` : '')}
                   <b>${escHtml(msg.ref.userName || '')}</b>${escHtml(msg.ref.text || '')}
-                  <div style="font-size:11px;opacity:.7;margin-top:2px;"><i class="fas fa-arrow-up-right-from-square"></i> Ver ${msg.ref.tipo === 'post' ? 'publicação' : 'status'}</div></div>`;
+                  <div style="font-size:11px;opacity:.7;margin-top:2px;"><i class="fas fa-arrow-up-right-from-square"></i> ${msg.ref.tipo === 'post' ? 'Ver publicação' : msg.ref.tipo === 'video' ? 'Ver vídeo' : 'Ver status'}</div></div>`;
     }
     if (msg.reply_to && !msg.deleted) {
         const ref = mensagens.find(m => m.id === msg.reply_to);
@@ -1206,7 +1210,7 @@ function mostrarRefPendente() {
     if (!refPendente) return;
     replyTarget = { msgId: null, sender: null, text: refPendente.text };
     document.getElementById('reply-bar-name').textContent = refPendente.userName || '';
-    document.getElementById('reply-bar-text').textContent = refPendente.text || '📷 Publicação';
+    document.getElementById('reply-bar-text').textContent = (refPendente.tipo === 'video' && !/^🎬/.test(refPendente.text || '') ? '🎬 ' : '') + (refPendente.text || '📷 Publicação');
     const th = document.getElementById('reply-bar-thumb');
     if (refPendente.thumb) { th.src = refPendente.thumb; th.style.display = 'block'; } else th.style.display = 'none';
     document.getElementById('replyBar').classList.add('show');
@@ -1221,6 +1225,7 @@ function abrirReferencia(msgId) {
     if (!r) return;
     if (r.tipo === 'story' && r.id) { location.href = 'index.html?story=' + r.id; return; }
     if (r.tipo === 'post' && r.id) { location.href = 'index.html?post=' + r.id; return; }
+    if (r.tipo === 'video' && r.id) { location.href = 'videos.html?v=' + r.id; return; }
     // mensagens antigas (sem ligação guardada): mostra pelo menos a foto
     if (r.thumb) openLightbox(r.thumb);
     else showToast('Esta mensagem é antiga e não tem ligação ao status original.');
