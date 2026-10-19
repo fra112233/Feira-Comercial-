@@ -668,12 +668,23 @@ window.addEventListener('DOMContentLoaded', async () => {
 async function carregarPerfis(ids) {
     const faltam = [...new Set(ids)].filter(id => id && !perfisCache[id]);
     if (!faltam.length) return;
-    const { data } = await supabaseClient.from('perfis')
-        .select('id, full_name, avatar_url, type, sector, city, province').in('id', faltam);
-    (data || []).forEach(p => { perfisCache[p.id] = p; });
+    // em grupos de 80 (o endereço do pedido não pode ficar demasiado comprido)
+    const grupos = [];
+    for (let i = 0; i < faltam.length; i += 80) grupos.push(faltam.slice(i, i + 80));
+    const res = await Promise.all(grupos.map(g => supabaseClient.from('perfis')
+        .select('id, full_name, avatar_url, type, sector, city, province').in('id', g)));
+    res.forEach(({ data }) => (data || []).forEach(p => { perfisCache[p.id] = p; }));
 }
 
 async function carregarConversas() {
+    // lista completa: a última mensagem de cada pessoa (antes eram só as últimas 500 mensagens,
+    // e uma loja com muitos clientes perdia conversas antigas da lista)
+    const r = await supabaseClient.rpc('minhas_conversas', { p_limite: 200 });
+    if (!r.error && Array.isArray(r.data)) {
+        const mapa = new Map();
+        r.data.forEach(x => { if (x.outro) mapa.set(x.outro, { id: x.outro, last: x.ultima, unread: x.por_ler || 0 }); });
+        return montarConversas(mapa);
+    }
     const { data, error } = await supabaseClient.from('messages')
         .select(CAMPOS_MSG)
         .or(`sender_id.eq.${ME.id},receiver_id.eq.${ME.id}`)
@@ -690,6 +701,9 @@ async function carregarConversas() {
         if (!oculta(m) && !c.last) c.last = m;
         if (m.receiver_id === ME.id && !m.read_at && !m.deleted && !oculta(m)) c.unread++;
     });
+    return montarConversas(mapa);
+}
+async function montarConversas(mapa) {
     // manter conversas novas (ainda sem mensagens) que estejam abertas
     conversas.forEach((c, id) => { if (!mapa.has(id) && id === activeContactId) mapa.set(id, c); });
 
@@ -784,6 +798,7 @@ function renderContacts() {
 async function openContact(id) {
     if (!id || id === ME.id) return;
     activeContactId = id;
+    presencaConversa(id);
     await carregarPerfis([id]);
     const p = perfisCache[id];
     if (!p) { showToast('Esta conta não existe.'); activeContactId = null; return; }
@@ -814,11 +829,11 @@ async function openContact(id) {
     const { data, error } = await supabaseClient.from('messages')
         .select(CAMPOS_MSG)
         .or(`and(sender_id.eq.${ME.id},receiver_id.eq.${id}),and(sender_id.eq.${id},receiver_id.eq.${ME.id})`)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })     // as 300 MAIS RECENTES (antes vinham as 300 mais antigas)
         .limit(300);
     if (activeContactId !== id) return;      // mudou de conversa entretanto
     if (error) { win.innerHTML = ''; showToast('Erro ao carregar mensagens'); return; }
-    mensagens = (data || []).filter(m => !oculta(m));
+    mensagens = (data || []).reverse().filter(m => !oculta(m));
     renderMessages();
     marcarLidas(id);
 }
@@ -838,7 +853,7 @@ function atualizarEstadoPeer() {
         document.getElementById('replyBar').classList.remove('show');
     } else {
         statusEl.textContent = bloquearamMe.has(id) ? 'Não é possível enviar mensagens'
-            : online.has(id) ? 'online'
+            : online.has(id) ? '🟢 ' + FC.t('está na conversa')
             : (p.type === 'empresa' ? 'Empresa' + (p.sector ? ' · ' + p.sector : '') : 'toca para ver o perfil');
         statusEl.className = 'peer-status';
         banner.classList.remove('show');
@@ -850,6 +865,7 @@ function goBackToList() {
     document.getElementById('sidebar').style.display = 'flex';
     document.querySelector('.main-chat').style.display = 'none';
     activeContactId = null;
+    presencaConversa(null);
     renderContacts();
 }
 
@@ -1310,7 +1326,7 @@ function openPeerProfile() {
     document.getElementById('pm-avatar').innerHTML = avatarHtml(avatarDe(p));
     document.getElementById('pm-name').textContent = p.full_name || 'Utilizador';
     document.getElementById('pm-status').innerHTML =
-        (bloqueei.has(id) ? 'Bloqueado' : (online.has(id) ? '🟢 online' : (p.type === 'empresa' ? '🏢 Empresa' : '👤 Pessoa'))) +
+        (bloqueei.has(id) ? 'Bloqueado' : (online.has(id) ? '🟢 ' + FC.t('está na conversa') : (p.type === 'empresa' ? '🏢 Empresa' : '👤 Pessoa'))) +
         `<br><a href="perfil.html?id=${encodeURIComponent(id)}" style="color:var(--green);font-weight:600;">Ver perfil completo</a>`;
     const btn = document.getElementById('pm-block-btn');
     const label = document.getElementById('pm-block-label');
@@ -1380,11 +1396,20 @@ function notificar(titulo, texto, deId) {
     } catch (e) {}
 }
 
-// quem está online agora (presença do Supabase Realtime)
-function ligarPresenca() {
-    const canal = supabaseClient.channel('online', { config: { presence: { key: ME.id } } });
+// Presença só na conversa aberta: mostra quando a outra pessoa também está nesta conversa.
+// (Antes, todas as pessoas entravam num só canal "online" — com milhares de pessoas o
+//  Supabase recusa: limite de 50 mensagens de presença por segundo no plano Pro.)
+let canalPresenca = null;
+function ligarPresenca() { /* a presença liga-se ao abrir cada conversa */ }
+function presencaConversa(outro) {
+    if (canalPresenca) { try { supabaseClient.removeChannel(canalPresenca); } catch (e) {} canalPresenca = null; }
+    online = new Set();
+    if (!outro) return;
+    const canal = supabaseClient.channel('conversa-' + [ME.id, outro].sort().join('-'), { config: { presence: { key: ME.id } } });
+    canalPresenca = canal;
     canal.on('presence', { event: 'sync' }, () => {
-        online = new Set(Object.keys(canal.presenceState()));
+        if (canalPresenca !== canal) return;
+        online = new Set(Object.keys(canal.presenceState()).filter(k => k !== ME.id));
         renderContacts();
         atualizarEstadoPeer();
     }).subscribe(status => {

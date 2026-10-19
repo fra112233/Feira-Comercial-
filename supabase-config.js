@@ -297,13 +297,25 @@ FC.badgeMensagens = async function () {
       if (!error) mostrar(count || 0);
     }, 250);
   };
-  contar();
-  supabaseClient.channel('badge-msgs-' + uid)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${uid}` }, contar)
-    .subscribe();
-  // reserva: se a ligação em tempo real cair (dados móveis), volta a contar
-  setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 45000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
+  FC._contarMensagens = contar;
+  // Para aguentar muita gente: só a página das Mensagens usa tempo real.
+  // Nas outras páginas o número vem do pedido único "estado_agora" (1 por minuto e meio).
+  const modoAntigo = () => {
+    if (FC._badgeAntigo) return; FC._badgeAntigo = true;
+    contar();
+    setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 60000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
+  };
+  if (/mensagen\.html/i.test(location.pathname)) {
+    supabaseClient.channel('badge-msgs-' + uid)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${uid}` }, contar)
+      .subscribe();
+    modoAntigo();
+  } else {
+    document.addEventListener('fc:estado', e => mostrar((e.detail && e.detail.mensagens) || 0));
+    document.addEventListener('fc:estado-falhou', modoAntigo);
+    FC.iniciarEstado();
+  }
   window.addEventListener('focus', contar);
 };
 
@@ -551,8 +563,20 @@ FC.sino = async function () {
     await desenhar();
   };
 
-  // tempo real: número do sino + aviso discreto quando chega uma novidade
-  supabaseClient.channel('notif-' + uid)
+  // número do sino: vem do pedido único "estado_agora" (sem ligação em tempo real em cada página)
+  let antes = null;
+  document.addEventListener('fc:estado', e => {
+    const n = (e.detail && e.detail.notificacoes) || 0;
+    if (antes !== null && n > antes && document.visibilityState === 'visible') {
+      if (painel.classList.contains('aberto')) desenhar();
+      else FC.toast('🔔 ' + FC.t(n - antes === 1 ? 'Tem 1 notificação nova' : 'Tem notificações novas'));
+    }
+    antes = n; mostrar(n);
+  });
+  let sinoAntigo = false;
+  document.addEventListener('fc:estado-falhou', () => { if (sinoAntigo) return; sinoAntigo = true; ligarAntigo(); });
+  FC.iniciarEstado();
+  const ligarAntigo = () => supabaseClient.channel('notif-' + uid)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacoes', filter: `user_id=eq.${uid}` }, async payload => {
       contar();
       if (painel.classList.contains('aberto')) desenhar();
@@ -571,9 +595,7 @@ FC.sino = async function () {
         FC.toast('🔔 ' + ((a && a.full_name) || 'Alguém') + ' ' + (oferta ? 'publicou uma oferta relâmpago ⚡' : (FC._notifTextos[n.tipo] || '')));
       }
     })
-    .subscribe();
-  setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') contar(); });
+    .subscribe() && setInterval(() => { if (document.visibilityState === 'visible') contar(); }, 60000);
 };
 
 /* ---------- Estatísticas das empresas ----------
@@ -849,12 +871,42 @@ FC.vigiarLives = async function () {
       if (!error) mostrar((data || []).filter(l => l.user_id !== uid));
     }, 300);
   };
-  carregar();
-  supabaseClient.channel('lives-agora-' + uid)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'lives' }, carregar)
-    .subscribe();
-  setInterval(() => { if (document.visibilityState === 'visible') carregar(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') carregar(); });
+  // as lives a decorrer vêm do pedido único "estado_agora" (antes: cada página ouvia TODAS as
+  // mudanças das lives e repetia a pesquisa a cada 30 s de cada live — com muita gente, rebentava)
+  document.addEventListener('fc:estado', e => mostrar(((e.detail && e.detail.lives) || []).filter(l => l.user_id !== uid)));
+  let livesAntigo = false;
+  document.addEventListener('fc:estado-falhou', () => {
+    if (livesAntigo) return; livesAntigo = true;
+    carregar();
+    setInterval(() => { if (document.visibilityState === 'visible') carregar(); }, 60000);
+  });
+  FC.iniciarEstado();
+};
+
+/* ---------- Estado agora: UM pedido a cada ~90 s com tudo o que o ecrã precisa ----------
+   (mensagens por ler, notificações, lives a decorrer, ofertas perto, publicações novas).
+   Só pede com a página visível; ao voltar à página pede logo. Se a base de dados ainda não
+   tiver a função (migração 045), avisa "fc:estado-falhou" e cada parte volta ao modo antigo. */
+FC.iniciarEstado = function () {
+  if (FC._estadoLigado) return;
+  FC._estadoLigado = true;
+  let ultimo = 0, aPedir = false;
+  const pedir = async (forcar) => {
+    if (aPedir || document.visibilityState !== 'visible') return;
+    if (!forcar && Date.now() - ultimo < 20000) return;
+    aPedir = true; ultimo = Date.now();
+    try {
+      const { data, error } = await supabaseClient.rpc('estado_agora');
+      if (error || !data) { FC._estadoOk = false; document.dispatchEvent(new CustomEvent('fc:estado-falhou')); return; }
+      FC._estadoOk = true; FC.estado = data;
+      document.dispatchEvent(new CustomEvent('fc:estado', { detail: data }));
+    } finally { aPedir = false; }
+  };
+  FC.pedirEstado = () => pedir(true);
+  const ciclo = () => setTimeout(async () => { if (FC._estadoOk !== false) { await pedir(); ciclo(); } }, 80000 + Math.random() * 20000);
+  setTimeout(() => pedir(true), 50);   // deixa as partes ligarem-se aos eventos primeiro
+  ciclo();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pedir(); });
 };
 
 /* ---------- Quem pode publicar (feed, anúncios, Live, produtos) ----------
