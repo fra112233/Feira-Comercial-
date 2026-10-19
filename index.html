@@ -604,6 +604,9 @@ html, body { max-width: 100%; overflow-x: hidden; }
         #modal-oferta .bts { display: flex; gap: 8px; margin-top: 14px; }
         #modal-oferta .bts button { flex: 1; padding: 12px; border-radius: 12px; border: 0; font: inherit; font-weight: 700; cursor: pointer; }
         #modal-oferta .ok { background: #ef4444; color: #fff; } #modal-oferta .nao { background: var(--border); color: var(--text-main); }
+        #novas-pubs { display: none; position: sticky; top: 70px; z-index: 50; margin: 0 auto 10px; padding: 9px 16px; border: 0; border-radius: 999px;
+            background: var(--primary, #f3c64e); color: #111; font: 700 14px inherit; font-family: inherit; box-shadow: 0 6px 18px rgba(0,0,0,.25); cursor: pointer; }
+        #novas-pubs.ver { display: flex; align-items: center; gap: 6px; }
         /* 📍 ofertas perto de si (topo do feed) */
         #perto-ofertas { display: none; align-items: center; gap: 10px; margin: 0 0 12px; padding: 11px 14px; border-radius: 14px; cursor: pointer;
             background: linear-gradient(135deg, rgba(243,198,78,.2), rgba(239,68,68,.12)); border: 1px solid rgba(243,198,78,.5); font-weight: 700; font-size: 14px; color: var(--text-main); }
@@ -745,6 +748,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
             <button type="button" data-f="guardados"><i class="fas fa-bookmark"></i> Guardados</button>
         </div>
 
+        <button type="button" id="novas-pubs" onclick="verNovasPublicacoes()"><i class="fas fa-arrow-up"></i> Novas publicações</button>
         <div id="perto-ofertas" role="button" tabindex="0" onclick="verOfertasPerto()"><span>📍</span><span id="perto-ofertas-txt"></span><span class="ir">Ver ⚡</span></div>
         <div id="feed"></div>
     </section>
@@ -898,7 +902,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     ligarTempoReal();
     abrirDoLink();
     contarOfertasPerto();
-    setInterval(() => { carregarPosts(); carregarStories(); contarOfertasPerto(); }, 5 * 60 * 1000);
+    // de 5 em 5 min só com a página à vista (com o telemóvel no bolso não gasta nada)
+    setInterval(() => { if (document.visibilityState === 'visible') { carregarPosts(); carregarStories(); } }, 5 * 60 * 1000);
 });
 
 function renderTudo() { renderPosts(); renderStories(); }
@@ -915,8 +920,23 @@ function abrirDoLink() {
         else avisoPagina('Este status já não está disponível (os status duram 48 horas).');
     } else {
         if (posts.some(x => x.id === pid)) scrollToPost(pid);
-        else avisoPagina('Esta publicação já saiu do feed. As fotos continuam no perfil, em Média.');
+        else abrirPublicacaoFora(pid);
     }
+}
+
+// publicação que não está entre as 60 carregadas (com muita gente, há milhares por dia):
+// vai buscá-la sozinha e põe-na no topo
+async function abrirPublicacaoFora(pid) {
+    const { data } = await supabaseClient.from('posts')
+        .select(`id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
+                 autor:perfis!posts_user_id_fkey(id, full_name, avatar_url, type, city, province), meu:likes(reaction)`)
+        .eq('id', pid).eq('meu.user_id', currentUser.id).maybeSingle();
+    if (!data || new Date(data.created_at).getTime() < Date.now() - TEMPO_VIDA_POST) {
+        avisoPagina('Esta publicação já saiu do feed. As fotos continuam no perfil, em Média.'); return;
+    }
+    const p = mapearPost(data);
+    if (!posts.some(x => x.id === p.id)) { posts.unshift(p); renderPosts(); }
+    scrollToPost(pid);
 }
 
 function avisoPagina(t) {
@@ -962,12 +982,12 @@ async function carregarPosts() {
     const prov = (FC.me && FC.me.province) || '';
     if (perto && !prov) { posts = []; renderPosts(); return; }
     if (filtro === 'guardados' && !guardados.size) { posts = []; renderPosts(); return; }
-    const campos = `id, content, media, image_url, created_at, user_id${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
+    // leve: só os números de gostos/comentários e a MINHA reação (antes vinham todos os gostos e
+    // todos os comentários de 60 publicações — ~280 kB por carga; agora ~25 kB)
+    const campos = `id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
                  autor:perfis!posts_user_id_fkey${perto ? '!inner' : ''}(id, full_name, avatar_url, type, city, province),
-                 likes(user_id, reaction),
-                 comments(id, content, created_at, parent_id, user_id,
-                          autor:perfis!comments_user_id_fkey(full_name, avatar_url))`;
-    let q = supabaseClient.from('posts').select(campos).gte('created_at', desde());
+                 meu:likes(reaction)`;
+    let q = supabaseClient.from('posts').select(campos).gte('created_at', desde()).eq('meu.user_id', currentUser.id);
     if (perto) q = q.eq('autor.province', prov);
     if (filtro === 'ofertas') q = q.gt('oferta_ate', new Date().toISOString());
     if (filtro === 'guardados') q = q.in('id', [...guardados]);
@@ -983,7 +1003,13 @@ async function carregarPosts() {
         }
         console.error('Erro ao carregar posts:', error.message); return;
     }
-    let lista = (data || []).map(mapearPost);
+    // comentários já abertos continuam carregados (só se pedem quando se abrem)
+    const velhos = new Map(posts.map(p => [p.id, p]));
+    let lista = (data || []).map(r => {
+        const p = mapearPost(r), v = velhos.get(p.id);
+        if (v && v.comments && p) { p.comments = v.comments; }
+        return p;
+    });
     // Perto de mim: primeiro as da minha cidade
     const cidade = ((FC.me && FC.me.city) || '').toLowerCase();
     if (perto && cidade) lista = lista.filter(Boolean).sort((a, b) => (b.cidade === cidade) - (a.cidade === cidade) || b.timestamp - a.timestamp);
@@ -1085,8 +1111,15 @@ async function guardarOfertaPost() {
 }
 
 // 📍 "3 ofertas perto de si agora" no topo de "Para si"
+function mostrarOfertasPerto(count) {
+    const el = document.getElementById('perto-ofertas'); if (!el) return;
+    if (!count || filtroFeed !== 'todos' || !((FC.me && FC.me.province) || '')) { el.classList.remove('ver'); return; }
+    document.getElementById('perto-ofertas-txt').textContent = count + ' ' + FC.t(count === 1 ? 'oferta perto de si agora' : 'ofertas perto de si agora');
+    el.classList.add('ver');
+}
 async function contarOfertasPerto() {
     const el = document.getElementById('perto-ofertas'); if (!el) return;
+    if (FC._estadoLigado && FC._estadoOk !== false) { if (FC.estado) mostrarOfertasPerto(FC.estado.ofertas_perto); return; }   // vem no pedido único
     const prov = (FC.me && FC.me.province) || '';
     if (!prov || !temOfertas || filtroFeed !== 'todos') { el.classList.remove('ver'); return; }
     const { count, error } = await supabaseClient.from('posts')
@@ -1109,7 +1142,7 @@ function mapearPost(r) {
     let media = Array.isArray(r.media) ? r.media : [];
     if (media.length === 0 && r.image_url) media = [{ url: r.image_url, type: 'image' }];
     const likes = r.likes || [];
-    const meu = likes.find(l => l.user_id === currentUser.id);
+    const meu = (r.meu && r.meu[0]) || likes.find(l => l.user_id === currentUser.id);
     const nome = (r.autor && r.autor.full_name) || 'Utilizador';
     return {
         id: r.id,
@@ -1120,7 +1153,7 @@ function mapearPost(r) {
         text: r.content || '',
         media,
         timestamp: new Date(r.created_at).getTime(),
-        reactCount: likes.length,
+        reactCount: r.curtidas_count != null ? Number(r.curtidas_count) : likes.length,
         reactType: meu ? meu.reaction : 'Curtir',
         myReaction: meu ? meu.reaction : null,
         guardado: guardados.has(r.id),
@@ -1129,7 +1162,8 @@ function mapearPost(r) {
         ofertaPreco: r.oferta_preco != null ? Number(r.oferta_preco) : null,
         ofertaAntes: r.oferta_preco_antigo != null ? Number(r.oferta_preco_antigo) : null,
         ofertaAte: r.oferta_ate || null,
-        comments: arvoreComentarios(r.comments || [])
+        comentariosCount: r.comentarios_count != null ? Number(r.comentarios_count) : (r.comments || []).length,
+        comments: r.comments ? arvoreComentarios(r.comments) : null      // null = ainda não carregados
     };
 }
 
@@ -1174,16 +1208,32 @@ async function carregarStories() {
 }
 
 // novas publicações, gostos e comentários aparecem sozinhos
+// Publicações novas: em vez de recarregar o feed a cada gosto/comentário de QUALQUER pessoa
+// (com muita gente, rebentava o servidor), o pedido "estado_agora" diz se há publicações novas
+// e aparece o botão "↑ Novas publicações". Quem toca, vê.
 function ligarTempoReal() {
-    let t1, t2;
-    const recarregarPosts = () => { clearTimeout(t1); t1 = setTimeout(carregarPosts, 600); };
-    const recarregarStories = () => { clearTimeout(t2); t2 = setTimeout(carregarStories, 600); };
-    supabaseClient.channel('feed')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, recarregarPosts)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, recarregarPosts)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, recarregarPosts)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, recarregarStories)
-        .subscribe();
+    document.addEventListener('fc:estado', e => {
+        const u = e.detail && Number(e.detail.ultimo_post);
+        const maior = posts.reduce((m, p) => Math.max(m, p.id), 0);
+        const b = document.getElementById('novas-pubs');
+        if (b) b.classList.toggle('ver', !!(u && maior && u > maior && filtroFeed === 'todos'));
+        if (e.detail && typeof e.detail.ofertas_perto === 'number') mostrarOfertasPerto(e.detail.ofertas_perto);
+    });
+    document.addEventListener('fc:estado-falhou', () => {
+        contarOfertasPerto();
+        let t1, t2;
+        const recarregarPosts = () => { clearTimeout(t1); t1 = setTimeout(carregarPosts, 600); };
+        const recarregarStories = () => { clearTimeout(t2); t2 = setTimeout(carregarStories, 600); };
+        supabaseClient.channel('feed')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, recarregarPosts)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'stories' }, recarregarStories)
+            .subscribe();
+    }, { once: true });
+}
+async function verNovasPublicacoes() {
+    const b = document.getElementById('novas-pubs'); if (b) b.classList.remove('ver');
+    await carregarPosts();
+    window.scrollTo({ top: document.getElementById('feed-filtros').offsetTop - 70, behavior: 'smooth' });
 }
 
 // ─────────────────────────────────────
@@ -1705,6 +1755,7 @@ function comentariosLb() {
     const el = id != null && document.getElementById('comm-' + id);
     if (!el) return;
     el.style.display = 'block';
+    const p = posts.find(x => x.id === id); if (p && !p.comments) carregarComentarios(id);
     setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
 }
 function partilharLb() {
@@ -1961,6 +2012,7 @@ function renderPostCard(p, isMe) {
 function donoDoPost(postId) { const p = posts.find(x => x.id === postId); return !!(p && p.userId === currentUser.id); }
 
 function renderComments(comments, postId) {
+    if (!comments) return '<div class="com-a-carregar" style="padding:8px 0;font-size:13px;color:var(--text-secondary)"><i class="fas fa-spinner fa-spin"></i> A carregar comentários…</div>';
     return comments.map(c => `
         <div class="comment-item">
             <div class="comment-avatar"><img src="${FC.u(c.userAvatar)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><i class="fas fa-user" style="font-size:11px;display:none"></i></div>
@@ -2018,7 +2070,7 @@ function htmlAcoes(p) {
                 </div>
             </div>
             <div class="btn-action" onclick="toggleComments(${p.id})" title="Comentar">
-                <i class="fas fa-comment"></i> <span class="rot">Comentar</span> <span>(${countComments(p.comments)})</span>
+                <i class="fas fa-comment"></i> <span class="rot">Comentar</span> <span>(${p.comments ? countComments(p.comments) : (p.comentariosCount || 0)})</span>
             </div>
             <div class="btn-action" onclick="responderNoChat(${p.id})" title="Responder por mensagem">
                 <i class="fas fa-paper-plane"></i> <span class="rot">Responder</span>
@@ -2101,13 +2153,31 @@ async function setReact(id, type) {
 function toggleComments(id) {
     const el = document.getElementById(`comm-${id}`);
     el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    const p = posts.find(x => x.id === id);
+    if (el.style.display === 'block' && p && !p.comments) carregarComentarios(id);
+}
+
+// comentários de UMA publicação (só quando se abrem)
+async function carregarComentarios(postId) {
+    const { data, error } = await supabaseClient.from('comments')
+        .select('id, content, created_at, parent_id, user_id, autor:perfis!comments_user_id_fkey(full_name, avatar_url)')
+        .eq('post_id', postId).order('created_at', { ascending: true }).limit(300);
+    const p = posts.find(x => x.id === postId);
+    if (!p) return;
+    if (error) { const l = document.getElementById('comment-list-' + postId); if (l) l.innerHTML = '<div style="padding:8px 0;font-size:13px;color:var(--text-secondary)">Não foi possível carregar. Toque em Comentar outra vez.</div>'; p.comments = null; return; }
+    p.comments = arvoreComentarios(data || []);
+    p.comentariosCount = (data || []).length;
+    atualizarAcoesPost(p);
+    const lista = document.getElementById('comment-list-' + postId);
+    if (lista) { const h = renderComments(p.comments, postId); lista.innerHTML = h; lista.dataset.h = h; }
+    if (window.FC && FC.carregarSelos) FC.carregarSelos();
 }
 
 async function gravarComentario(postId, text, parentId) {
     const { error } = await supabaseClient.from('comments')
         .insert({ post_id: postId, user_id: currentUser.id, content: text, parent_id: parentId || null });
     if (error) { alert('Não foi possível comentar: ' + FC.traduzirErro(error)); return false; }
-    await carregarPosts();
+    await carregarComentarios(postId);
     const el = document.getElementById(`comm-${postId}`);
     if (el) el.style.display = 'block';
     return true;
@@ -2140,7 +2210,8 @@ async function deleteComment(commentId) {
     if (!confirm('Apagar este comentário?')) return;
     const { error } = await supabaseClient.from('comments').delete().eq('id', commentId);
     if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
-    await carregarPosts();
+    const p = posts.find(x => x.comments && JSON.stringify(x.comments).indexOf('"id":' + commentId + ',') >= 0);
+    if (p) await carregarComentarios(p.id); else await carregarPosts();
 }
 
 // ─────────────────────────────────────
