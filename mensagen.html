@@ -609,7 +609,8 @@ window.addEventListener('click', (e) => {
         emojiPickerOpen = false;
         picker.classList.remove('show');
     }
-    closeCtx();
+    // tocar em "Reagir" (ou num emoji da reação) não pode fechar logo o que acabou de abrir
+    if (!e.target.closest('#ctxMenu, #reactPicker')) closeCtx();
 });
 
 // ─── THEME ───────────────────────────────────────────────
@@ -1177,23 +1178,25 @@ function ctxReact() {
     const picker = document.getElementById('reactPicker');
     picker.classList.add('show');
     const r = document.getElementById('ctxMenu').getBoundingClientRect();
-    picker.style.left = r.left + 'px';
-    picker.style.top  = (r.top - 55) + 'px';
+    const w = picker.offsetWidth || 290, h = picker.offsetHeight || 48;
+    picker.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    picker.style.top  = Math.max(8, r.top - h - 8) + 'px';
     closeCtx(false);
 }
 
 async function atualizarMensagem(id, campos) {
     const { data, error } = await supabaseClient.from('messages').update(campos).eq('id', id).select(CAMPOS_MSG).single();
     if (error) { showToast('Erro: ' + FC.traduzirErro(error)); return; }
-    aplicarMensagem(data);
+    if (data) aplicarMensagem(data);
 }
 
 function applyReact(emoji) {
     if (!ctxTarget) return;
-    const id = ctxTarget.msg.id;
+    const m = ctxTarget.msg;
     document.getElementById('reactPicker').classList.remove('show');
     ctxTarget = null;
-    atualizarMensagem(id, { reaction: emoji });
+    // tocar outra vez na mesma reação tira-a
+    atualizarMensagem(m.id, { reaction: m.reaction === emoji ? null : emoji });
 }
 
 function removeReaction(msgId) { atualizarMensagem(msgId, { reaction: null }); }
