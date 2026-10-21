@@ -133,6 +133,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
       <button type="button" data-aba="caixa"><i class="fas fa-inbox"></i> Caixa da Equipa <span class="cont" id="cCaixa">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
       <button type="button" data-aba="crescimento"><i class="fas fa-chart-line"></i> Crescimento</button>
+      <button type="button" data-aba="erros"><i class="fas fa-bug"></i> Erros <span class="cont" id="cErros">0</span></button>
       <button type="button" data-aba="novas"><i class="fas fa-hand-holding-heart"></i> Contas novas <span class="cont" id="cNovas">0</span></button>
       <button type="button" data-aba="paradas"><i class="fas fa-store-slash"></i> Lojas paradas <span class="cont" id="cParadas">0</span></button>
       <button type="button" data-aba="contas"><i class="fas fa-users-gear"></i> Contas</button>
@@ -235,6 +236,11 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
       <div class="lista" id="listaNovas"><p class="vazio">A carregar…</p></div>
     </section>
 
+    <section id="aba-erros" style="display:none">
+      <p style="color:var(--sub);font-size:13.5px;margin:0 0 10px;line-height:1.5">Falhas que aconteceram nos aparelhos das pessoas (últimos 7 dias). O mesmo erro aparece uma só vez, com quantas vezes e a quantas pessoas aconteceu. Envie-me o texto do erro para eu corrigir; depois toque em "Já resolvi".</p>
+      <div class="lista" id="listaErros"><p class="vazio">A carregar…</p></div>
+    </section>
+
     <section id="aba-paradas" style="display:none">
       <p style="color:var(--sub);font-size:13.5px;margin:0 0 10px;line-height:1.5">Empresas que nunca publicaram, que não publicam há mais de 14 dias, ou sem foto. Uma mensagem simples a oferecer ajuda faz muitas voltarem. O botão abre a conversa com um texto pronto.</p>
       <div class="lista" id="listaParadas"><p class="vazio">A carregar…</p></div>
@@ -294,7 +300,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
   <button type="button" data-grupo="hoje" class="sel"><i class="fas fa-house"></i>Hoje</button>
   <button type="button" data-grupo="tarefas"><i class="fas fa-list-check"></i><span class="bd" id="bdTarefas"></span>Tarefas</button>
   <button type="button" data-grupo="pessoas"><i class="fas fa-users"></i><span class="bd" id="bdPessoas"></span>Pessoas</button>
-  <button type="button" data-grupo="numeros" data-so-admin><i class="fas fa-chart-line"></i>Números</button>
+  <button type="button" data-grupo="numeros" data-so-admin><i class="fas fa-chart-line"></i><span class="bd" id="bdNumeros"></span>Números</button>
   <button type="button" data-grupo="definicoes" data-so-admin><i class="fas fa-gear"></i>Definições</button>
 </nav>
 <div id="toast" role="status"></div>
@@ -478,8 +484,8 @@ async function guardarReclamacao(id) {
 }
 
 // ─── navegação ───
-const ABAS = ['hoje', 'pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'novas', 'paradas', 'contas', 'recibos'];
-const GRUPOS = { hoje: ['hoje'], tarefas: ['pagamentos', 'caixa', 'reclamacoes'], pessoas: ['novas', 'paradas', 'contas'], numeros: ['crescimento'], definicoes: ['recibos'] };
+const ABAS = ['hoje', 'pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'erros', 'novas', 'paradas', 'contas', 'recibos'];
+const GRUPOS = { hoje: ['hoje'], tarefas: ['pagamentos', 'caixa', 'reclamacoes'], pessoas: ['novas', 'paradas', 'contas'], numeros: ['crescimento', 'erros'], definicoes: ['recibos'] };
 const grupoDe = aba => Object.keys(GRUPOS).find(g => GRUPOS[g].includes(aba));
 const ultimaAba = {};
 function abrirAba(aba, semCarregar) {
@@ -496,6 +502,7 @@ function abrirAba(aba, semCarregar) {
   if (aba === 'caixa') carregarCaixa();
   if (aba === 'novas') carregarNovas();
   if (aba === 'paradas') carregarParadas();
+  if (aba === 'erros') carregarErros();
   if (aba === 'contas' && !contas.length) carregarContas();
   if (aba === 'recibos') { carregarDadosRecibo(); carregarAssinatura(); }
 }
@@ -525,6 +532,7 @@ function atualizarHoje() {
   porV('olaSub', pend ? (pend === 1 ? '1 coisa à sua espera' : pend + ' coisas à sua espera') : 'Nada à sua espera agora');
   const bd = (id, v) => { $(id).textContent = v > 99 ? '99+' : v; $(id).style.display = v ? 'block' : 'none'; };
   bd('bdTarefas', tarefas); bd('bdPessoas', pessoas);
+  if ($('bdNumeros')) bd('bdNumeros', SOU_AJUDANTE ? 0 : n('cErros'));
 }
 new MutationObserver(atualizarHoje).observe($('conteudo'), { subtree: true, childList: true, characterData: true });
 
@@ -688,6 +696,45 @@ document.querySelectorAll('#filtrosNovas [data-n]').forEach(b => b.onclick = () 
   document.querySelectorAll('#filtrosNovas [data-n]').forEach(x => x.classList.toggle('sel', x === b));
   diasNovas = Number(b.dataset.n); carregarNovas();
 });
+
+// ─── Erros nos aparelhos das pessoas ───
+let erros = [];
+const haQuanto = d => { const m = Math.round((Date.now() - new Date(d)) / 6e4); return m < 60 ? 'há ' + Math.max(1, m) + ' min' : m < 1440 ? 'há ' + Math.round(m / 60) + ' h' : 'há ' + Math.round(m / 1440) + ' d'; };
+async function carregarErros(silencioso) {
+  if (!silencioso) $('listaErros').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.rpc('admin_erros', { p_dias: 7 });
+  if (error) { if (!silencioso) $('listaErros').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 047).</p>'; return; }
+  erros = data || [];
+  $('cErros').textContent = erros.filter(x => Date.now() - new Date(x.ultimo) < 864e5).length;   // novos nas últimas 24 h
+  if (silencioso) return;
+  if (!erros.length) { $('listaErros').innerHTML = '<p class="vazio">🎉 Nenhum erro nos últimos 7 dias.</p>'; return; }
+  $('listaErros').innerHTML = erros.map((x, i) =>
+    '<article class="reg">' +
+      '<div class="cab"><b style="font-family:ui-monospace,monospace;font-size:13.5px;word-break:break-word;white-space:normal">' + esc(x.mensagem) + '</b>' +
+        '<span class="estado-conta ' + (Date.now() - new Date(x.ultimo) < 864e5 ? 'susp' : 'ok') + '">' + haQuanto(x.ultimo) + '</span></div>' +
+      '<div class="det">' +
+        '<div><span>Página</span><b>' + esc(x.pagina || '—') + '</b></div>' +
+        '<div><span>Aconteceu</span><b>' + x.vezes + (x.vezes == 1 ? ' vez' : ' vezes') + ' · ' + x.pessoas + (x.pessoas === 1 ? ' pessoa' : ' pessoas') + '</b></div>' +
+        '<div><span>Último aparelho</span><b>' + esc(aparelhoDe(x.aparelho)) + '</b></div>' +
+        '<div><span>Versão do site</span><b>' + esc(x.versao || '—') + '</b></div>' +
+      '</div>' +
+      (x.fonte || x.pilha ? '<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--sub);font-size:13px">Detalhes técnicos</summary><div class="msg" style="font-family:ui-monospace,monospace;font-size:12px">' +
+        esc((x.fonte ? x.fonte + (x.linha ? ':' + x.linha : '') + '\n' : '') + (x.pilha || '')) + '</div></details>' : '') +
+      '<div class="conta-acoes"><button type="button" class="btn btn-sec" data-copiar="' + i + '"><i class="fas fa-copy"></i> Copiar</button>' +
+        '<button type="button" class="btn btn-ok" data-resolvido="' + i + '"><i class="fas fa-check"></i> Já resolvi</button></div>' +
+    '</article>').join('');
+  document.querySelectorAll('#listaErros [data-copiar]').forEach(b => b.onclick = () => {
+    const x = erros[b.dataset.copiar];
+    const t = 'Erro: ' + x.mensagem + '\nPágina: ' + x.pagina + '\nVezes: ' + x.vezes + ' (' + x.pessoas + ' pessoas)\nAparelho: ' + aparelhoDe(x.aparelho) + '\nVersão: ' + (x.versao || '') + (x.fonte ? '\nOnde: ' + x.fonte + ':' + (x.linha || '') : '') + (x.pilha ? '\n' + x.pilha : '');
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('📋 Copiado. Cole na conversa comigo.'), () => toast('Não foi possível copiar.'));
+  });
+  document.querySelectorAll('#listaErros [data-resolvido]').forEach(b => b.onclick = async () => {
+    const x = erros[b.dataset.resolvido];
+    const { error: e } = await supabaseClient.rpc('admin_erro_resolvido', { p_chave: x.chave });
+    if (e) { toast('❌ ' + esc(e.message)); return; }
+    toast('✅ Marcado como resolvido.'); carregarErros();
+  });
+}
 
 // ─── Lojas paradas ───
 const diasDesde = d => Math.max(0, Math.floor((Date.now() - new Date(d)) / 864e5));
@@ -1026,7 +1073,7 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
   }
   $('intro').textContent = 'Gestão da Feira Comercial: pagamentos, conversas da Equipa, reclamações e contas.';
   abrirAba('hoje');
-  carregarPagamentos(); carregarReclamacoes(); carregarAtivas(); carregarParadas(true);
+  carregarPagamentos(); carregarReclamacoes(); carregarAtivas(); carregarParadas(true); carregarErros(true);
   supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
   carregarCaixa(true);
   setInterval(() => { if (!document.hidden && !cxAberta) carregarCaixa(true); }, 30000);
