@@ -5,12 +5,16 @@
 const SUPABASE_URL = 'https://bljnkwrhqnpawclybqrw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_qvUvtBjpAKtMevafHRJe8g_W-aUkOb0';
 
+let FC_registarErro = null;
+
 /* Sessão expirada (telemóvel adormecido, relógio do aparelho errado): se o servidor responder 401,
    renova a sessão uma vez e repete o pedido, em vez de mostrar erros ou um feed vazio. */
 let _renovar = null;
 async function _fetchComRenovacao(url, init) {
   const r = await fetch(url, init);
   const u = String(url && url.url || url);
+  if (r.status >= 500 && u.indexOf('registar_erro') < 0 && typeof FC_registarErro === 'function')
+    FC_registarErro('Servidor ' + r.status + ': ' + u.replace(/^https?:\/\/[^/]+/, '').replace(/\?.*$/, ''));
   if (r.status !== 401 || u.indexOf('/auth/v1/') >= 0 || !window.supabaseClient) return r;
   try {
     const h = new Headers((init && init.headers) || {});
@@ -25,6 +29,35 @@ async function _fetchComRenovacao(url, init) {
 }
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: _fetchComRenovacao } });
 window.supabaseClient = supabaseClient;
+
+/* Aviso automático de erros: quando algo falha no aparelho de alguém, fica registado
+   (página, erro, aparelho) para a equipa corrigir. Não envia nada escrito pelas pessoas.
+   Máximo 5 por página aberta; ignora ruído de extensões e do próprio navegador. */
+(function () {
+  let enviados = 0; const vistos = {};
+  const RUIDO = /ResizeObserver loop|^Script error\.?$|Non-Error promise rejection|AbortError|The user aborted|Load failed|NetworkError|Failed to fetch|cancelad|cancelled|extension:\/\/|chrome-extension|moz-extension|safari-extension|webkit-masked-url|play\(\) request was interrupted|NotAllowedError/i;
+  FC_registarErro = function (msg, fonte, linha, pilha) {
+    try {
+      msg = String(msg || '').slice(0, 300);
+      if (!msg || RUIDO.test(msg) || RUIDO.test(String(fonte || '')) || RUIDO.test(String(pilha || ''))) return;
+      if (enviados >= 5 || vistos[msg]) return;
+      vistos[msg] = 1; enviados++;
+      let versao = ''; try { versao = localStorage.getItem('fc_versao') || ''; } catch (e) {}
+      supabaseClient.rpc('registar_erro', {
+        p_pagina: location.pathname, p_mensagem: msg, p_fonte: fonte ? String(fonte) : null, p_linha: linha || null,
+        p_pilha: pilha ? String(pilha).slice(0, 1500) : null, p_aparelho: navigator.userAgent.slice(0, 200), p_versao: versao
+      }).then(() => {}, () => {});
+    } catch (e) {}
+  };
+  window.addEventListener('error', function (ev) {
+    if (ev && ev.target && ev.target !== window && !ev.message) return;   // imagem/vídeo que não carregou: não é erro do código
+    FC_registarErro(ev.message || (ev.error && ev.error.message), ev.filename, ev.lineno, ev.error && ev.error.stack);
+  });
+  window.addEventListener('unhandledrejection', function (ev) {
+    const r = ev && ev.reason;
+    FC_registarErro('Promessa: ' + ((r && (r.message || r.error_description)) || String(r)), null, null, r && r.stack);
+  });
+})();
 
 window.FC = window.FC || {};
 
