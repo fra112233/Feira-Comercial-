@@ -20,6 +20,7 @@
 <script src="perfil-campos.js"></script>
 <script src="perfil-tipos.js"></script>
 <script src="perfil-extra.js"></script>
+<script src="verificar.js"></script>
 <script src="menu.js"></script>
 
     <style>
@@ -1710,6 +1711,7 @@
             }
             if (modoVisita) verificarSeSigo();
             if (window.FCX && perfilAtual) FCX.iniciar(perfilAtual);
+            if (!modoVisita && window.FCVerificar && perfilAtual) FCVerificar.iniciar(perfilAtual);
             if (modoVisita && profile && profile.type === 'empresa' && FC.registarEvento) FC.registarEvento(alvoId, 'perfil');
         } catch (err) {
             console.warn('Não foi possível carregar o perfil:', err);

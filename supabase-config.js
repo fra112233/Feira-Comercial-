@@ -759,15 +759,17 @@ FC.convitePush = function () {
 /* ---------- Selos oficiais (Administrador / Equipa Feira Comercial) ----------
    Qualquer elemento com data-selo="<id do perfil>" recebe o selo, se a conta for oficial. */
 FC._selos = new Map();
+FC._selosDesde = new Map();
 FC.carregarSelos = async function () {
   try {
     const c = sessionStorage.getItem('fc_selos');
-    if (c) JSON.parse(c).forEach(r => FC._selos.set(r.id, r.selo));
+    if (c) JSON.parse(c).forEach(r => { FC._selos.set(r.id, r.selo); if (r.desde) FC._selosDesde.set(r.id, r.desde); });
   } catch (e) {}
   FC.aplicarSelos();
   const { data, error } = await supabaseClient.rpc('selos');
   if (error || !data) return;
   FC._selos = new Map(data.map(r => [r.id, r.selo]));
+  FC._selosDesde = new Map(data.filter(r => r.desde).map(r => [r.id, r.desde]));
   try { sessionStorage.setItem('fc_selos', JSON.stringify(data)); } catch (e) {}
   FC.aplicarSelos();
   document.dispatchEvent(new CustomEvent('fc:selos'));
@@ -775,11 +777,13 @@ FC.carregarSelos = async function () {
 FC.seloHtml = function (id) {
   const s = FC._selos.get(id);
   if (!s) return '';
+  // loja verificada: coroa dourada 👑 (toque para saber o que significa)
+  if (s === 'verificada') return '<span class="fc-coroa" role="img" aria-label="' + FC.t('Loja verificada') + '" title="' + FC.t('Loja verificada') + '"><svg viewBox="0 0 24 20" width="1em" height="0.84em" aria-hidden="true"><path fill="currentColor" d="M2 6.5l5.2 4.2L12 2l4.8 8.7L22 6.5 20 17H4L2 6.5z"/><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor"/></svg></span>';
   return '<span class="fc-selo" title="Conta oficial — ' + s + '"><i class="fas fa-circle-check"></i> ' + s + '</span>';
 };
 FC.aplicarSelos = function (raiz) {
   (raiz || document).querySelectorAll('[data-selo]').forEach(el => {
-    const id = el.getAttribute('data-selo'), atual = el.querySelector(':scope > .fc-selo');
+    const id = el.getAttribute('data-selo'), atual = el.querySelector(':scope > .fc-selo, :scope > .fc-coroa');
     if (atual && atual.dataset.de === id) return;
     if (atual) atual.remove();
     const h = FC.seloHtml(id); if (!h) return;
@@ -789,7 +793,26 @@ FC.aplicarSelos = function (raiz) {
 };
 (function () {
   const css = document.createElement('style');
-  css.textContent = '.fc-selo{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font:700 11px/1.4 Inter,"Segoe UI",system-ui,sans-serif;vertical-align:middle;white-space:nowrap;letter-spacing:.1px}.fc-selo i{font-size:11px}';
+  css.textContent = '.fc-selo{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font:700 11px/1.4 Inter,"Segoe UI",system-ui,sans-serif;vertical-align:middle;white-space:nowrap;letter-spacing:.1px}.fc-selo i{font-size:11px}' +
+    '.fc-coroa{display:inline-flex;align-items:center;margin-left:5px;color:#f3c64e;font-size:.95em;vertical-align:baseline;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}' +
+    '#fc-coroa-info{position:fixed;z-index:9000;max-width:260px;background:#18181b;color:#f4f4f5;border:1px solid rgba(243,198,78,.5);border-radius:12px;padding:10px 12px;font:500 13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.45)}' +
+    '#fc-coroa-info b{color:#f3c64e;display:block;margin-bottom:2px}';
+  // toque na coroa → explica o que é (sem abrir o perfil por baixo)
+  document.addEventListener('click', function (ev) {
+    const c = ev.target.closest && ev.target.closest('.fc-coroa');
+    const velho = document.getElementById('fc-coroa-info'); if (velho) velho.remove();
+    if (!c) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const id = c.dataset.de, desde = FC._selosDesde.get(id);
+    let quando = ''; try { if (desde) quando = new Date(desde).toLocaleDateString((window.FCI18N && FCI18N.lang) === 'en' ? 'en-GB' : 'pt-PT', { month: 'long', year: 'numeric' }); } catch (e) {}
+    const d = document.createElement('div'); d.id = 'fc-coroa-info';
+    d.innerHTML = '<b>👑 ' + FC.t('Loja verificada') + '</b>' + FC.t('A Equipa Feira Comercial confirmou que esta loja é real.') + (quando ? ' (' + quando + ')' : '');
+    document.body.appendChild(d);
+    const r = c.getBoundingClientRect();
+    d.style.left = Math.max(8, Math.min(innerWidth - d.offsetWidth - 8, r.left - 20)) + 'px';
+    d.style.top = (r.bottom + 8 + d.offsetHeight > innerHeight ? r.top - d.offsetHeight - 8 : r.bottom + 8) + 'px';
+    setTimeout(() => { if (d.isConnected) d.remove(); }, 5000);
+  }, true);
   document.head.appendChild(css);
   let pendente = false;
   new MutationObserver(() => { if (pendente || !FC._selos.size) return; pendente = true; requestAnimationFrame(() => { pendente = false; FC.aplicarSelos(); }); })
