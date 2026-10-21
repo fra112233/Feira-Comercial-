@@ -245,13 +245,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
 /* Reply bar above footer */
 .reply-bar {
-    display: none; background: var(--bg-header); padding: 8px 16px;
-    border-left: 4px solid var(--green); align-items: center; gap: 10px;
+    display: none; background: linear-gradient(90deg, rgba(245,166,35,.22), rgba(245,166,35,.08)), var(--bg-header); padding: 8px 16px;
+    border-left: 4px solid #f5a623; border-top: 1px solid rgba(245,166,35,.35); align-items: center; gap: 10px;
     flex-shrink: 0; position: relative;
 }
 .reply-bar.show { display: flex; }
 .reply-bar-info { flex: 1; min-width: 0; }
-.reply-bar-name { font-size: 12px; font-weight: 700; color: var(--green); }
+.reply-bar-name { font-size: 12px; font-weight: 700; color: #f5a623; }
 .reply-bar-text { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
 .reply-bar-close { cursor: pointer; color: var(--text-secondary); font-size: 18px; }
 
