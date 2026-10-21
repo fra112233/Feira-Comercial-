@@ -1180,7 +1180,9 @@ FC.verVideo = function (url) {
 
 /* Denunciar um comentário ofensivo: abre o Livro de Reclamações já preenchido
    (a equipa vê o comentário, quem o escreveu e o link da publicação/vídeo). */
-FC.denunciarComentario = function (autor, texto, link) {
+FC.denunciarComentario = function (autor, texto, link, id, tipo) {
+  // o número do comentário vai no link, para a Equipa o poder esconder diretamente
+  if (id) link = (link || location.href) + ((link || location.href).indexOf('?') >= 0 ? '&' : '?') + (tipo === 'video' ? 'vcom=' : 'com=') + encodeURIComponent(id);
   const t = String(texto || '').replace(/\s+/g, ' ').slice(0, 90);
   const assunto = 'Denúncia de comentário de ' + String(autor || 'utilizador').slice(0, 40) + ': "' + t + (String(texto || '').length > 90 ? '…' : '') + '"';
   location.href = 'reclamacao.html?tipo=denuncia&assunto=' + encodeURIComponent(assunto.slice(0, 150)) + '&link=' + encodeURIComponent(link || location.href);

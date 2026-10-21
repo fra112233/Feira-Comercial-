@@ -134,6 +134,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
       <button type="button" data-aba="crescimento"><i class="fas fa-chart-line"></i> Crescimento</button>
       <button type="button" data-aba="novas"><i class="fas fa-hand-holding-heart"></i> Contas novas <span class="cont" id="cNovas">0</span></button>
+      <button type="button" data-aba="paradas"><i class="fas fa-store-slash"></i> Lojas paradas <span class="cont" id="cParadas">0</span></button>
       <button type="button" data-aba="contas"><i class="fas fa-users-gear"></i> Contas</button>
       <button type="button" data-aba="recibos"><i class="fas fa-receipt"></i> Dados dos recibos</button>
     </div>
@@ -145,6 +146,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
         <button type="button" class="hc" data-ir="pagamentos" data-so-admin><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(243,198,78,.18);color:var(--ouro)"><i class="fas fa-credit-card"></i></div><b id="nPendentes">0</b><span>Pagamentos por confirmar</span></button>
         <button type="button" class="hc" data-ir="caixa"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(96,165,250,.16);color:#93c5fd"><i class="fas fa-inbox"></i></div><b id="hCaixa">0</b><span>Mensagens na Caixa</span></button>
         <button type="button" class="hc" data-ir="reclamacoes"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(248,113,113,.16);color:#fca5a5"><i class="fas fa-flag"></i></div><b id="nRecl">0</b><span>Reclamações por tratar</span></button>
+        <button type="button" class="hc" data-ir="paradas"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(192,132,252,.16);color:#d8b4fe"><i class="fas fa-store-slash"></i></div><b id="hParadas">0</b><span>Lojas paradas para contactar</span></button>
         <button type="button" class="hc" data-ir="novas"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(74,222,128,.14);color:#86efac"><i class="fas fa-hand"></i></div><b id="hNovas">0</b><span>Contas novas para cumprimentar</span></button>
       </div>
       <div class="tudo-dia" id="tudoDia">Tudo em dia ✅</div>
@@ -231,6 +233,11 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
       </div>
       <p style="color:var(--sub);font-size:13.5px;margin:0 0 10px;line-height:1.5">Quem chegou há pouco. Uma mensagem pessoal sua faz a pessoa sentir-se bem recebida — o botão abre o chat com um texto pronto que pode mudar antes de enviar.</p>
       <div class="lista" id="listaNovas"><p class="vazio">A carregar…</p></div>
+    </section>
+
+    <section id="aba-paradas" style="display:none">
+      <p style="color:var(--sub);font-size:13.5px;margin:0 0 10px;line-height:1.5">Empresas que nunca publicaram, que não publicam há mais de 14 dias, ou sem foto. Uma mensagem simples a oferecer ajuda faz muitas voltarem. O botão abre a conversa com um texto pronto.</p>
+      <div class="lista" id="listaParadas"><p class="vazio">A carregar…</p></div>
     </section>
 
     <section id="aba-contas" style="display:none">
@@ -385,6 +392,7 @@ async function carregarReclamacoes() {
     .order('created_at', { ascending: false }).limit(300);
   if (error) { $('listaRecl').innerHTML = '<p class="vazio">Erro ao carregar: ' + esc(FC.traduzirErro(error)) + '</p>'; return; }
   reclamacoes = data || [];
+  await carregarOcultos();
   const abertas = reclamacoes.filter(r => r.estado === 'recebida' || r.estado === 'em_analise').length;
   $('nRecl').textContent = abertas; $('cRecl').textContent = abertas;
   desenharReclamacoes();
@@ -404,6 +412,7 @@ function desenharReclamacoes() {
         (r.link ? '<div><span>Link</span><b><a href="' + esc(/^https?:\/\//i.test(r.link) ? r.link : '#') + '" target="_blank" rel="noopener">abrir</a></b></div>' : '') +
       '</div>' +
       '<div class="msg">' + esc(r.mensagem) + '</div>' +
+      botaoEsconder(r) +
       '<div class="resp">' +
         '<textarea id="resp-' + r.id + '" maxlength="2000" placeholder="Resposta (a pessoa vê-a na página de reclamações)">' + esc(r.resposta || '') + '</textarea>' +
         '<div class="linha"><select id="est-' + r.id + '">' +
@@ -412,6 +421,51 @@ function desenharReclamacoes() {
         (r.respondido_em ? '<span style="color:var(--sub);font-size:12.5px">Respondida a ' + quando(r.respondido_em) + '</span>' : '') +
         '</div></div>' +
     '</article>').join('');
+}
+
+// ─── Esconder o que foi denunciado (publicação, vídeo ou comentário) ───
+const NOME_ALVO = { post: 'publicação', video: 'vídeo', comentario: 'comentário', comentario_video: 'comentário' };
+const TABELA_ALVO = { post: 'posts', video: 'videos', comentario: 'comments', comentario_video: 'video_comments' };
+let ocultos = {};   // 'post:12' → true / false (não existe = apagado)
+function alvoDe(link) {
+  try {
+    const u = new URL(link), q = u.searchParams, num = v => /^\d+$/.test(v || '') ? Number(v) : null;
+    if (num(q.get('com'))) return { tipo: 'comentario', id: num(q.get('com')) };
+    if (num(q.get('vcom'))) return { tipo: 'comentario_video', id: num(q.get('vcom')) };
+    if (/videos\.html$/.test(u.pathname) && num(q.get('v'))) return { tipo: 'video', id: num(q.get('v')) };
+    if (num(q.get('post'))) return { tipo: 'post', id: num(q.get('post')) };
+  } catch (e) {}
+  return null;
+}
+async function carregarOcultos() {
+  const por = {};
+  reclamacoes.forEach(r => { const a = r.link && alvoDe(r.link); if (a) (por[a.tipo] = por[a.tipo] || new Set()).add(a.id); });
+  ocultos = {};
+  await Promise.all(Object.keys(por).map(async t => {
+    const { data, error } = await supabaseClient.from(TABELA_ALVO[t]).select('id,oculto').in('id', [...por[t]]);
+    if (error) { [...por[t]].forEach(id => ocultos[t + ':' + id] = 'erro'); return; }
+    (data || []).forEach(x => ocultos[t + ':' + x.id] = !!x.oculto);
+  }));
+}
+function botaoEsconder(r) {
+  const a = r.link && alvoDe(r.link); if (!a) return '';
+  const k = a.tipo + ':' + a.id, est = ocultos[k], nome = NOME_ALVO[a.tipo];
+  if (est === 'erro') return '';
+  if (est === undefined) return '<div class="nota">🗑️ ' + (nome === 'publicação' ? 'Esta publicação já foi apagada.' : 'Este ' + nome + ' já foi apagado.') + '</div>';
+  return '<div class="acoes" style="margin-top:10px">' + (est
+    ? '<span class="tag t-arquivada" style="align-self:center">🙈 ' + nome[0].toUpperCase() + nome.slice(1) + ' escondid' + (nome === 'publicação' ? 'a' : 'o') + '</span>' +
+      '<button type="button" class="btn btn-sec" onclick="esconder(\'' + a.tipo + '\',' + a.id + ',false)"><i class="fas fa-eye"></i> Mostrar de novo</button>'
+    : '<button type="button" class="btn btn-nao" onclick="esconder(\'' + a.tipo + '\',' + a.id + ',true)"><i class="fas fa-eye-slash"></i> Esconder ' + nome + '</button>') +
+    '</div>';
+}
+async function esconder(tipo, id, sim) {
+  const nome = NOME_ALVO[tipo];
+  if (sim && !confirm('Esconder ' + (nome === 'publicação' ? 'esta ' : 'este ') + nome + '?\n\nOs outros deixam de ver. O dono recebe uma mensagem da Equipa a explicar. Pode desfazer depois.')) return;
+  const { error } = await supabaseClient.rpc('suporte_esconder', { p_tipo: tipo, p_id: id, p_sim: sim, p_motivo: 'denúncia' });
+  if (error) { toast('❌ ' + esc(FC.traduzirErro ? FC.traduzirErro(error) : error.message)); return; }
+  ocultos[tipo + ':' + id] = sim;
+  toast(sim ? '🙈 Escondido. O dono foi avisado.' : '👁️ Voltou a aparecer.');
+  desenharReclamacoes();
 }
 
 async function guardarReclamacao(id) {
@@ -424,8 +478,8 @@ async function guardarReclamacao(id) {
 }
 
 // ─── navegação ───
-const ABAS = ['hoje', 'pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'novas', 'contas', 'recibos'];
-const GRUPOS = { hoje: ['hoje'], tarefas: ['pagamentos', 'caixa', 'reclamacoes'], pessoas: ['novas', 'contas'], numeros: ['crescimento'], definicoes: ['recibos'] };
+const ABAS = ['hoje', 'pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'novas', 'paradas', 'contas', 'recibos'];
+const GRUPOS = { hoje: ['hoje'], tarefas: ['pagamentos', 'caixa', 'reclamacoes'], pessoas: ['novas', 'paradas', 'contas'], numeros: ['crescimento'], definicoes: ['recibos'] };
 const grupoDe = aba => Object.keys(GRUPOS).find(g => GRUPOS[g].includes(aba));
 const ultimaAba = {};
 function abrirAba(aba, semCarregar) {
@@ -441,6 +495,7 @@ function abrirAba(aba, semCarregar) {
   if (aba === 'crescimento') carregarCrescimento();
   if (aba === 'caixa') carregarCaixa();
   if (aba === 'novas') carregarNovas();
+  if (aba === 'paradas') carregarParadas();
   if (aba === 'contas' && !contas.length) carregarContas();
   if (aba === 'recibos') { carregarDadosRecibo(); carregarAssinatura(); }
 }
@@ -457,9 +512,9 @@ document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { abrirAba
 function atualizarHoje() {
   const n = id => Number(($(id) || {}).textContent) || 0;
   const porV = (id, v) => { v = String(v); if ($(id) && $(id).textContent !== v) $(id).textContent = v; };   // só muda se for diferente (evita voltas sem fim)
-  porV('hCaixa', n('cCaixa')); porV('hNovas', n('cNovas'));
+  porV('hCaixa', n('cCaixa')); porV('hNovas', n('cNovas')); porV('hParadas', n('cParadas'));
   const pag = SOU_AJUDANTE ? 0 : n('cPag');
-  const tarefas = pag + n('cCaixa') + n('cRecl'), pessoas = n('cNovas');
+  const tarefas = pag + n('cCaixa') + n('cRecl'), pessoas = n('cNovas') + n('cParadas');
   let pend = 0;
   document.querySelectorAll('#hojeCartoes .hc').forEach(c => {
     const v = Number(c.querySelector('b').textContent) || 0;
@@ -633,6 +688,52 @@ document.querySelectorAll('#filtrosNovas [data-n]').forEach(b => b.onclick = () 
   document.querySelectorAll('#filtrosNovas [data-n]').forEach(x => x.classList.toggle('sel', x === b));
   diasNovas = Number(b.dataset.n); carregarNovas();
 });
+
+// ─── Lojas paradas ───
+const diasDesde = d => Math.max(0, Math.floor((Date.now() - new Date(d)) / 864e5));
+function textoParada(c) {
+  const nome = String(c.full_name || '').trim().split(/\s+/)[0] || '';
+  const en = c.idioma === 'en';
+  if (!c.n_pubs) return en
+    ? 'Hello' + (nome ? ' ' + nome : '') + '! 👋 We noticed you haven\'t posted anything yet. It\'s easy: take a photo of a product and tap Publish. Want us to help you step by step? Just reply here 😊\nFeira Comercial Team 💛'
+    : 'Olá' + (nome ? ' ' + nome : '') + '! 👋 Vimos que ainda não publicou nenhum produto. É simples: tire uma foto e toque em Publicar. Quer que o ajudemos passo a passo? Responda aqui 😊\nEquipa Feira Comercial 💛';
+  if (c.ultima_pub && diasDesde(c.ultima_pub) >= 14) return en
+    ? 'Hello' + (nome ? ' ' + nome : '') + '! 👋 We miss you at Feira. How about posting something new or putting a product on offer ⚡? Your customers are waiting. Need help? Just reply here.\nFeira Comercial Team 💛'
+    : 'Olá' + (nome ? ' ' + nome : '') + '! 👋 Sentimos a sua falta na Feira. Que tal publicar uma novidade ou pôr um produto em oferta ⚡? Os seus clientes estão à espera. Precisa de ajuda? Responda aqui.\nEquipa Feira Comercial 💛';
+  return en
+    ? 'Hello' + (nome ? ' ' + nome : '') + '! 👋 A tip: add your logo or a photo of your shop to your profile. Shops with a photo get many more visits. Need help? Just reply here.\nFeira Comercial Team 💛'
+    : 'Olá' + (nome ? ' ' + nome : '') + '! 👋 Uma dica: ponha o logótipo ou uma foto da loja no seu perfil. As lojas com foto recebem muito mais visitas. Precisa de ajuda? Responda aqui.\nEquipa Feira Comercial 💛';
+}
+const porContactar = c => !c.contactado_em || diasDesde(c.contactado_em) >= 14;
+async function carregarParadas(silencioso) {
+  if (!silencioso) $('listaParadas').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.rpc('suporte_lojas_paradas');
+  if (error) { if (!silencioso) $('listaParadas').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 046).</p>'; return; }
+  const lista = data || [];
+  $('cParadas').textContent = lista.filter(porContactar).length;
+  if (silencioso) return;
+  if (!lista.length) { $('listaParadas').innerHTML = '<p class="vazio">🎉 Todas as lojas estão ativas.</p>'; return; }
+  $('listaParadas').innerHTML = lista.map(c => {
+    const falta = porContactar(c);
+    const motivo = !c.n_pubs ? 'Nunca publicou' : (c.ultima_pub && diasDesde(c.ultima_pub) >= 14 ? 'Sem publicar há ' + diasDesde(c.ultima_pub) + ' dias' : 'Sem foto de perfil');
+    return '<article class="reg">' +
+      '<div class="cab"><a class="quem" href="perfil.html?id=' + esc(c.id) + '" style="color:inherit"><img src="' + esc(avatar(c)) + '" alt=""><div style="min-width:0"><b>' + esc(c.full_name || 'Sem nome') + '</b>' +
+        '<small>' + esc([c.city, c.province].filter(Boolean).join(', ') || 'sem local') + (c.idioma === 'en' ? ' · 🇬🇧 inglês' : '') + '</small></div></a>' +
+        '<span class="estado-conta ' + (falta ? 'susp' : 'ok') + '">' + (c.respondeu ? '💬 Respondeu' : falta ? 'Por contactar' : '✓ Contactada há ' + diasDesde(c.contactado_em) + ' d') + '</span></div>' +
+      '<div class="det">' +
+        '<div><span>Situação</span><b>' + motivo + (c.sem_foto && motivo !== 'Sem foto de perfil' ? ' · sem foto' : '') + '</b></div>' +
+        '<div><span>Publicações</span><b>' + c.n_pubs + '</b></div>' +
+        '<div><span>Na Feira desde</span><b>' + quando(c.criado) + '</b></div>' +
+      '</div>' +
+      '<div class="conta-acoes"><button type="button" class="btn ' + (falta ? 'btn-ok' : 'btn-sec') + '" data-px="' + esc(c.id) + '">' +
+        '<i class="fas fa-comment-dots"></i> ' + (falta ? 'Oferecer ajuda' : 'Abrir conversa') + '</button></div>' +
+    '</article>';
+  }).join('');
+  document.querySelectorAll('#listaParadas [data-px]').forEach(b => b.onclick = () => {
+    const c = lista.find(x => x.id === b.dataset.px); if (!c) return;
+    irParaCaixa(c.id, c.full_name, avatar(c), porContactar(c) ? textoParada(c) : '');
+  });
+}
 
 // ─── Contas ───
 let contas = [], filtroConta = '';
@@ -914,7 +1015,8 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
     SOU_AJUDANTE = true;
     $('intro').textContent = 'Olá ' + (String(me.full_name || '').split(' ')[0] || '') + '! Ajude as pessoas em nome da Equipa Feira Comercial.';
     document.querySelectorAll('[data-so-admin]').forEach(x => x.remove());
-    document.querySelectorAll('[data-aba]').forEach(b => { if (!['caixa', 'reclamacoes', 'novas'].includes(b.dataset.aba)) b.remove(); });
+    document.querySelectorAll('[data-aba]').forEach(b => { if (!['caixa', 'reclamacoes', 'novas', 'paradas'].includes(b.dataset.aba)) b.remove(); });
+    carregarParadas(true);
     abrirAba('hoje');
     carregarCaixa(true);
     carregarReclamacoes();
@@ -924,7 +1026,7 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
   }
   $('intro').textContent = 'Gestão da Feira Comercial: pagamentos, conversas da Equipa, reclamações e contas.';
   abrirAba('hoje');
-  carregarPagamentos(); carregarReclamacoes(); carregarAtivas();
+  carregarPagamentos(); carregarReclamacoes(); carregarAtivas(); carregarParadas(true);
   supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
   carregarCaixa(true);
   setInterval(() => { if (!document.hidden && !cxAberta) carregarCaixa(true); }, 30000);
