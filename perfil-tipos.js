@@ -145,6 +145,12 @@ function aplicarPerfil() {
            <i class="fas fa-building"></i> Empresa${p.sector ? ' · ' + e(p.sector) : ''}</span>`
       : `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--bg-tertiary);color:var(--text-secondary);font-size:12px;font-weight:700;">
            <i class="fas fa-user"></i> Pessoa</span>`;
+    // a quem visita: conta suspensa ou conta nova (sem coroa nem selo oficial) — ajuda a evitar burlas
+    const seloP = window.FC && FC._selos ? FC._selos.get(p.id) : null;
+    const pilula = (cor, fundo, txt) => ` <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:${fundo};color:${cor};font-size:12px;font-weight:700;margin-top:6px;">${txt}</span>`;
+    if (modoVisita && p.bloqueado) selo.innerHTML += pilula('#ef4444', 'rgba(239,68,68,.15)', '🚫 Conta suspensa pela Feira Comercial');
+    else if (modoVisita && !seloP && p.created_at && window.FCBurlas && FCBurlas.contaNova(p.created_at))
+      selo.innerHTML += pilula('#d97706', 'rgba(245,158,11,.15)', '🆕 ' + e(FCBurlas.frase(p.created_at)));
   }
 
   if (window.FC && FC._selos && FC._selos.has(p.id) && typeof mostrarCartaoOficial === 'function') mostrarCartaoOficial();
