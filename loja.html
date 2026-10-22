@@ -77,10 +77,10 @@ h2.sec { font-size: 18px; margin: 28px 0 12px; }
     <div class="capa"></div>
     <div class="cab">
       <img class="logo" id="logo" alt="">
-      <div style="min-width:0;padding-bottom:4px"><h1 id="nome"></h1><div id="setor" style="color:var(--sub);font-size:14px"></div></div>
+      <div style="min-width:0;padding-bottom:4px"><h1 id="nome" data-no-i18n></h1><div id="setor" style="color:var(--sub);font-size:14px"></div></div>
     </div>
     <div class="meta" id="meta"></div>
-    <p class="bio" id="bio"></p>
+    <p class="bio" id="bio" data-no-i18n></p>
 
     <div class="cta">
       <p id="ctaTxt">Para falar com esta empresa, encomendar ou segui-la, crie a sua conta grátis na Feira Comercial — leva 1 minuto.</p>
@@ -146,8 +146,8 @@ h2.sec { font-size: 18px; margin: 28px 0 12px; }
   const prods = m.produtos || [];
   $('produtos').innerHTML = prods.length ? prods.map(p =>
     '<div class="prod"><div class="f">' + (FC.u && FC.u(p.foto) ? '<img src="' + FC.u(p.foto) + '" alt="" loading="lazy">' : '<i class="fas fa-box-open"></i>') + '</div>' +
-    '<div class="t"><b>' + esc(p.nome) + '</b><div class="p">' + (p.preco != null ? Math.round(p.preco).toLocaleString('pt-PT') + ' MT' : 'Preço sob consulta') + '</div>' +
-    (p.descricao ? '<small>' + esc(p.descricao) + '</small>' : '') + '</div></div>').join('')
+    '<div class="t"><b data-no-i18n>' + esc(p.nome) + '</b><div class="p">' + (p.preco != null ? Math.round(p.preco).toLocaleString('pt-PT') + ' MT' : 'Preço sob consulta') + '</div>' +
+    (p.descricao ? '<small data-no-i18n>' + esc(p.descricao) + '</small>' : '') + '</div></div>').join('')
     : '<p class="vazio">Esta empresa ainda não tem produtos no catálogo.</p>';
 
   const fotos = (m.fotos || []).filter(u => FC.u && FC.u(u));

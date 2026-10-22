@@ -275,9 +275,9 @@ function criarSlide(v) {
       ${meu ? `<button class="acao" onclick="apagarVideo(${v.id})"><i class="fas fa-trash"></i><span>Apagar</span></button>` : ''}
     </div>
     <div class="info">
-      <a class="nome" href="${meu ? 'perfil.html' : 'perfil.html?id=' + a.id}"><span data-selo="${esc(a.id || '')}">@${esc(a.full_name || 'utilizador')}</span>
+      <a class="nome" href="${meu ? 'perfil.html' : 'perfil.html?id=' + a.id}"><span data-no-i18n data-selo="${esc(a.id || '')}">@${esc(a.full_name || 'utilizador')}</span>
         ${a.type === 'empresa' ? '<span class="selo"><i class="fas fa-building"></i> Empresa</span>' : ''}</a>
-      ${v.caption ? `<div class="legenda" onclick="this.classList.toggle('aberta')">${esc(v.caption)}</div>` : ''}
+      ${v.caption ? `<div class="legenda" data-no-i18n onclick="this.classList.toggle('aberta')">${esc(v.caption)}</div>` : ''}
       <div class="meta"><i class="fas fa-eye"></i> ${numero(v.views)} <span>${v.views == 1 ? 'visualização' : 'visualizações'}</span> · ${haQuanto(v.created_at)}
         ${!meu && a.type !== 'empresa' ? ` · <a href="mensagen.html?para=${a.id}" style="text-decoration:underline;">Enviar mensagem</a>` : ''}</div>
       ${!meu && a.type === 'empresa' ? `<div class="cta">
@@ -486,8 +486,8 @@ async function carregarComentarios() {
   lista.innerHTML = (data || []).map(c => `
     <div class="com">
       <img src="${esc(avatar(c.autor))}" alt="">
-      <div><div class="n">${esc((c.autor && c.autor.full_name) || 'Utilizador')}</div>
-        <div class="t">${esc(c.content)}</div>
+      <div><div class="n" data-no-i18n>${esc((c.autor && c.autor.full_name) || FC.t('Utilizador'))}</div>
+        <div class="t" data-no-i18n>${esc(c.content)}</div>
         <div class="q">${haQuanto(c.created_at)}${(c.user_id === me.id || (v && v.user_id === me.id)) ? `<button onclick="apagarComentario(${c.id})">Apagar</button>` : ''}${c.user_id !== me.id ? `<button title="Denunciar comentário" data-n="${esc((c.autor && c.autor.full_name) || '')}" data-t="${esc(c.content)}" onclick="FC.denunciarComentario(this.dataset.n, this.dataset.t, location.origin + '/videos.html?v=${id}', ${c.id}, 'video')"><i class="fas fa-flag"></i> Denunciar</button>` : ''}</div></div>
     </div>`).join('') || '<p style="text-align:center;color:#777;padding:30px;">Sê o primeiro a comentar.</p>';
   lista.scrollTop = lista.scrollHeight;

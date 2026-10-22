@@ -127,7 +127,7 @@
   <button class="btn" id="btnSom" onclick="ativarSom()"><i class="fas fa-volume-high"></i> Toque para ouvir</button>
   <div class="p-topo">
     <img id="pAvatar" alt="">
-    <div class="nome"><b id="pNome"></b><small id="pTitulo"></small></div>
+    <div class="nome"><b id="pNome" data-no-i18n></b><small id="pTitulo" data-no-i18n></small></div>
     <span class="selo-live">AO VIVO</span>
     <span class="contador"><i class="fas fa-eye"></i> <span id="pContador">0</span></span>
     <button class="p-btn" onclick="sairPalco()" aria-label="Sair" title="Sair"><i class="fas fa-xmark"></i></button>
@@ -186,7 +186,7 @@ async function carregarLista() {
     return '<a class="live-card' + (cheia ? ' cheia' : '') + '" href="live.html?id=' + l.id + '"><span class="selo-live">AO VIVO</span>' +
     (n !== null ? '<span class="lotacao' + (cheia ? ' cheia' : '') + '"><i class="fas fa-eye"></i> ' + (cheia ? 'Cheia · ' : '') + n + '/' + MAX_ESPECTADORES + '</span>' : '') +
     '<img class="av" src="' + esc(avatar(l.autor)) + '" alt="">' +
-    '<b>' + esc((l.autor && l.autor.full_name) || 'Empresa') + '</b><span>' + esc(l.titulo) + ' · ' + haQuanto(l.started_at) + '</span></a>';
+    '<b data-no-i18n>' + esc((l.autor && l.autor.full_name) || FC.t('Empresa')) + '</b><span><span data-no-i18n>' + esc(l.titulo) + '</span> · ' + haQuanto(l.started_at) + '</span></a>';
   }).join('');
 }
 
@@ -436,7 +436,7 @@ function liveTerminou() {
 function mostrarMsg(nome, texto, sistema) {
   const c = $('chat'), d = document.createElement('div');
   d.className = 'msg' + (sistema ? ' sistema' : '');
-  d.innerHTML = sistema ? texto : '<b>' + esc(nome) + '</b>' + esc(texto);
+  d.innerHTML = sistema ? texto : '<b data-no-i18n>' + esc(nome) + '</b><span data-no-i18n>' + esc(texto) + '</span>';
   c.appendChild(d);
   while (c.children.length > 60) c.firstChild.remove();
   c.scrollTop = c.scrollHeight;
