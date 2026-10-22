@@ -209,6 +209,7 @@ FC.signOut = async function () {
   if (FC.desativarPush) await FC.desativarPush();
   await supabaseClient.auth.signOut();
   localStorage.removeItem('fc_profile');
+  try { localStorage.removeItem('fc_feed_v2'); } catch (e) {}
   window.location.href = 'Portal.html';
 };
 
@@ -235,7 +236,8 @@ FC.loadMyProfile = async function () {
   let guardado = null;
   try {
     const c = JSON.parse(localStorage.getItem('fc_profile') || 'null');
-    if (c && c.id === session.user.id && c._em && Date.now() - c._em < 6 * 3600 * 1000) guardado = c;
+    // usa-se mesmo que seja antigo (quem não entra há dias não espera); a versão nova chega logo a seguir
+    if (c && c.id === session.user.id && c._em && Date.now() - c._em < 60 * 24 * 3600 * 1000) guardado = c;
   } catch (e) {}
   const buscar = FC.lerPerfil(session.user.id).then(({ data, error }) => {
     if (error || !data) return null;
@@ -1046,6 +1048,8 @@ FC.boot = async function (opts = {}) {
   FC.sino();
   FC.vigiarLives();
   if (me && me.bloqueado) FC.avisoSuspensa(me);
+  // o perfil guardado pode ser antigo: quando chega o atualizado, confirma a suspensão
+  document.addEventListener('fc:perfil', e => { if (e.detail && e.detail.bloqueado) FC.avisoSuspensa(e.detail); });
   // idioma: num aparelho novo segue o da conta; se a pessoa escolheu outro neste aparelho, a conta passa a usar esse
   if (me && me.idioma && window.FCI18N) {
     const aqui = FCI18N.escolhido && FCI18N.escolhido();

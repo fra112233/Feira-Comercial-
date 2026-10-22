@@ -46,6 +46,29 @@ async function guardadoOuRede(e, chave, req) {
   return rede;
 }
 
+/* Atualização do site: em vez de apagar a cópia toda, pergunta ao servidor por cada página e
+   ficheiro guardado. Os que não mudaram respondem "igual" (quase nada a descarregar); só os
+   que mudaram vêm inteiros. Pedido pelo atualizacao.js antes de recarregar. */
+const DO_SITE = /\.(html|js|css)$/i;
+async function revalidar() {
+  const cache = await caches.open(CACHE);
+  const pedidos = (await cache.keys()).filter(r => {
+    const u = new URL(r.url);
+    return u.origin === self.location.origin && (u.pathname === '/' || DO_SITE.test(u.pathname));
+  });
+  await Promise.all(pedidos.map(async r => {
+    try {
+      const resp = await fetch(r.url, { cache: 'no-cache' });
+      if (resp.ok && !resp.redirected) await cache.put(r, resp); else await cache.delete(r);
+    } catch (x) { await cache.delete(r); }
+  }));
+}
+self.addEventListener('message', e => {
+  if (!e.data || e.data.tipo !== 'fc-atualizar') return;
+  const porta = e.ports && e.ports[0];
+  e.waitUntil(revalidar().then(() => { if (porta) porta.postMessage('ok'); }, () => { if (porta) porta.postMessage('erro'); }));
+});
+
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }

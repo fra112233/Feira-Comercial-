@@ -5,12 +5,14 @@
    Uso: <script src="splash.js"></script> logo no início do <body>.
    ============================================================ */
 (function () {
+  // Só na primeira vez neste aparelho. Antes aparecia sempre que a app era reaberta e
+  // obrigava a esperar pelo menos 2,2 s — agora quem volta vê logo o feed.
   var CHAVE = 'fc_splash_visto';
-  try { if (sessionStorage.getItem(CHAVE)) return; sessionStorage.setItem(CHAVE, '1'); } catch (e) {}
+  try { if (localStorage.getItem(CHAVE)) return; localStorage.setItem(CHAVE, '1'); } catch (e) { return; }
 
   var reduzir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var MINIMO = reduzir ? 600 : 2200;   // tempo mínimo visível (ms)
-  var MAXIMO = 4500;                   // nunca fica mais do que isto
+  var MINIMO = reduzir ? 400 : 1600;   // tempo mínimo visível (ms)
+  var MAXIMO = 3000;                   // nunca fica mais do que isto
   var inicio = Date.now();
 
   var css = [
@@ -113,8 +115,9 @@
       setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
     }, falta);
   }
-  if (document.readyState === 'complete') fechar();
-  else window.addEventListener('load', fechar);
+  // fecha quando a página está pronta (não espera pelas fotos todas do feed)
+  if (document.readyState !== 'loading') fechar();
+  else document.addEventListener('DOMContentLoaded', fechar);
   setTimeout(fechar, MAXIMO);
   el.addEventListener('click', fechar);   // tocar para saltar
 })();
