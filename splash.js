@@ -5,14 +5,14 @@
    Uso: <script src="splash.js"></script> logo no início do <body>.
    ============================================================ */
 (function () {
-  // Só na primeira vez neste aparelho. Antes aparecia sempre que a app era reaberta e
-  // obrigava a esperar pelo menos 2,2 s — agora quem volta vê logo o feed.
+  // Aparece sempre que a app é aberta (uma vez por sessão). Enquanto a animação corre,
+  // o feed guardado no telemóvel já está pronto por trás.
   var CHAVE = 'fc_splash_visto';
-  try { if (localStorage.getItem(CHAVE)) return; localStorage.setItem(CHAVE, '1'); } catch (e) { return; }
+  try { if (sessionStorage.getItem(CHAVE)) return; sessionStorage.setItem(CHAVE, '1'); } catch (e) {}
 
   var reduzir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var MINIMO = reduzir ? 400 : 1600;   // tempo mínimo visível (ms)
-  var MAXIMO = 3000;                   // nunca fica mais do que isto
+  var MINIMO = reduzir ? 600 : 2200;   // tempo da animação completa (ms)
+  var MAXIMO = 4500;                   // nunca fica mais do que isto
   var inicio = Date.now();
 
   var css = [
