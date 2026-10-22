@@ -151,7 +151,7 @@ create trigger trg_travao_denuncias after insert on public.reclamacoes
   for each row execute function public.travao_denuncias();
 
 -- tirar a suspensão marca a conta como revista (as denúncias antigas deixam de contar)
-create or replace function public.admin_suspender(p_uid uuid, p_suspender boolean, p_motivo text)
+create or replace function public.admin_suspender(p_uid uuid, p_suspender boolean, p_motivo text default null)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not sou_admin() then raise exception 'só o administrador'; end if;
