@@ -138,6 +138,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .aviso-burla { margin: 4px 0 2px; max-width: 100%; padding: 7px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.4;
   background: rgba(245,158,11,.14); border: 1px solid rgba(245,158,11,.45); color: var(--text-primary); }
 .aviso-burla a { color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.aviso-burla.perigo { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.55); }
 .chat-peer-info .peer-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
 .chat-peer-info .peer-status { font-size: 12px; color: var(--green); }
 .chat-peer-info .peer-status.blocked-status { color: var(--danger); }
@@ -521,7 +522,7 @@ let replyTarget = null;        // { msgId, sender, text }
 let refPendente = null;        // publicação/status citado na próxima mensagem
 let ctxTarget = null;
 
-const CAMPOS_MSG = 'id, created_at, content, sender_id, receiver_id, file_url, media_type, file_name, file_size, reply_to, ref, reaction, deleted, read_at, cleared_by_sender, cleared_by_receiver';
+const CAMPOS_MSG = 'id, created_at, content, sender_id, receiver_id, file_url, media_type, file_name, file_size, reply_to, ref, reaction, deleted, read_at, cleared_by_sender, cleared_by_receiver, alerta';
 
 function avatarDe(p) {
     if (!p) return null;
@@ -1083,6 +1084,7 @@ async function sendMessage(text = null, mediaType = null, fileUrl = null, fileNa
         renderMessages();
         showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.'
             : /row-level security/i.test(error.message || '') ? 'Esta pessoa só recebe mensagens de quem ela segue.'
+            : /^Conta (nova|suspensa)/.test(error.message || '') ? FC.t(error.message)      // limite de contas novas / suspensa
             : 'Erro ao enviar: ' + FC.traduzirErro(error));
         if (text === null && msgText) inputEl.value = msgText;
         return;
@@ -1407,6 +1409,9 @@ function mostrarAvisoSeguranca() {
 // Aviso por baixo de uma mensagem recebida com sinais de burla
 function avisoBurla(msg) {
     if (!window.FCBurlas || msg.sender_id === ME.id || msg.deleted || !msg.content) return '';
+    // número que já foi de uma conta suspensa (a base de dados marca a mensagem): aviso vermelho, sempre
+    if (msg.alerta === 'numero_proibido')
+        return '<div class="aviso-burla perigo" role="alert">🚫 <span>' + escHtml(FC.t('Este número já foi usado por uma conta suspensa pela Feira Comercial. Não envie dinheiro.')) + '</span> <a onclick="denunciarConversa()">' + FC.t('Denunciar') + '</a></div>';
     const s = seloDe(msg.sender_id);
     if (s && s !== 'verificada') return '';          // Equipa / Administrador
     const p = perfisCache[msg.sender_id] || {};
