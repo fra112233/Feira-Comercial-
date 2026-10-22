@@ -840,7 +840,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
 // ─────────────────────────────────────
 const TEMPO_VIDA_POST = 4 * 24 * 60 * 60 * 1000;   // publicações ficam 4 dias
 const TEMPO_VIDA_STORY = 48 * 60 * 60 * 1000;      // stories (status) ficam 48 horas
-const CACHE_KEY = 'fc_feed_cache_v1';
+const CACHE_KEY = 'fc_feed_v2';
 
 let posts = [];
 let stories = [];
@@ -848,7 +848,7 @@ let tempMedia = [];
 let currentUser = { id: null, name: 'Você', avatar: null };
 
 // apagar dados antigos (fotos em base64 no navegador) — eram a causa da lentidão
-try { localStorage.removeItem('sa_posts'); localStorage.removeItem('sa_stories'); } catch (e) {}
+try { localStorage.removeItem('sa_posts'); localStorage.removeItem('sa_stories'); sessionStorage.removeItem('fc_feed_cache_v1'); } catch (e) {}
 
 // Lightbox state
 let lbImages = [], lbIndex = 0;
@@ -871,29 +871,25 @@ window.addEventListener('DOMContentLoaded', async () => {
     initSearch();
     initCompose();
 
-    // 1) mostra logo o último feed guardado (abre rápido ao voltar de outra página)
+    // 1) mostra logo o último feed guardado NO TELEMÓVEL (fica mesmo depois de fechar a app,
+    //    por isso abre rápido mesmo quem não entra há dias); os dados novos chegam logo a seguir
     try {
-        const cache = JSON.parse(sessionStorage.getItem(CACHE_KEY) || 'null');
-        if (cache) { posts = cache.posts || []; stories = cache.stories || []; renderTudo(); }
+        const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        if (cache && cache.uid && cache.uid === uidDoAparelho()) {
+            const agora = Date.now();
+            posts = (cache.posts || []).filter(p => p.timestamp > agora - TEMPO_VIDA_POST);
+            stories = (cache.stories || []).filter(s => s.timestamp > agora - TEMPO_VIDA_STORY);
+            if (posts.length || stories.length) renderTudo();
+        }
     } catch (e) {}
 
     // 2) sessão + perfil
     const me = await FC.boot();
     if (!me) return;
-    currentUser = { id: me.id, name: me.full_name || 'Você', avatar: avatarDe(me.full_name, me.avatar_url), empresa: me.type === 'empresa', equipa: FC.contaEquipa(me) };
-    const mens = FC.mensalidade(me);
-    currentUser.podePublicar = FC.podePublicar(me);
-    document.getElementById('post-compose').style.display = currentUser.podePublicar ? '' : 'none';
-    document.getElementById('dica-pessoa').style.display = (currentUser.empresa || currentUser.equipa) ? 'none' : '';
-    document.getElementById('link-mensalidade').style.display = currentUser.empresa ? '' : 'none';
-    if (currentUser.empresa && (!mens.ativa || (mens.dias !== null && mens.dias <= 5))) {
-        document.getElementById('aviso-mensalidade').style.display = '';
-        document.getElementById('aviso-mensalidade-txt').innerHTML = mens.ativa
-            ? '<b>A mensalidade termina ' + (mens.dias <= 1 ? 'amanhã' : 'em ' + mens.dias + ' dias') + '</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT por M-Pesa ou e-Mola para continuar a publicar.</span>'
-            : '<b>A mensalidade terminou</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT para não ficar sem acesso a publicações, anúncios e Live.</span>';
-    }
-    const cav = document.querySelector('.compose-avatar img');
-    if (cav) { cav.src = currentUser.avatar; cav.style.display = ''; }
+    aplicarMe(me);
+    // o perfil pode ter vindo guardado do telemóvel: quando chega o atualizado, refaz-se esta parte
+    document.addEventListener('fc:perfil', e => { if (e.detail && e.detail.id === currentUser.id) aplicarMe(e.detail); });
+
 
     // 3) dados atualizados
     // tudo ao mesmo tempo (antes: um pedido de cada vez)
@@ -909,6 +905,24 @@ window.addEventListener('DOMContentLoaded', async () => {
     // de 5 em 5 min só com a página à vista (com o telemóvel no bolso não gasta nada)
     setInterval(() => { if (document.visibilityState === 'visible') { carregarPosts(); carregarStories(); } }, 5 * 60 * 1000);
 });
+
+function aplicarMe(me) {
+    currentUser = { id: me.id, name: me.full_name || 'Você', avatar: avatarDe(me.full_name, me.avatar_url), empresa: me.type === 'empresa', equipa: FC.contaEquipa(me) };
+    const mens = FC.mensalidade(me);
+    currentUser.podePublicar = FC.podePublicar(me);
+    document.getElementById('post-compose').style.display = currentUser.podePublicar ? '' : 'none';
+    document.getElementById('dica-pessoa').style.display = (currentUser.empresa || currentUser.equipa) ? 'none' : '';
+    document.getElementById('link-mensalidade').style.display = currentUser.empresa ? '' : 'none';
+    const aviso = currentUser.empresa && (!mens.ativa || (mens.dias !== null && mens.dias <= 5));
+    document.getElementById('aviso-mensalidade').style.display = aviso ? '' : 'none';
+    if (aviso) {
+        document.getElementById('aviso-mensalidade-txt').innerHTML = mens.ativa
+            ? '<b>A mensalidade termina ' + (mens.dias <= 1 ? 'amanhã' : 'em ' + mens.dias + ' dias') + '</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT por M-Pesa ou e-Mola para continuar a publicar.</span>'
+            : '<b>A mensalidade terminou</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT para não ficar sem acesso a publicações, anúncios e Live.</span>';
+    }
+    const cav = document.querySelector('.compose-avatar img');
+    if (cav) { cav.src = currentUser.avatar; cav.style.display = ''; }
+}
 
 function renderTudo() { renderPosts(); renderStories(); }
 
@@ -954,8 +968,18 @@ function avisoPagina(t) {
     clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = '0', 4000);
 }
 
+// quem está ligado neste aparelho (perfil guardado pelo supabase-config.js) — o feed guardado
+// só se mostra à mesma pessoa
+function uidDoAparelho() {
+    try { const p = JSON.parse(localStorage.getItem('fc_profile') || 'null'); return p && p.id; } catch (e) { return null; }
+}
+// guarda no telemóvel só o feed "Para si", leve: 25 publicações, sem comentários
 function guardarCache() {
-    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ posts, stories })); } catch (e) {}
+    if (!currentUser.id || filtroFeed !== 'todos') return;
+    try {
+        const leves = posts.slice(0, 25).map(p => Object.assign({}, p, { comments: null }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ uid: currentUser.id, posts: leves, stories }));
+    } catch (e) { try { localStorage.removeItem(CACHE_KEY); } catch (x) {} }
 }
 
 // ─────────────────────────────────────

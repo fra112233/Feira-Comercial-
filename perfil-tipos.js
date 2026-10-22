@@ -281,7 +281,7 @@ async function savePerfil() {
   perfilAtual = data || Object.assign({}, p, upd);
   guardarPerfilLocal();
   aplicarPerfil();
-  try { localStorage.removeItem('fc_profile'); sessionStorage.removeItem('fc_feed_cache_v1'); } catch (e) {}
+  try { localStorage.removeItem('fc_profile'); localStorage.removeItem('fc_feed_v2'); } catch (e) {}
   closeModals();
   showToast('Perfil atualizado com sucesso!');
 }
