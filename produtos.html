@@ -93,7 +93,7 @@ function cartao(p) {
   const texto = 'Olá! Vi o produto "' + p.nome + '"' + (p.preco != null ? ' (' + Math.round(p.preco).toLocaleString('pt-PT') + ' MT)' : '') + ' na Feira Comercial. Ainda está disponível?';
   const meu = me && me.id === p.empresa_id;
   return '<div class="prod"><a class="f" href="' + perfil + '">' + (foto ? '<img src="' + foto + '" alt="" loading="lazy">' : '<i class="fas fa-box-open"></i>') + '</a>' +
-    '<div class="t"><b>' + esc(p.nome) + '</b>' +
+    '<div class="t"><b data-no-i18n>' + esc(p.nome) + '</b>' +
     '<div class="p">' + (p.preco != null ? Math.round(p.preco).toLocaleString('pt-PT') + ' MT' : 'Preço sob consulta') + '</div>' +
     '<a class="loja" href="' + perfil + '"><img src="' + logo + '" alt=""><span data-selo="' + esc(p.empresa_id) + '">' + esc(p.empresa) + (p.cidade ? ' · ' + esc(p.cidade) : '') + '</span></a>' +
     '<div class="acoes">' + (meu ? '' : '<a class="msg" href="mensagen.html?para=' + encodeURIComponent(p.empresa_id) + '&texto=' + encodeURIComponent(texto) + '"><i class="fas fa-comment"></i> Perguntar</a>') +

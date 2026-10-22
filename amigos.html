@@ -308,12 +308,12 @@ function cartao(u){
     <a class="card-top" href="perfil.html?id=${u.id}">
       <img src="${esc(avatarOf(u))}" alt="" loading="lazy">
       <div>
-        <div class="nm">${esc(u.full_name || 'Utilizador')}
+        <div class="nm"><span data-no-i18n>${esc(u.full_name || FC.t('Utilizador'))}</span>
           <span class="type-tag ${empresa ? 'type-empresa' : 'type-singular'}">${empresa ? '🏢 Empresa' : '👤 Pessoa'}</span></div>
         <div class="cl">${esc(sub)}${segueMe ? ' · <b style="color:var(--ok)">segue-te</b>' : ''}</div>
       </div>
     </a>
-    <p class="bio">${esc((u.bio || '').slice(0, 120))}</p>
+    <p class="bio" data-no-i18n>${esc((u.bio || '').slice(0, 120))}</p>
     <div class="btn-row">
       <button class="btn-full ${sigo ? 'seguindo' : (empresa ? 'pro' : '')}" onclick="alternarSeguir('${u.id}', this)">
         ${sigo ? '<i class="fas fa-check"></i> A seguir' : '<i class="fas fa-plus"></i> Seguir'}

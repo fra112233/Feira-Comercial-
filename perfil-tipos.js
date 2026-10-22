@@ -81,7 +81,7 @@ function cartoesEmpresa(p, completo) {
       <div class="info-card-title"><i class="fas fa-building"></i> Sobre a empresa</div>
       ${linhaInfo('fa-industry', 'Setor', e(p.sector))}
       ${modoVisita ? '' : linhaInfo('fa-id-card', 'NUIT <small style="opacity:.7">(só você vê)</small>', e(p.nuit))}
-      ${p.bio ? `<p style="font-size:13px;color:var(--text-secondary);margin-top:10px;line-height:1.5;">${e(p.bio)}</p>` : ''}
+      ${p.bio ? `<p style="font-size:13px;color:var(--text-secondary);margin-top:10px;line-height:1.5;" data-no-i18n>${e(p.bio)}</p>` : ''}
     </div>` : '';
 
   return completo ? sobre + contactos + horario + local : contactos + horario + local;
@@ -92,7 +92,7 @@ function cartoesPessoa(p) {
   return `
     <div class="info-card">
       <div class="info-card-title"><i class="fas fa-user"></i> Informações pessoais</div>
-      ${linhaInfo('fa-user', 'Nome', e(p.full_name))}
+      ${linhaInfo('fa-user', 'Nome', '<span data-no-i18n>' + e(p.full_name) + '</span>')}
       ${linhaInfo('fa-venus-mars', 'Género', e(p.gender))}
       ${linhaInfo('fa-mobile-alt', 'Celular', e(p.phone))}
       ${linhaInfo('fa-envelope', 'E-mail', e(p.email))}
@@ -126,7 +126,7 @@ function aplicarPerfil() {
     bio.textContent = p.bio || (ehEmpresa(p) ? (p.sector || '') : '');
     bio.style.display = bio.textContent ? '' : 'none';
   }
-  setTxt('dispMorada', moradaCompleta(p) || 'Localização não indicada');
+  setTxt('dispMorada', moradaCompleta(p) || FC.t('Localização não indicada'));
 
   const site = document.getElementById('dispWebsite');
   if (site) {

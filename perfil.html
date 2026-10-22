@@ -1427,16 +1427,16 @@
                         <input type="file" accept="image/*" onchange="updateImage(this, 'profileImg')">
                     </label>
                 </div>
-                <h1 class="profile-name" id="userName"></h1>
-                <div class="profile-handle" id="profileHandle"></div>
+                <h1 class="profile-name" id="userName" data-no-i18n></h1>
+                <div class="profile-handle" id="profileHandle" data-no-i18n></div>
                 <div id="tipoBadge" style="margin:8px 0;"></div>
                 <div id="cartaoOficial" class="cartao-oficial" style="display:none"></div>
-                <p class="profile-bio" id="dispBio" style="display:none;"></p>
+                <p class="profile-bio" id="dispBio" data-no-i18n style="display:none;"></p>
 
                 <div class="profile-meta">
                     <div class="profile-meta-item">
                         <i class="fas fa-map-marker-alt"></i>
-                        <span id="dispMorada"></span>
+                        <span id="dispMorada" data-no-i18n></span>
                     </div>
                     <div class="profile-meta-item">
                         <i class="fas fa-link"></i>
@@ -1624,7 +1624,7 @@
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
                 <img src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E" class="avatar-sm" alt="Avatar">
                 <div>
-                    <div style="font-weight: 600; font-size: 14px;" id="modalUserName">Utilizador Pro</div>
+                    <div style="font-weight: 600; font-size: 14px;" id="modalUserName" data-no-i18n>Utilizador Pro</div>
                     <div style="font-size: 12px; color: var(--text-tertiary);">Público</div>
                 </div>
             </div>
@@ -1922,7 +1922,7 @@
                         <i class="fas fa-trash"></i>
                     </button>`}
                 </div>
-                ${p.text ? `<div class="post-content">${(p.text || '').replace(/</g, '&lt;')}</div>` : ''}
+                ${p.text ? `<div class="post-content" data-no-i18n>${(p.text || '').replace(/</g, '&lt;')}</div>` : ''}
                 ${mediaTag}
                 <div class="post-stats">
                     <span><i class="fas fa-heart"></i> <span class="like-count-${postId}">${p.reactCount || 0}</span> Gostos</span>
@@ -2223,7 +2223,7 @@
                     </a>
                     <a class="post-menu" href="index.html?post=${p.id}" title="Ver no feed"><i class="fas fa-arrow-up-right-from-square"></i></a>
                 </div>
-                ${p.content ? `<div class="post-content">${escTxt(p.content)}</div>` : ''}
+                ${p.content ? `<div class="post-content" data-no-i18n>${escTxt(p.content)}</div>` : ''}
                 ${midia}
             </div>`;
         }).join('');
@@ -2394,8 +2394,8 @@
                 <img src="${FC.u(av)}" class="comment-avatar" alt="Avatar">
                 <div>
                     <div class="comment-bubble">
-                        <div class="comment-author">${escTxt(c.nome)}</div>
-                        <div class="comment-text">${escTxt(c.text)}</div>
+                        <div class="comment-author" data-no-i18n>${escTxt(c.nome)}</div>
+                        <div class="comment-text" data-no-i18n>${escTxt(c.text)}</div>
                     </div>
                     <div class="comment-actions-bar">
                         ${resposta ? '' : `<button class="comment-action-btn" onclick="focusReply('${postId}', ${c.id})">Responder</button>`}

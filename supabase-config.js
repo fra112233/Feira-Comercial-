@@ -579,13 +579,14 @@ FC.sino = async function () {
       return;
     }
     lista.innerHTML = data.map(n => {
-      const a = n.autor || {}, nome = a.full_name || 'Alguém';
+      const a = n.autor || {}, nome = a.full_name || FC.t('Alguém');
       const foto = a.avatar_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=random&color=fff&size=88');
       const t = FC.textoNotificacao(n);
       return '<a class="n' + (n.lida ? '' : ' nova') + (t.terminada ? ' fim' : '') + '" href="' + esc(FC.linkNotificacao(n)) + '" data-id="' + n.id + '">' +
         '<span class="av"><img src="' + FC.u(foto) + '" alt="" loading="lazy"><i class="fas ' + (FC._notifIcones[n.tipo] || 'fa-bell') + '"></i></span>' +
-        '<span class="tx"><b>' + esc(nome) + '</b> ' + esc(t.txt) +
-        (t.extra ? '<small' + (n.tipo === 'resumo_semanal' ? ' class="todo"' : '') + '>' + esc(t.extra) + '</small>' : '') +
+        '<span class="tx"><b data-no-i18n>' + esc(nome) + '</b> ' + esc(t.txt) +
+        // o excerto de um comentário/avaliação é texto da pessoa: não se traduz
+        (t.extra ? '<small' + (n.tipo === 'resumo_semanal' ? ' class="todo"' : '') + (/coment|resposta|avaliacao/.test(n.tipo) ? ' data-no-i18n' : '') + '>' + esc(t.extra) + '</small>' : '') +
         '<span class="q" style="display:block">' + FC.haQuanto(n.criado) + ' · ' + FC.dataHora(n.criado) + '</span></span>' +
         (n.lida ? '' : '<span class="ponto"></span>') + '</a>';
     }).join('');

@@ -161,7 +161,7 @@ function desenhar(s) {
   $('top').innerHTML = top.length ? top.map(p => {
     const mini = p.foto && p.foto_tipo !== 'video' ? '<img class="mini" src="' + FC.u(p.foto) + '" alt="" loading="lazy">'
       : '<span class="mini"><i class="fas ' + (p.foto ? 'fa-play' : 'fa-align-left') + '"></i></span>';
-    return '<a class="pt" href="index.html?post=' + p.id + '">' + mini + '<div class="tx"><div>' + esc(p.texto || 'Publicação sem texto') + '</div>' +
+    return '<a class="pt" href="index.html?post=' + p.id + '">' + mini + '<div class="tx"><div' + (p.texto ? ' data-no-i18n' : '') + '>' + esc(p.texto || 'Publicação sem texto') + '</div>' +
       '<div class="n"><span><b>' + num(p.vistas) + '</b> vistas</span><span><b>' + num(p.gostos) + '</b> gostos</span><span><b>' + num(p.comentarios) + '</b> comentários</span></div></div></a>';
   }).join('') : '<p class="vazio">Ainda sem publicações vistas neste período. Publique fotos dos seus produtos no <a href="index.html">Início</a>.</p>';
 

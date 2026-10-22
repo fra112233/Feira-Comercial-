@@ -285,12 +285,12 @@ function render() {
       ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="card-img" loading="lazy" alt="">` : `<div class="card-sem-img"><i class="fas ${icone}"></i></div>`}
       <div class="card-body">
         <div><span class="badge ${classe}">${nomeTipo}</span>${!a.ativo ? '<span class="badge badge-inativo">Pausado</span>' : ''}${expirado ? '<span class="badge badge-inativo">Expirado</span>' : ''}</div>
-        <div class="card-title">${esc(a.titulo)}</div>
+        <div class="card-title" data-no-i18n>${esc(a.titulo)}</div>
         ${a.preco ? `<div class="preco">${esc(a.preco)}</div>` : ''}
-        <p class="card-desc">${esc(a.descricao)}</p>
+        <p class="card-desc" data-no-i18n>${esc(a.descricao)}</p>
         ${a.localizacao ? `<div style="font-size:.78rem;color:var(--primary);font-weight:700;"><i class="fa-solid fa-location-dot"></i> ${esc(a.localizacao)}</div>` : ''}
         <div class="card-rodape">
-          <img src="${esc(logo(a.empresa))}" alt=""><b>${esc(a.empresa ? a.empresa.full_name : 'Empresa')}</b>
+          <img src="${esc(logo(a.empresa))}" alt=""><b data-no-i18n>${esc(a.empresa ? a.empresa.full_name : FC.t('Empresa'))}</b>
           <span>${new Date(a.data_publicacao).toLocaleDateString('pt-PT')}</span>
         </div>
       </div>
@@ -319,9 +319,9 @@ async function mostrarDetalhes(id) {
   document.getElementById('detailView').innerHTML = `
     ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="detail-img" alt="">` : ''}
     <span class="badge ${classe}">${nomeTipo}</span>
-    <h2 style="margin:8px 0;">${esc(a.titulo)}</h2>
+    <h2 style="margin:8px 0;" data-no-i18n>${esc(a.titulo)}</h2>
     ${a.preco ? `<div class="preco" style="font-size:1.2rem;margin-bottom:10px;">${esc(a.preco)}</div>` : ''}
-    <p style="color:var(--text-muted);line-height:1.6;white-space:pre-line;">${esc(a.descricao)}</p>
+    <p style="color:var(--text-muted);line-height:1.6;white-space:pre-line;" data-no-i18n>${esc(a.descricao)}</p>
     <div class="info-card">
       ${a.localizacao ? `<div class="info-row"><i class="fa-solid fa-location-dot"></i><span><b>Local:</b> ${esc(a.localizacao)}</span></div>` : ''}
       ${a.validade ? `<div class="info-row"><i class="fa-solid fa-calendar-check"></i><span><b>Válido até:</b> ${new Date(a.validade + 'T12:00').toLocaleDateString('pt-PT')}</span></div>` : ''}
@@ -331,7 +331,7 @@ async function mostrarDetalhes(id) {
     </div>
     <a class="empresa-box" href="perfil.html?id=${e.id}">
       <img src="${esc(logo(e))}" alt="">
-      <div><b>${esc(e.full_name || 'Empresa')}</b><div style="font-size:.8rem;color:var(--text-muted);">${esc([e.sector, e.city, e.province].filter(Boolean).join(' · '))}</div></div>
+      <div><b data-no-i18n>${esc(e.full_name || FC.t('Empresa'))}</b><div style="font-size:.8rem;color:var(--text-muted);">${esc([e.sector, e.city, e.province].filter(Boolean).join(' · '))}</div></div>
       <i class="fas fa-chevron-right" style="margin-left:auto;color:#94a3b8;"></i>
     </a>
     <div class="acoes-det">
