@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="burlas.js"></script>
 <script src="compressao.js"></script>
 <script src="atualizacao.js"></script>
 <script src="perfil-campos.js"></script>
@@ -1793,6 +1794,13 @@
         const id = (typeof alvoId !== 'undefined' && alvoId) || '';
         const s = FC._selos.get(id);
         if (!s) { el.style.display = 'none'; return; }
+        // loja verificada: tem coroa, mas NÃO é uma conta oficial da Feira Comercial
+        if (s === 'verificada') {
+            el.innerHTML = '<div class="ic">👑</div><div><b>Loja verificada</b><span>A Feira Comercial confirmou quem é esta loja. ' +
+                'Mesmo assim, não é a equipa da Feira: a Equipa só fala pela conta oficial.</span></div>';
+            el.style.display = 'flex';
+            return;
+        }
         const adm = s === 'Administrador';
         el.innerHTML = '<div class="ic"><i class="fas fa-circle-check"></i></div><div><b>' +
             (adm ? 'Conta oficial · Administrador' : 'Conta oficial verificada da Feira Comercial') + '</b><span>' +

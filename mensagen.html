@@ -9,6 +9,7 @@
 <script src="https://kit.fontawesome.com/158442f4ac.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="burlas.js"></script>
 <script src="atualizacao.js"></script>
 <script src="compressao.js"></script>
 <script src="menu.js"></script>
@@ -127,6 +128,16 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .aviso-oficial { display: flex; gap: 8px; align-items: center; justify-content: center; text-align: center; padding: 7px 12px; font-size: 12.5px; line-height: 1.4;
   background: linear-gradient(135deg, rgba(243,198,78,.16), rgba(217,165,46,.06)); border-bottom: 1px solid rgba(243,198,78,.35); color: var(--text-primary); }
 .aviso-oficial i { color: #f3c64e; }
+/* avisos contra burlas */
+.aviso-seg { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; font-size: 12.5px; line-height: 1.45; color: var(--text-primary);
+  background: rgba(245,158,11,.13); border-bottom: 1px solid rgba(245,158,11,.4); }
+.aviso-seg.perigo { background: rgba(239,68,68,.14); border-bottom-color: rgba(239,68,68,.45); }
+.aviso-seg.verificada { background: linear-gradient(135deg, rgba(243,198,78,.16), rgba(217,165,46,.06)); border-bottom-color: rgba(243,198,78,.35); align-items: center; justify-content: center; }
+.aviso-seg .ic { font-size: 15px; line-height: 1.2; }
+.aviso-seg a { color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.aviso-burla { margin: 4px 0 2px; max-width: 100%; padding: 7px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.4;
+  background: rgba(245,158,11,.14); border: 1px solid rgba(245,158,11,.45); color: var(--text-primary); }
+.aviso-burla a { color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; white-space: nowrap; }
 .chat-peer-info .peer-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
 .chat-peer-info .peer-status { font-size: 12px; color: var(--green); }
 .chat-peer-info .peer-status.blocked-status { color: var(--danger); }
@@ -443,6 +454,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
             </div>
 
             <div class="aviso-oficial" id="avisoOficial" style="display:none"></div>
+            <div class="aviso-seg" id="avisoSeguranca" role="note" style="display:none"></div>
 
             <!-- Reply bar -->
             <div class="reply-bar" id="replyBar">
@@ -677,13 +689,18 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // ─── CONVERSAS ───────────────────────────────────────────
 async function carregarPerfis(ids) {
-    const faltam = [...new Set(ids)].filter(id => id && !perfisCache[id]);
+    // (created_at e bloqueado servem para avisar o cliente sobre contas novas ou suspensas)
+    const faltam = [...new Set(ids)].filter(id => id && (!perfisCache[id] || perfisCache[id].created_at === undefined));
     if (!faltam.length) return;
     // em grupos de 80 (o endereço do pedido não pode ficar demasiado comprido)
     const grupos = [];
     for (let i = 0; i < faltam.length; i += 80) grupos.push(faltam.slice(i, i + 80));
-    const res = await Promise.all(grupos.map(g => supabaseClient.from('perfis')
-        .select('id, full_name, avatar_url, type, sector, city, province').in('id', g)));
+    // se a base de dados ainda não deixa ler "bloqueado" (antes da migração 050), lê-se sem ele
+    const ler = (g, campos) => supabaseClient.from('perfis').select(campos).in('id', g);
+    const res = await Promise.all(grupos.map(async g => {
+        const r = await ler(g, 'id, full_name, avatar_url, type, sector, city, province, created_at, bloqueado');
+        return r.error ? ler(g, 'id, full_name, avatar_url, type, sector, city, province, created_at') : r;
+    }));
     res.forEach(({ data }) => (data || []).forEach(p => { perfisCache[p.id] = p; }));
 }
 
@@ -813,6 +830,7 @@ async function openContact(id) {
     await carregarPerfis([id]);
     const p = perfisCache[id];
     if (!p) { showToast('Esta conta não existe.'); activeContactId = null; return; }
+    if (activeContactId !== id) return;
     if (!conversas.has(id)) conversas.set(id, { id, name: p.full_name, avatar: avatarDe(p), type: p.type, last: null, unread: 0 });
     const c = conversas.get(id);
     c.unread = 0;
@@ -958,6 +976,8 @@ function buildBubble(msg) {
     bubble.addEventListener('touchstart', longPressStart(msg, bubble), { passive: true });
     bubble.addEventListener('touchend', longPressEnd);
     wrap.appendChild(bubble);
+    const aviso = avisoBurla(msg);
+    if (aviso) wrap.insertAdjacentHTML('beforeend', aviso);
     if (!msg.deleted && !msg._aEnviar) {
         wrap.insertAdjacentHTML('beforeend', '<span class="swipe-resp"><i class="fas fa-reply"></i></span><button type="button" class="btn-resp" title="Responder" aria-label="Responder"><i class="fas fa-reply"></i></button>');
         wrap.querySelector('.btn-resp').onclick = ev => { ev.stopPropagation(); iniciarResposta(msg); };
@@ -1352,14 +1372,47 @@ async function clearChat() {
 // ─── PERFIL DO CONTACTO ──────────────────────────────────
 // conversa com a conta oficial / administrador: faixa de confiança (como as contas verificadas do WhatsApp)
 function mostrarAvisoOficial() {
+    mostrarAvisoSeguranca();
     const el = document.getElementById('avisoOficial'); if (!el) return;
     const s = activeContactId && window.FC && FC._selos ? FC._selos.get(activeContactId) : null;
-    if (!s) { el.style.display = 'none'; return; }
+    // só a Equipa e o Administrador são "conta oficial"; uma loja verificada tem o seu próprio aviso
+    if (!s || s === 'verificada') { el.style.display = 'none'; return; }
     el.innerHTML = '<i class="fas fa-circle-check"></i><span><b>' + (s === 'Administrador' ? 'Administrador oficial da Feira Comercial' : 'Conta oficial da Feira Comercial') +
         '.</b> Nunca lhe pedimos a palavra-passe nem códigos.</span>';
     el.style.display = 'flex';
 }
 document.addEventListener('fc:selos', mostrarAvisoOficial);
+
+// Aviso no topo da conversa: conta suspensa, conta nova ou loja verificada
+function seloDe(id) { return id && window.FC && FC._selos ? FC._selos.get(id) : null; }
+function mostrarAvisoSeguranca() {
+    const el = document.getElementById('avisoSeguranca'); if (!el) return;
+    const id = activeContactId, p = id ? perfisCache[id] : null, s = seloDe(id);
+    el.className = 'aviso-seg';
+    if (!p || (s && s !== 'verificada') || !window.FCBurlas) { el.style.display = 'none'; return; }
+    const denunciar = ' <a onclick="denunciarConversa()">Denunciar</a>';
+    if (p.bloqueado) {
+        el.classList.add('perigo');
+        el.innerHTML = '<span class="ic">🚫</span><span><b>Esta conta está suspensa pela Feira Comercial.</b> Não faça pagamentos nem envie dados a esta conta.</span>';
+    } else if (s === 'verificada') {
+        el.classList.add('verificada');
+        el.innerHTML = '<span class="ic">👑</span><span><b>Loja verificada.</b> A Feira Comercial confirmou quem é esta loja.</span>';
+    } else if (p.created_at && FCBurlas.contaNova(p.created_at)) {
+        el.innerHTML = '<span class="ic">⚠️</span><span><b>' + escHtml(FCBurlas.frase(p.created_at)) + '</b> Nunca pague adiantado: combine a entrega e pague quando receber.' + denunciar + '</span>';
+    } else { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+}
+
+// Aviso por baixo de uma mensagem recebida com sinais de burla
+function avisoBurla(msg) {
+    if (!window.FCBurlas || msg.sender_id === ME.id || msg.deleted || !msg.content) return '';
+    const s = seloDe(msg.sender_id);
+    if (s && s !== 'verificada') return '';          // Equipa / Administrador
+    const p = perfisCache[msg.sender_id] || {};
+    const r = FCBurlas.analisar(msg.content, { nova: p.created_at ? FCBurlas.contaNova(p.created_at) : false, verificada: s === 'verificada' });
+    if (!r) return '';
+    return '<div class="aviso-burla" role="note">' + r.icone + ' <span>' + escHtml(r.texto) + '</span> <a onclick="denunciarConversa()">Denunciar</a></div>';
+}
 
 // denunciar: abre o formulário de denúncia já com a conta indicada (a conversa fica guardada mesmo que seja apagada)
 // endereços na mensagem passam a ser links (o texto já vem escapado; só http/https)
