@@ -130,6 +130,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
   <div id="conteudo">
     <div class="abas" role="tablist">
       <button type="button" data-aba="pagamentos"><i class="fas fa-credit-card"></i> Pagamentos <span class="cont" id="cPag">0</span></button>
+      <button type="button" data-aba="mensalidades"><i class="fas fa-calendar-check"></i> Mensalidades <span class="cont" id="cMens">0</span></button>
       <button type="button" data-aba="caixa"><i class="fas fa-inbox"></i> Caixa da Equipa <span class="cont" id="cCaixa">0</span></button>
       <button type="button" data-aba="reclamacoes"><i class="fas fa-flag"></i> Reclamações <span class="cont" id="cRecl">0</span></button>
       <button type="button" data-aba="crescimento"><i class="fas fa-chart-line"></i> Crescimento</button>
@@ -147,6 +148,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
       <p class="ola-sub" id="olaSub">A ver o que há…</p>
       <div class="hoje-g" id="hojeCartoes">
         <button type="button" class="hc" data-ir="pagamentos" data-so-admin><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(243,198,78,.18);color:var(--ouro)"><i class="fas fa-credit-card"></i></div><b id="nPendentes">0</b><span>Pagamentos por confirmar</span></button>
+        <button type="button" class="hc" data-ir="mensalidades"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(251,146,60,.16);color:#fdba74"><i class="fas fa-calendar-xmark"></i></div><b id="hMens">0</b><span>Empresas com a mensalidade em atraso</span></button>
         <button type="button" class="hc" data-ir="caixa"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(96,165,250,.16);color:#93c5fd"><i class="fas fa-inbox"></i></div><b id="hCaixa">0</b><span>Mensagens na Caixa</span></button>
         <button type="button" class="hc" data-ir="suspeitos" data-so-admin><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(248,113,113,.16);color:#fca5a5"><i class="fas fa-user-secret"></i></div><b id="hSusp">0</b><span>Contas suspeitas</span></button>
         <button type="button" class="hc" data-ir="reclamacoes"><i class="fas fa-chevron-right go"></i><div class="ic" style="background:rgba(248,113,113,.16);color:#fca5a5"><i class="fas fa-flag"></i></div><b id="nRecl">0</b><span>Reclamações por tratar</span></button>
@@ -162,6 +164,13 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
           <div class="num"><span>Empresas com mensalidade em dia</span><b id="nAtivas">–</b></div>
         </div>
       </div>
+    </section>
+
+    <section id="aba-mensalidades" style="display:none">
+      <p style="color:var(--sub);font-size:13.5px;margin:0 0 10px;line-height:1.5" id="mensIntro">Que empresas já pagaram e quais estão em atraso. Toque num estado para filtrar. Pode cobrar por mensagem da Equipa, WhatsApp ou chamada, registar o que combinou e atribuir empresas a alguém da equipa.</p>
+      <div class="filtros" id="filtrosMens"></div>
+      <div id="mensLembrar" data-so-admin style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px"></div>
+      <div class="lista" id="listaMens"><p class="vazio">A carregar…</p></div>
     </section>
 
     <section id="aba-pagamentos" style="display:none">
@@ -510,8 +519,8 @@ async function guardarReclamacao(id) {
 }
 
 // ─── navegação ───
-const ABAS = ['hoje', 'pagamentos', 'caixa', 'reclamacoes', 'crescimento', 'erros', 'suspeitos', 'novas', 'verificacoes', 'paradas', 'contas', 'recibos'];
-const GRUPOS = { hoje: ['hoje'], tarefas: ['pagamentos', 'caixa', 'reclamacoes'], pessoas: ['suspeitos', 'novas', 'verificacoes', 'paradas', 'contas'], numeros: ['crescimento', 'erros'], definicoes: ['recibos'] };
+const ABAS = ['hoje', 'pagamentos', 'mensalidades', 'caixa', 'reclamacoes', 'crescimento', 'erros', 'suspeitos', 'novas', 'verificacoes', 'paradas', 'contas', 'recibos'];
+const GRUPOS = { hoje: ['hoje'], tarefas: ['pagamentos', 'mensalidades', 'caixa', 'reclamacoes'], pessoas: ['suspeitos', 'novas', 'verificacoes', 'paradas', 'contas'], numeros: ['crescimento', 'erros'], definicoes: ['recibos'] };
 const grupoDe = aba => Object.keys(GRUPOS).find(g => GRUPOS[g].includes(aba));
 const ultimaAba = {};
 function abrirAba(aba, semCarregar) {
@@ -529,6 +538,7 @@ function abrirAba(aba, semCarregar) {
   if (aba === 'novas') carregarNovas();
   if (aba === 'paradas') carregarParadas();
   if (aba === 'suspeitos') { carregarSuspeitos(); carregarNumeros(); }
+  if (aba === 'mensalidades') carregarMensalidades();
   if (aba === 'erros') carregarErros();
   if (aba === 'verificacoes') carregarVerif();
   if (aba === 'contas' && !contas.length) carregarContas();
@@ -547,9 +557,9 @@ document.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { abrirAba
 function atualizarHoje() {
   const n = id => Number(($(id) || {}).textContent) || 0;
   const porV = (id, v) => { v = String(v); if ($(id) && $(id).textContent !== v) $(id).textContent = v; };   // só muda se for diferente (evita voltas sem fim)
-  porV('hCaixa', n('cCaixa')); porV('hNovas', n('cNovas')); porV('hParadas', n('cParadas')); porV('hVerif', n('cVerif')); porV('hSusp', SOU_AJUDANTE ? 0 : n('cSusp'));
+  porV('hCaixa', n('cCaixa')); porV('hNovas', n('cNovas')); porV('hParadas', n('cParadas')); porV('hVerif', n('cVerif')); porV('hSusp', SOU_AJUDANTE ? 0 : n('cSusp')); porV('hMens', n('cMens'));
   const pag = SOU_AJUDANTE ? 0 : n('cPag');
-  const tarefas = pag + n('cCaixa') + n('cRecl'), pessoas = n('cNovas') + n('cParadas') + n('cVerif') + (SOU_AJUDANTE ? 0 : n('cSusp'));
+  const tarefas = pag + n('cCaixa') + n('cRecl') + n('cMens'), pessoas = n('cNovas') + n('cParadas') + n('cVerif') + (SOU_AJUDANTE ? 0 : n('cSusp'));
   let pend = 0;
   document.querySelectorAll('#hojeCartoes .hc').forEach(c => {
     const v = Number(c.querySelector('b').textContent) || 0;
@@ -1176,6 +1186,122 @@ async function oferecerAvisoVitimas(id, nome) {
   };
 }
 
+// ─── Mensalidades e cobranças ───
+let mensalidades = [], filtroMens = 'em_atraso', membrosEquipa = null;
+const ESTADOS_MENS = {
+  em_atraso:  ['Em atraso', 'background:rgba(248,113,113,.16);color:#f87171'],
+  a_terminar: ['A terminar', 'background:rgba(251,191,36,.16);color:#fbbf24'],
+  pendente:   ['À espera de confirmação', 'background:rgba(96,165,250,.16);color:#93c5fd'],
+  gratis:     ['Período grátis', 'background:rgba(192,132,252,.16);color:#d8b4fe'],
+  em_dia:     ['Em dia', 'background:rgba(74,222,128,.14);color:#4ade80']
+};
+const dataCurta = d => d ? new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+async function carregarMensalidades(silencioso) {
+  if (!silencioso) $('listaMens').innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.rpc('admin_mensalidades');
+  if (error) { if (!silencioso) $('listaMens').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 052).</p>'; return; }
+  mensalidades = data || [];
+  $('cMens').textContent = mensalidades.filter(m => m.estado === 'em_atraso').length;
+  if (!silencioso) { if (!SOU_AJUDANTE && !membrosEquipa) carregarMembros(); desenharMensalidades(); }
+}
+async function carregarMembros() {
+  const { data } = await supabaseClient.rpc('admin_membros_equipa');
+  membrosEquipa = data || []; desenharMensalidades();
+}
+function desenharMensalidades() {
+  const conta = e => mensalidades.filter(m => m.estado === e).length;
+  $('filtrosMens').innerHTML = Object.keys(ESTADOS_MENS).map(e => '<button type="button" data-e="' + e + '"' + (filtroMens === e ? ' class="sel"' : '') + '>' + ESTADOS_MENS[e][0] + ' · ' + conta(e) + '</button>').join('') +
+    '<button type="button" data-e=""' + (!filtroMens ? ' class="sel"' : '') + '>Todas · ' + mensalidades.length + '</button>';
+  $('filtrosMens').querySelectorAll('button').forEach(b => b.onclick = () => { filtroMens = b.dataset.e; desenharMensalidades(); });
+  if ($('mensLembrar')) {
+    const a = conta('em_atraso'), t = conta('a_terminar');
+    $('mensLembrar').innerHTML = (a ? '<button type="button" class="btn btn-nao" onclick="lembrarTodas(\'em_atraso\', ' + a + ')"><i class="fas fa-bullhorn"></i> Lembrar ' + (a === 1 ? 'a 1' : 'as ' + a) + ' em atraso</button>' : '') +
+      (t ? '<button type="button" class="btn btn-sec" onclick="lembrarTodas(\'a_terminar\', ' + t + ')"><i class="fas fa-bell"></i> Lembrar ' + (t === 1 ? 'a 1' : 'as ' + t) + ' a terminar</button>' : '');
+  }
+  const lista = mensalidades.filter(m => !filtroMens || m.estado === filtroMens);
+  if (!lista.length) { $('listaMens').innerHTML = '<p class="vazio">' + (filtroMens === 'em_atraso' ? '🎉 Nenhuma empresa em atraso.' : 'Nenhuma empresa neste estado.') + '</p>'; return; }
+  $('listaMens').innerHTML = lista.map(m => {
+    const [rot, cor] = ESTADOS_MENS[m.estado] || ['—', ''];
+    const prazo = m.paga_ate == null ? 'Sem data de mensalidade'
+      : m.dias < 0 ? 'Terminou a ' + dataCurta(m.paga_ate) + ' (há ' + (-m.dias) + (m.dias === -1 ? ' dia)' : ' dias)')
+      : m.dias === 0 ? 'Termina hoje'
+      : (m.estado === 'gratis' ? 'Grátis até ' : 'Paga até ') + dataCurta(m.paga_ate) + ' (' + m.dias + (m.dias === 1 ? ' dia)' : ' dias)');
+    const tel = m.whatsapp || m.telefone || '';
+    const membros = (membrosEquipa || []).map(x => '<option value="' + esc(x.id) + '"' + (x.id === m.responsavel ? ' selected' : '') + '>' + esc(x.nome || 'Sem nome') + (x.funcao === 'admin' ? ' (admin)' : '') + '</option>').join('');
+    return '<article class="reg" id="mens-' + m.id + '">' +
+      '<div class="cab"><a class="quem" href="perfil.html?id=' + esc(m.id) + '" style="color:inherit"><img src="' + esc(avatar({ avatar_url: m.avatar_url, full_name: m.nome })) + '" alt=""><div style="min-width:0"><b>' + esc(m.nome || 'Sem nome') + '</b>' +
+        '<small>' + esc([m.cidade, m.provincia].filter(Boolean).join(', ') || 'sem local') + (m.idioma === 'en' ? ' · 🇬🇧 inglês' : '') + '</small></div></a>' +
+        '<span class="estado-conta" style="' + cor + '">' + rot + '</span></div>' +
+      '<div class="det">' +
+        '<div><span>Mensalidade</span><b>' + esc(prazo) + '</b></div>' +
+        '<div><span>Último pagamento</span><b>' + (m.ultimo_pagamento ? dataCurta(m.ultimo_pagamento) : 'Nunca pagou') + '</b></div>' +
+        (m.total_pago != null ? '<div><span>Total pago</span><b>' + mtF(m.total_pago) + '</b></div>' : '') +
+        '<div><span>Último acesso</span><b>' + (m.ultimo_acesso ? quando(m.ultimo_acesso) : '—') + '</b></div>' +
+        '<div><span>Contacto</span><b>' + (tel ? esc(tel) : '—') + '</b></div>' +
+        '<div><span>Responsável</span><b>' + esc(m.responsavel_nome || 'Ninguém') + '</b></div>' +
+      '</div>' +
+      (m.pagamento_pendente ? '<div class="nota"><i class="fas fa-hourglass-half"></i> Já enviou um pagamento — confirme-o em Pagamentos antes de cobrar.</div>' : '') +
+      (m.ultima_nota ? '<div class="nota"><i class="fas fa-note-sticky"></i> ' + esc(m.ultima_nota) + ' — ' + esc(m.contactado_por || 'equipa') + ', ' + quando(m.ultimo_contacto) + '</div>' : '') +
+      '<div class="conta-acoes">' +
+        '<button type="button" class="btn btn-ok" onclick="cobrarPorMensagem(\'' + m.id + '\')"><i class="fas fa-comment-dollar"></i> Mensagem</button>' +
+        (tel ? '<button type="button" class="btn btn-sec" onclick="cobrarPorWhatsApp(\'' + m.id + '\')"><i class="fab fa-whatsapp"></i> WhatsApp</button>' +
+               '<a class="btn btn-sec" href="tel:' + esc(tel.replace(/[^\d+]/g, '')) + '"><i class="fas fa-phone"></i> Ligar</a>' : '') +
+        '<button type="button" class="btn btn-sec" onclick="registarCobranca(\'' + m.id + '\')"><i class="fas fa-pen"></i> Registar contacto</button>' +
+        '<button type="button" class="btn btn-sec" onclick="historicoCobranca(\'' + m.id + '\')"><i class="fas fa-clock-rotate-left"></i> Histórico</button>' +
+        (membrosEquipa ? '<select onchange="atribuirCobranca(\'' + m.id + '\', this.value)" style="padding:9px 10px;border-radius:10px;border:1px solid var(--linha);background:rgba(255,255,255,.04);color:inherit;font:inherit"><option value="">Atribuir a…</option>' + membros + (m.responsavel ? '<option value="-">— Tirar responsável</option>' : '') + '</select>' : '') +
+      '</div>' +
+      '<div class="acessos" id="mhist-' + m.id + '"></div>' +
+    '</article>';
+  }).join('');
+}
+async function textoCobranca(id) {
+  const { data, error } = await supabaseClient.rpc('admin_texto_lembrete', { p_empresa: id });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return null; }
+  return data;
+}
+async function cobrarPorMensagem(id) {
+  const m = mensalidades.find(x => x.id === id); if (!m) return;
+  const t = await textoCobranca(id); if (t == null) return;
+  irParaCaixa(m.id, m.nome, avatar({ avatar_url: m.avatar_url, full_name: m.nome }), t);
+}
+async function cobrarPorWhatsApp(id) {
+  const m = mensalidades.find(x => x.id === id); if (!m) return;
+  const t = await textoCobranca(id); if (t == null) return;
+  let n = String(m.whatsapp || m.telefone || '').replace(/\D/g, '');
+  if (/^8[2-7]\d{7}$/.test(n)) n = '258' + n;
+  window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(t), '_blank', 'noopener');
+}
+async function registarCobranca(id) {
+  const m = mensalidades.find(x => x.id === id); if (!m) return;
+  const nota = prompt('O que aconteceu com ' + (m.nome || 'esta empresa') + '?\nEx.: "Liguei, prometeu pagar sexta" ou "Não atende".', '');
+  if (!nota || !nota.trim()) return;
+  const { error } = await supabaseClient.rpc('admin_cobranca_registar', { p_empresa: id, p_nota: nota });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast('✓ Registado.'); carregarMensalidades();
+}
+async function historicoCobranca(id) {
+  const box = $('mhist-' + id);
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  box.style.display = 'block'; box.innerHTML = '<small style="color:var(--sub)">A carregar…</small>';
+  const { data, error } = await supabaseClient.rpc('admin_cobranca_historico', { p_empresa: id });
+  if (error) { box.innerHTML = '<small>Erro: ' + esc(FC.traduzirErro(error)) + '</small>'; return; }
+  box.innerHTML = !(data || []).length ? '<small style="color:var(--sub)">Ainda não há contactos registados.</small>' :
+    '<b style="font-size:13.5px">Histórico</b>' + data.map(r => '<div class="acesso"><div><b>' + esc(r.nota) + '</b><br><small>' + esc(r.por || 'equipa') + ' · ' + quando(r.criado) + '</small></div></div>').join('');
+}
+async function atribuirCobranca(id, quem) {
+  if (!quem) return;
+  const { error } = await supabaseClient.rpc('admin_cobranca_atribuir', { p_empresa: id, p_responsavel: quem === '-' ? null : quem });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast(quem === '-' ? 'Responsável retirado.' : '✓ Atribuída. A pessoa recebe um aviso no sino.'); carregarMensalidades();
+}
+async function lembrarTodas(estado, n) {
+  const txt = estado === 'em_atraso' ? 'em atraso' : 'cuja mensalidade termina nos próximos 5 dias';
+  if (!confirm('Enviar um lembrete da Equipa Feira Comercial às ' + n + ' empresas ' + txt + '?\n\nA mensagem diz quanto pagar e tem o link da página de pagamento. Empresas lembradas nos últimos 3 dias ou com um pagamento à espera de confirmação não recebem outra vez.')) return;
+  const { data, error } = await supabaseClient.rpc('admin_lembrar_mensalidades', { p_estado: estado });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast('📣 ' + data + (data === 1 ? ' empresa lembrada.' : ' empresas lembradas.')); carregarMensalidades();
+}
+
 async function mudarTipo(id, tipo) {
   const c = contas.find(x => x.id === id); if (!c) return;
   if (!confirm('Passar ' + (c.full_name || 'esta conta') + ' a ' + (tipo === 'empresa' ? 'EMPRESA' : 'PESSOA') + '?' + (tipo === 'empresa' ? '\n\nPassa a poder publicar no feed, fazer anúncios e lives, e recebe o período grátis da mensalidade.' : '\n\nDeixa de poder publicar no feed e fazer anúncios.'))) return;
@@ -1307,8 +1433,10 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
     SOU_AJUDANTE = true;
     $('intro').textContent = 'Olá ' + (String(me.full_name || '').split(' ')[0] || '') + '! Ajude as pessoas em nome da Equipa Feira Comercial.';
     document.querySelectorAll('[data-so-admin]').forEach(x => x.remove());
-    document.querySelectorAll('[data-aba]').forEach(b => { if (!['caixa', 'reclamacoes', 'novas', 'paradas', 'verificacoes'].includes(b.dataset.aba)) b.remove(); });
-    carregarParadas(true); carregarVerif(true);
+    document.querySelectorAll('[data-aba]').forEach(b => { if (!['mensalidades', 'caixa', 'reclamacoes', 'novas', 'paradas', 'verificacoes'].includes(b.dataset.aba)) b.remove(); });
+    carregarParadas(true); carregarVerif(true); carregarMensalidades(true);
+    $('mensIntro').textContent = 'Empresas que o administrador lhe pediu para cobrar. Cobre por mensagem da Equipa, WhatsApp ou chamada, e registe sempre o que combinou.';
+    if (location.hash === '#mensalidades') abrirAba('mensalidades');
     abrirAba('hoje');
     carregarCaixa(true);
     carregarReclamacoes();
@@ -1318,7 +1446,8 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
   }
   $('intro').textContent = 'Gestão da Feira Comercial: pagamentos, conversas da Equipa, reclamações e contas.';
   abrirAba('hoje');
-  carregarPagamentos(); carregarReclamacoes(); carregarAtivas(); carregarParadas(true); carregarErros(true); carregarVerif(true); carregarSuspeitos(true);
+  carregarPagamentos(); carregarReclamacoes(); carregarAtivas(); carregarParadas(true); carregarErros(true); carregarVerif(true); carregarSuspeitos(true); carregarMensalidades(true);
+  if (location.hash === '#mensalidades') abrirAba('mensalidades');
   if (location.hash === '#suspeitos') abrirAba('suspeitos');
   supabaseClient.rpc('admin_contas_novas', { p_dias: 7 }).then(r => { if (!r.error && r.data) $('cNovas').textContent = r.data.filter(c => !c.cumprimentado).length; });
   carregarCaixa(true);
