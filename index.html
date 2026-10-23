@@ -949,7 +949,7 @@ async function abrirPublicacaoFora(pid) {
         .select(`id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
                  autor:perfis!posts_user_id_fkey(id, full_name, avatar_url, type, city, province), meu:likes(reaction)`)
         .eq('id', pid).eq('meu.user_id', currentUser.id).maybeSingle();
-    if (!data || new Date(data.created_at).getTime() < Date.now() - TEMPO_VIDA_POST) {
+    if (!data || new Date(data.created_at).getTime() < FC.agora() - TEMPO_VIDA_POST) {
         avisoPagina('Esta publicação já saiu do feed. As fotos continuam no perfil, em Média.'); return;
     }
     const p = mapearPost(data);
@@ -985,7 +985,7 @@ function guardarCache() {
 // ─────────────────────────────────────
 //  CARREGAR DA BASE DE DADOS
 // ─────────────────────────────────────
-function desde() { return new Date(Date.now() - TEMPO_VIDA_POST).toISOString(); }
+function desde() { return new Date(FC.agora() - TEMPO_VIDA_POST).toISOString(); }
 function desdeStory() { return new Date(agoraServidor() - TEMPO_VIDA_STORY).toISOString(); }
 // diferença entre o relógio deste aparelho e o do servidor (um telemóvel com a hora errada
 // não pode esconder stories ativos nem mostrar stories já expirados)
@@ -1128,7 +1128,7 @@ async function guardarOfertaPost() {
     if (!(preco > 0)) { FCMedia.aviso('Falta o preço', 'Escreva o preço da oferta.', { erro: true }); return; }
     if (antes && antes <= preco) { FCMedia.aviso('Preço antes', 'O preço antes deve ser maior do que o preço da oferta.', { erro: true }); return; }
     const horas = Number(document.getElementById('mo-dur').value) || 24;
-    const dados = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(Date.now() + horas * 3600000).toISOString() };
+    const dados = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(FC.agora() + horas * 3600000).toISOString() };   // hora do servidor: um telemóvel atrasado encurtava a oferta
     const b = document.getElementById('mo-ok'); b.disabled = true;
     const { error } = await supabaseClient.from('posts').update(dados).eq('id', id).eq('user_id', currentUser.id);
     b.disabled = false;
@@ -1836,7 +1836,7 @@ async function publishPost() {
         if (!(preco > 0)) { FCMedia.aviso('Falta o preço', 'Escreva o preço da oferta, ou feche o painel da oferta.', { erro: true }); return; }
         if (antes && antes <= preco) { FCMedia.aviso('Preço antes', 'O preço antes deve ser maior do que o preço da oferta.', { erro: true }); return; }
         const horas = Number(document.getElementById('oferta-dur').value) || 24;
-        oferta = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(Date.now() + horas * 3600000).toISOString() };
+        oferta = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(FC.agora() + horas * 3600000).toISOString() };
     }
 
     btn.disabled = true;
@@ -1987,14 +1987,14 @@ function observarVistas() {
 }
 
 function timeAgo(ts) {
-    const s = Math.floor((Date.now() - ts) / 1000);
+    const s = Math.floor((FC.agora() - ts) / 1000);   // relógio do servidor (o do telemóvel pode estar errado)
     if (s < 60) return 'agora mesmo';
     const m = Math.floor(s / 60);
     if (m < 60) return 'há ' + m + ' min';
     const h = Math.floor(m / 60);
     if (h < 24) return 'há ' + h + ' h';
-    const d = Math.floor(h / 24);
-    return 'há ' + d + ' d';
+    const d = -FC.diasAte(ts);   // dias do calendário: anteontem às 22h visto hoje às 20h = 2 d (não 1)
+    return d <= 1 ? 'ontem' : 'há ' + d + ' d';
 }
 
 const emojiMap = { 'Curtir':'👍','Amei':'❤️','Haha':'😂','Triste':'😢','Uau':'😮' };

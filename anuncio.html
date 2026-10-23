@@ -327,7 +327,7 @@ async function mostrarDetalhes(id) {
       ${a.validade ? `<div class="info-row"><i class="fa-solid fa-calendar-check"></i><span><b>Válido até:</b> ${new Date(a.validade + 'T12:00').toLocaleDateString('pt-PT')}</span></div>` : ''}
       ${contacto ? `<div class="info-row"><i class="fa-solid fa-phone"></i><span><b>Contacto:</b> ${esc(contacto)}</span></div>` : ''}
       ${a.link ? `<div class="info-row"><i class="fa-solid fa-link"></i><a href="${esc(FCP.linkSite(a.link))}" target="_blank" rel="noopener" style="color:var(--primary);">${esc(a.link)}</a></div>` : ''}
-      ${meu ? `<div class="info-row"><i class="fa-solid fa-eye"></i><span><b>Visto</b> ${a.views || 0} vezes</span></div>` : ''}
+      ${meu ? `<div class="info-row"><i class="fa-solid fa-eye"></i><span><b>Visto</b> ${FC.plural(a.views || 0, 'vez', 'vezes')}</span></div>` : ''}
     </div>
     <a class="empresa-box" href="perfil.html?id=${e.id}">
       <img src="${esc(logo(e))}" alt="">
