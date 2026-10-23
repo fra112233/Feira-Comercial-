@@ -1750,6 +1750,10 @@ function pintarGosto(s) {
     b.innerHTML = '<i class="' + (sim ? 'fas' : 'far') + ' fa-heart"></i>';
     b.style.display = storiesSemVistas ? 'none' : '';
 }
+// o story ainda é o que está aberto? (pelo id: a lista é recarregada a cada 5 min e os objetos mudam)
+function aindaAberto(s) {
+    return document.getElementById('storyModal').classList.contains('open') && stories[sIdx] && stories[sIdx].id === s.id;
+}
 async function prepararGostoEVistos(s) {
     const vistos = document.getElementById('storyVistos');
     vistos.style.display = 'none';
@@ -1760,12 +1764,12 @@ async function prepararGostoEVistos(s) {
             supabaseClient.rpc('story_ver', { p_story: s.id }).then(r => { if (r.error) storiesSemVistas = true; });
         }
         await carregarMeusGostosStory();
-        if (stories[sIdx] === s) pintarGosto(s);
+        if (aindaAberto(s)) pintarGosto(s);
         return;
     }
     // o meu story: quantos viram e gostaram
     const { data, error } = await supabaseClient.from('story_vistas').select('reacao').eq('story_id', s.id);
-    if (error || stories[sIdx] !== s) return;
+    if (error || !aindaAberto(s)) return;
     const n = (data || []).length, g = (data || []).filter(v => v.reacao).length;
     vistos.innerHTML = '<span><i class="fas fa-eye"></i> ' + n + '</span>' + (g ? '<span class="c"><i class="fas fa-heart"></i> ' + g + '</span>' : '');
     vistos.title = n ? 'Ver quem viu' : 'Ainda ninguém viu';
@@ -1782,7 +1786,7 @@ async function gostarStory() {
     const { error } = await supabaseClient.rpc('story_reagir', { p_story: s.id, p_reacao: nova });
     if (error) {
         if (antes) meusGostosStory.set(s.id, antes); else meusGostosStory.delete(s.id);
-        if (stories[sIdx] === s) pintarGosto(s);
+        if (aindaAberto(s)) pintarGosto(s);
         FCMedia.aviso('Não foi possível gostar', FC.traduzirErro ? FC.traduzirErro(error) : 'Tente outra vez.', { erro: true });
     }
 }
