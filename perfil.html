@@ -23,6 +23,7 @@
 <script src="perfil-extra.js"></script>
 <script src="verificar.js"></script>
 <script src="menu.js"></script>
+<script src="reacoes.js" defer></script>
 
     <style>
         /* ==================== CSS VARIABLES ==================== */
@@ -1925,7 +1926,7 @@
                 ${p.text ? `<div class="post-content" data-no-i18n>${(p.text || '').replace(/</g, '&lt;')}</div>` : ''}
                 ${mediaTag}
                 <div class="post-stats">
-                    <span><i class="fas fa-heart"></i> <span class="like-count-${postId}">${p.reactCount || 0}</span> Gostos</span>
+                    <span class="ver-reacoes" role="button" tabindex="0" title="Ver quem reagiu" style="cursor:pointer" onclick="FCReacoes.abrir(${p.id}, { autorId: '${alvoId || ''}', eu: '${meuId || ''}' })"><i class="fas fa-heart"></i> <span class="like-count-${postId}">${p.reactCount || 0}</span> Gostos</span>
                     <span><span class="comment-count-${postId}">${nComentarios}</span> Comentários</span>
                 </div>
                 <div class="post-actions">

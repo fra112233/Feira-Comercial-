@@ -50,6 +50,23 @@
 .dicas li { display: flex; gap: 10px; font-size: 14px; color: #d4d4d8; line-height: 1.45; }
 .dicas li i { color: var(--ouro); margin-top: 3px; }
 .vazio { color: var(--sub); font-size: 14px; }
+.reac h2 { font-size: 17px; margin-bottom: 4px; }
+.reac-grelha { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 12px; }
+@media (max-width: 820px) { .reac-grelha { grid-template-columns: minmax(0, 1fr); } }
+.reac h3 { font-size: 13px; color: var(--sub); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
+.rl { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-bottom: 9px; font-size: 13.5px; }
+.rl .e { font-size: 19px; }
+.rl .tr { height: 10px; border-radius: 6px; background: var(--campo); overflow: hidden; }
+.rl .tr i { display: block; height: 100%; border-radius: 6px; background: var(--ouro); }
+.rl b { font-variant-numeric: tabular-nums; }
+.fa-l { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+.fa-l img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.fa-l .nm { flex: 1; min-width: 0; font-size: 14px; }
+.fa-l .nm a { color: var(--texto); font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fa-l .nm small { color: var(--sub); }
+.fa-l .mg { flex-shrink: 0; font-size: 12.5px; font-weight: 700; padding: 5px 10px; border-radius: 16px; border: 1px solid var(--linha); color: var(--texto); text-decoration: none; }
+.fa-l .mg:hover { border-color: var(--ouro); color: var(--ouro); text-decoration: none; }
+.reac .nota { font-size: 13px; color: var(--sub); margin-top: 10px; line-height: 1.45; }
 #conteudo { display: none; }
 </style>
 </head>
@@ -99,6 +116,12 @@
         <div class="lista-top" id="top"></div>
       </section>
     </div>
+
+    <section class="cartao reac" style="margin-top:16px">
+      <h2>Do que as pessoas gostam</h2>
+      <p class="vazio" style="font-size:13px">Reações às suas publicações no período.</p>
+      <div id="reac"><p class="vazio">A carregar…</p></div>
+    </section>
 
     <section class="cartao dicas" style="margin-top:16px">
       <h2>Como ter mais clientes</h2>
@@ -185,6 +208,57 @@ async function carregar() {
     return;
   }
   desenhar(data || {});
+  carregarReacoes();
+}
+
+// reações às minhas publicações: que reações, a publicação que mais agradou e quem mais gosta
+const EMOJI = { Curtir: '👍', Amei: '❤️', Haha: '😂', Triste: '😢', Uau: '😮' };
+async function carregarReacoes() {
+  const caixa = $('reac'), pedido = dias;
+  caixa.innerHTML = '<p class="vazio">A carregar…</p>';
+  const { data, error } = await supabaseClient.from('likes')
+    .select('reaction, created_at, user_id, post_id, post:posts!inner(id, user_id, content, media, image_url), quem:perfis!likes_user_id_fkey(id, full_name, avatar_url, type, city)')
+    .eq('post.user_id', me.id).neq('user_id', me.id)
+    .gte('created_at', new Date(FC.agora() - dias * 864e5).toISOString())
+    .order('created_at', { ascending: false }).limit(2000);
+  if (pedido !== dias) return;              // mudou de período entretanto
+  if (error) { caixa.innerHTML = '<p class="vazio">Não foi possível carregar as reações. Tente outra vez mais tarde.</p>'; console.warn(error.message); return; }
+  const v = (data || []).filter(l => l.post);
+  if (!v.length) {
+    caixa.innerHTML = '<p class="vazio">Ainda sem reações neste período. Publique fotos reais dos produtos, com o preço — são as publicações que mais recebem gostos.</p>';
+    return;
+  }
+  // 1) por reação
+  const conta = {}; v.forEach(l => conta[l.reaction] = (conta[l.reaction] || 0) + 1);
+  const max = Math.max(...Object.values(conta));
+  const barras = Object.keys(EMOJI).filter(k => conta[k]).sort((a, b) => conta[b] - conta[a]).map(k =>
+    '<div class="rl"><span class="e" title="' + k + '">' + EMOJI[k] + '</span><span class="tr"><i style="width:' + (conta[k] / max * 100).toFixed(1) + '%"></i></span>' +
+    '<span><b>' + num(conta[k]) + '</b> <small style="color:var(--sub)">' + Math.round(conta[k] / v.length * 100) + '%</small></span></div>').join('');
+  // 2) publicação que mais agradou
+  const porPost = {}; v.forEach(l => { const x = porPost[l.post_id] || (porPost[l.post_id] = { p: l.post, n: 0, r: {} }); x.n++; x.r[l.reaction] = (x.r[l.reaction] || 0) + 1; });
+  const melhor = Object.values(porPost).sort((a, b) => b.n - a.n)[0];
+  const mp = melhor.p, m0 = (Array.isArray(mp.media) && mp.media[0]) || (mp.image_url ? { url: mp.image_url, type: 'image' } : null);
+  const mini = m0 && m0.type !== 'video' ? '<img class="mini" src="' + FC.u(m0.url) + '" alt="" loading="lazy">' : '<span class="mini"><i class="fas ' + (m0 ? 'fa-play' : 'fa-align-left') + '"></i></span>';
+  const emojis = Object.keys(melhor.r).sort((a, b) => melhor.r[b] - melhor.r[a]).map(k => EMOJI[k]).join('');
+  const destaque = '<a class="pt" href="index.html?post=' + mp.id + '">' + mini + '<div class="tx"><div' + (mp.content ? ' data-no-i18n' : '') + '>' + esc((mp.content || 'Publicação sem texto').slice(0, 90)) + '</div>' +
+    '<div class="n"><span>' + emojis + ' <b>' + num(melhor.n) + '</b> ' + (melhor.n === 1 ? 'reação' : 'reações') + '</span></div></div></a>' +
+    '<p class="nota">Publique mais coisas parecidas com esta: é o que os seus clientes preferem.</p>';
+  // 3) quem mais gosta (clientes interessados)
+  const fas = {}; v.forEach(l => { if (!l.quem) return; const f = fas[l.user_id] || (fas[l.user_id] = { q: l.quem, n: 0 }); f.n++; });
+  const topFas = Object.values(fas).sort((a, b) => b.n - a.n).slice(0, 5);
+  const listaFas = topFas.map(f => {
+    const nome = f.q.full_name || 'Utilizador';
+    const av = f.q.avatar_url ? FC.u(f.q.avatar_url) : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=random&color=fff&size=76';
+    return '<div class="fa-l"><img src="' + esc(av) + '" alt="" loading="lazy"><div class="nm"><a href="perfil.html?id=' + encodeURIComponent(f.q.id) + '" data-no-i18n>' + esc(nome) + '</a>' +
+      '<small>' + FC.plural(f.n, 'reação', 'reações') + (f.q.city ? ' · ' + esc(f.q.city) : '') + '</small></div>' +
+      '<a class="mg" href="mensagen.html?para=' + encodeURIComponent(f.q.id) + '"><i class="fas fa-paper-plane"></i> Mensagem</a></div>';
+  }).join('');
+  const pessoas = Object.keys(fas).length;
+  caixa.innerHTML = '<div class="reac-grelha">' +
+    '<div><h3>Reações</h3>' + barras + '<p class="nota">' + FC.plural(v.length, 'reação', 'reações') + ' de ' + FC.plural(pessoas, 'pessoa', 'pessoas') + '.</p></div>' +
+    '<div><h3>A que mais agradou</h3>' + destaque + '</div>' +
+    '<div><h3>Quem mais gosta de si</h3>' + listaFas + '<p class="nota">São clientes interessados: uma mensagem simpática com uma novidade pode virar venda.</p></div>' +
+    '</div>';
 }
 
 document.querySelectorAll('.periodo button').forEach(b => b.onclick = () => {
