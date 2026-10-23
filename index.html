@@ -31,6 +31,7 @@
 <script src="atualizacao.js"></script>
 <script src="compressao.js"></script>
 <script src="menu.js"></script>
+<script src="reacoes.js" defer></script>
 <script src="primeiros-passos.js" defer></script>
 
 
@@ -314,6 +315,12 @@
 
         /* ── ACTIONS ── */
         .post-actions { display: flex; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 6px; position: relative; }
+        .reacoes-resumo:empty { display: none; }
+        .reacoes-resumo { margin-top: 10px; }
+        .reacoes-resumo + .post-actions { margin-top: 6px; }
+        .ver-reacoes { background: none; border: none; padding: 2px 0; font: inherit; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .ver-reacoes:hover { color: var(--primary); text-decoration: underline; }
+        .ver-emoji { font-size: 15px; }
         .btn-action {
             flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
             cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 8px; color: var(--text-secondary);
@@ -1914,6 +1921,8 @@ function atualizarPartesPost(el, p) {
         const h = htmlAcoes(p);
         if (acoes.dataset.h !== h) { acoes.innerHTML = h; acoes.dataset.h = h; }
     }
+    const resumo = el.querySelector('#resumo-' + p.id);
+    if (resumo) { const h = htmlResumo(p); if (resumo.innerHTML !== h) resumo.innerHTML = h; }
     const lista = el.querySelector('#comment-list-' + p.id);
     if (lista) {
         const h = renderComments(p.comments, p.id);
@@ -2026,6 +2035,7 @@ function renderPostCard(p, isMe) {
         ${isMe && temOfertas && (currentUser.empresa || currentUser.equipa) && !(p.ofertaAte && faltaTexto(p.ofertaAte)) ? `<button type="button" class="por-oferta" onclick="abrirModalOferta(${p.id})"><i class="fas fa-bolt"></i> Pôr em oferta</button>` : ''}
         ${p.text ? `<p class="post-text" data-no-i18n>${escHtml(p.text)}</p>` : ''}
         ${mediaHtml}
+        <div class="reacoes-resumo" id="resumo-${p.id}">${htmlResumo(p)}</div>
         <div class="post-actions">${htmlAcoes(p)}</div>
         <div class="comment-section" id="comm-${p.id}">
             <div id="comment-list-${p.id}">${renderComments(p.comments, p.id)}</div>
@@ -2085,6 +2095,17 @@ async function deletePost(id) {
     posts = posts.filter(x => x.id !== id);
     renderPosts();
     guardarCache();
+}
+
+// "👍 Você e mais 3 pessoas" — carregar abre a lista de quem reagiu (com Mensagem, para quem publicou)
+function htmlResumo(p) {
+    const n = Number(p.reactCount || 0);
+    if (n <= 0) return '';
+    const txt = p.myReaction
+        ? (n === 1 ? 'Você' : 'Você e mais ' + FC.plural(n - 1, 'pessoa', 'pessoas'))
+        : FC.plural(n, 'pessoa reagiu', 'pessoas reagiram');
+    return `<button type="button" class="ver-reacoes" onclick="FCReacoes.abrir(${p.id}, { autorId: '${p.userId}' })" title="Ver quem reagiu">`
+         + `<span class="ver-emoji">${emojiMap[p.myReaction] || '👍'}</span> ${txt}</button>`;
 }
 
 // um gosto por pessoa: clicar na mesma reação tira-a, outra reação troca-a
