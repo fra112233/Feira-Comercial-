@@ -410,6 +410,12 @@ FC.haQuanto = function (d) {
   return new Date(d).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
 };
 // "hoje às 10:29", "ontem às 9:44", "amanhã às 03:45", "sex., 17 out. às 03:45"
+// a página está em tema branco? (index/mensagens usam body[data-theme], o perfil usa body.light-mode)
+FC.temaClaro = function () {
+  const b = document.body; if (!b) return false;
+  if (b.hasAttribute('data-theme')) return b.getAttribute('data-theme') !== 'dark';
+  return b.classList.contains('light-mode');
+};
 FC.diaHora = function (d) {
   const x = new Date(d), h = x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
   const dia = t => { const y = new Date(t); y.setHours(0, 0, 0, 0); return y.getTime(); };
@@ -489,24 +495,26 @@ FC.sino = async function () {
     css.textContent =
       '.fc-sino-btn{position:relative}' +
       '.fc-notif-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font:700 11px/18px Inter,system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--bg-card,#18191a);pointer-events:none}' +
+      // cores próprias do painel (escuro/claro conforme o tema): nas Mensagens em tema branco ficava fundo escuro com letras escuras
+      '#fcn{--fcn-bg:#1e293b;--fcn-tx:#f1f5f9;--fcn-hover:#334155;--fcn-borda:#334155}#fcn.claro{--fcn-bg:#ffffff;--fcn-tx:#0f172a;--fcn-hover:#f1f5f9;--fcn-borda:#e2e8f0}' +
       '#fcn-fundo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5000;opacity:0;visibility:hidden;transition:.25s}#fcn-fundo.aberto{opacity:1;visibility:visible}' +
-      '#fcn{position:fixed;top:0;right:0;bottom:0;width:min(400px,94vw);z-index:5001;background:var(--bg-secondary,var(--bg-card,var(--surface,#1e293b)));' +
-      'color:var(--text-primary,var(--text-main,var(--text,#f1f5f9)));transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column;' +
+      '#fcn{position:fixed;top:0;right:0;bottom:0;width:min(400px,94vw);z-index:5001;background:var(--fcn-bg);' +
+      'color:var(--fcn-tx);transform:translateX(105%);transition:transform .28s ease;display:flex;flex-direction:column;' +
       'box-shadow:-8px 0 30px rgba(0,0,0,.3);font-family:Inter,"Segoe UI",system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}#fcn.aberto{transform:none}' +
-      '#fcn .cab{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border-color,var(--border,#334155))}#fcn .cab b{font-size:17px;flex:1}' +
+      '#fcn .cab{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--fcn-borda)}#fcn .cab b{font-size:17px;flex:1}' +
       '#fcn .cab button{border:none;background:none;color:var(--primary,#f3c64e);font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;padding:6px}' +
-      '#fcn .fechar{width:36px;height:36px;border-radius:50%;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))!important;color:inherit!important;font-size:18px!important}' +
+      '#fcn .fechar{width:36px;height:36px;border-radius:50%;background:var(--fcn-hover)!important;color:inherit!important;font-size:18px!important}' +
       '#fcn .lista{flex:1;overflow-y:auto}' +
-      '#fcn .n{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--border-color,var(--border,rgba(148,163,184,.12)))}' +
-      '#fcn .n:hover{background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))}#fcn .n.nova{background:rgba(243,198,78,.08)}#fcn .n.fim .av i{background:#6b7280 !important;color:#fff !important}' +
+      '#fcn .n{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--fcn-borda)}' +
+      '#fcn .n:hover{background:var(--fcn-hover)}#fcn .n.nova{background:rgba(243,198,78,.08)}#fcn .n.fim .av i{background:#6b7280 !important;color:#fff !important}' +
       '#fcn .av{position:relative;flex-shrink:0}#fcn .av img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#475569}' +
-      '#fcn .av i{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#f3c64e;color:#111;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg-secondary,#1e293b)}' +
+      '#fcn .av i{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#f3c64e;color:#111;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--fcn-bg)}' +
       '#fcn .av i.fa-heart{background:#ef4444;color:#fff}#fcn .av i.fa-tower-broadcast{background:#ef4444;color:#fff}#fcn .av i.fa-user-plus{background:#22c55e;color:#fff}' +
       '#fcn .tx{flex:1;min-width:0;font-size:14px;line-height:1.4}#fcn .tx small{display:block;opacity:.75;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '#fcn .tx .q{font-size:12px;opacity:.6;margin-top:3px}#fcn .ponto{width:9px;height:9px;border-radius:50%;background:#f3c64e;flex-shrink:0;margin-top:6px}' +
-      '#fcn .pref-btn{width:36px;height:36px;border-radius:50%;font-size:15px!important;background:var(--bg-tertiary,var(--hover-bg,var(--hover,#334155)))!important;color:inherit!important}#fcn .tx small.todo{white-space:normal}' +
-      '#fcn .pref{padding:12px 16px;border-bottom:1px solid var(--border-color,var(--border,#334155));background:rgba(243,198,78,.06)}#fcn .pref>span{font-weight:700;font-size:14px}' +
-      '#fcn .pref .ops{display:flex;gap:6px;margin:8px 0 6px;flex-wrap:wrap}#fcn .pref .ops button{flex:1;min-width:0;padding:9px 6px;border-radius:20px;border:1px solid var(--border-color,var(--border,#334155));background:none;color:inherit;font:600 13px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}' +
+      '#fcn .pref-btn{width:36px;height:36px;border-radius:50%;font-size:15px!important;background:var(--fcn-hover)!important;color:inherit!important}#fcn .tx small.todo{white-space:normal}' +
+      '#fcn .pref{padding:12px 16px;border-bottom:1px solid var(--fcn-borda);background:rgba(243,198,78,.06)}#fcn .pref>span{font-weight:700;font-size:14px}' +
+      '#fcn .pref .ops{display:flex;gap:6px;margin:8px 0 6px;flex-wrap:wrap}#fcn .pref .ops button{flex:1;min-width:0;padding:9px 6px;border-radius:20px;border:1px solid var(--fcn-borda);background:none;color:inherit;font:600 13px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}' +
       '#fcn .pref .ops button.on{background:#f3c64e;border-color:#f3c64e;color:#111}#fcn .pref small{font-size:12px;opacity:.75}' +
       '#fcn .vazio{text-align:center;opacity:.7;padding:50px 24px;font-size:14px;line-height:1.5}#fcn .vazio i{font-size:36px;display:block;margin-bottom:10px;opacity:.6}';
     document.head.appendChild(css);
@@ -620,6 +628,7 @@ FC.sino = async function () {
   });
   FC.abrirNotificacoes = async () => {
     if (window.FCMenu) FCMenu.fechar();
+    painel.classList.toggle('claro', FC.temaClaro());
     fundo.classList.add('aberto'); painel.classList.add('aberto'); document.body.style.overflow = 'hidden';
     lista.innerHTML = '<div class="vazio">A carregar…</div>';
     await desenhar();

@@ -142,7 +142,9 @@
             margin-left: auto;          /* botões sempre à direita */
         }
 
-        .fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:1;min-width:0}.fc-marca img{width:42px;height:42px;border-radius:11px;display:block;flex-shrink:0}.fc-marca-txt{display:flex;flex-direction:column;min-width:0;line-height:1.1;font-family:Inter,"Segoe UI",system-ui,sans-serif}.fc-marca-txt b{font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f6cf5f,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}.fc-marca-txt small{font-size:11.5px;font-weight:600;letter-spacing:.3px;color:#e3a92f;white-space:nowrap;margin-top:2px;overflow:hidden;text-overflow:ellipsis}@media (max-width:600px){.fc-marca{gap:7px}.fc-marca img{width:36px;height:36px;border-radius:9px}.fc-marca-txt b{font-size:15px;letter-spacing:-.3px}.fc-marca-txt small{font-size:9.5px;letter-spacing:.1px}}@media (max-width:370px){.fc-marca img{width:32px;height:32px}.fc-marca-txt b{font-size:13.5px}.fc-marca-txt small{font-size:8.5px}}
+        .fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:1;min-width:0}.fc-marca img{width:42px;height:42px;border-radius:11px;display:block;flex-shrink:0}.fc-marca-txt{display:flex;flex-direction:column;min-width:0;line-height:1.1;font-family:Inter,"Segoe UI",system-ui,sans-serif}.fc-marca-txt b{font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f6cf5f,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}.fc-marca-txt small{font-size:11.5px;font-weight:600;letter-spacing:.3px;color:#e3a92f;white-space:nowrap;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+body.light-mode .fc-marca-txt b{background:linear-gradient(180deg,#c98d10,#8a5a00);-webkit-background-clip:text;background-clip:text}body.light-mode .fc-marca-txt small{color:#8a5a00}   /* tema branco: dourado mais escuro, para se ler no fundo branco */
+@media (max-width:600px){.fc-marca{gap:7px}.fc-marca img{width:36px;height:36px;border-radius:9px}.fc-marca-txt b{font-size:15px;letter-spacing:-.3px}.fc-marca-txt small{font-size:9.5px;letter-spacing:.1px}}@media (max-width:370px){.fc-marca img{width:32px;height:32px}.fc-marca-txt b{font-size:13.5px}.fc-marca-txt small{font-size:8.5px}}
 
         /* nada pode empurrar a página para os lados no telemóvel */
         html, body { max-width: 100%; overflow-x: hidden; }
@@ -1522,7 +1524,7 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
             <div class="create-post-card">
                 <div class="create-post-header">
                     <img src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E" class="avatar-sm" alt="Avatar" >
-                    <input type="text" class="create-post-input" placeholder="No que estás a pensar?" onclick="openModal('modalPost')">
+                    <input type="text" class="create-post-input" placeholder="No que está a pensar?" onclick="openModal('modalPost')">
                 </div>
                 <div class="create-post-actions">
                     <button class="action-btn" onclick="openModal('modalPost')">
@@ -1537,7 +1539,7 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
             <!-- EMPTY STATE -->
             <div id="emptyState" class="empty-state">
                 <i class="fas fa-inbox"></i>
-                <p>Nenhuma publicação ainda. Começa a partilhar o teu conteúdo!</p>
+                <p>Nenhuma publicação ainda. Comece a partilhar o seu conteúdo!</p>
             </div>
         </div>
 
@@ -1632,7 +1634,7 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
                 </div>
             </div>
             <div class="form-group">
-                <textarea id="postTxt" maxlength="5000" placeholder="No que estás a pensar?" style="border: none; background: transparent; font-size: 16px; resize: none; min-height: 120px;"></textarea>
+                <textarea id="postTxt" maxlength="5000" placeholder="No que está a pensar?" style="border: none; background: transparent; font-size: 16px; resize: none; min-height: 120px;"></textarea>
             </div>
             <div id="preView"></div>
             <div style="margin-top: 16px;">

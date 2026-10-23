@@ -560,7 +560,9 @@
             .mobile-search-btn { display: none !important; }
         }
     .fc-msg-badge{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:sans-serif;pointer-events:none}
-.fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:1;min-width:0}.fc-marca img{width:42px;height:42px;border-radius:11px;display:block;flex-shrink:0}.fc-marca-txt{display:flex;flex-direction:column;min-width:0;line-height:1.1;font-family:Inter,"Segoe UI",system-ui,sans-serif}.fc-marca-txt b{font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f6cf5f,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}.fc-marca-txt small{font-size:11.5px;font-weight:600;letter-spacing:.3px;color:#e3a92f;white-space:nowrap;margin-top:2px;overflow:hidden;text-overflow:ellipsis}@media (max-width:600px){.fc-marca{gap:7px}.fc-marca img{width:36px;height:36px;border-radius:9px}.fc-marca-txt b{font-size:15px;letter-spacing:-.3px}.fc-marca-txt small{font-size:9.5px;letter-spacing:.1px}}@media (max-width:400px){header .btn-circle[onclick="toggleDarkMode()"]{display:none}}@media (max-width:370px){.fc-marca img{width:32px;height:32px}.fc-marca-txt b{font-size:13.5px}.fc-marca-txt small{font-size:8.5px}}
+.fc-marca{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:1;min-width:0}.fc-marca img{width:42px;height:42px;border-radius:11px;display:block;flex-shrink:0}.fc-marca-txt{display:flex;flex-direction:column;min-width:0;line-height:1.1;font-family:Inter,"Segoe UI",system-ui,sans-serif}.fc-marca-txt b{font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;background:linear-gradient(180deg,#f6cf5f,#c9921f);-webkit-background-clip:text;background-clip:text;color:transparent}.fc-marca-txt small{font-size:11.5px;font-weight:600;letter-spacing:.3px;color:#e3a92f;white-space:nowrap;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+body:not([data-theme="dark"]) .fc-marca-txt b{background:linear-gradient(180deg,#c98d10,#8a5a00);-webkit-background-clip:text;background-clip:text}body:not([data-theme="dark"]) .fc-marca-txt small{color:#8a5a00}   /* tema branco: dourado mais escuro, para se ler no fundo branco */
+@media (max-width:600px){.fc-marca{gap:7px}.fc-marca img{width:36px;height:36px;border-radius:9px}.fc-marca-txt b{font-size:15px;letter-spacing:-.3px}.fc-marca-txt small{font-size:9.5px;letter-spacing:.1px}}@media (max-width:400px){header .btn-circle[onclick="toggleDarkMode()"]{display:none}}@media (max-width:370px){.fc-marca img{width:32px;height:32px}.fc-marca-txt b{font-size:13.5px}.fc-marca-txt small{font-size:8.5px}}
 /* nada empurra a página para os lados no telemóvel */
 html, body { max-width: 100%; overflow-x: hidden; }
         /* ── FILTROS DO FEED ── */
@@ -735,7 +737,7 @@ try { if (localStorage.getItem('lightMode') === 'true') {
         <div class="post-compose" id="post-compose" style="display:none">
             <div class="compose-top">
                 <div class="compose-avatar"><img src="data:," data-fc-avatar alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user" style="display:none"></i></div>
-                <textarea class="compose-input" id="post-text" maxlength="5000" placeholder="No que você está pensando?"></textarea>
+                <textarea class="compose-input" id="post-text" maxlength="5000" placeholder="No que está a pensar?"></textarea>
             </div>
             <div id="post-preview-area"></div>
             <div id="oferta-campos">
@@ -1106,7 +1108,7 @@ async function alternarGuardado(id) {
 // ── Ofertas relâmpago ──
 const mtFmt = v => String(Math.round(Number(v) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MT';
 function faltaTexto(ate) {
-    const s = Math.floor((new Date(ate) - Date.now()) / 1000);
+    const s = Math.floor((new Date(ate) - FC.agora()) / 1000);   // hora do servidor: telemóvel adiantado não termina a oferta antes
     if (s <= 0) return null;
     const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
     const t = FC.t('termina em');

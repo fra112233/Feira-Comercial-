@@ -201,7 +201,7 @@ window.FCMenu = (function () {
     perfil.visibility = novo;
     try { var c = JSON.parse(localStorage.getItem('fc_profile') || 'null'); if (c) { c.visibility = novo; localStorage.setItem('fc_profile', JSON.stringify(c)); } } catch (e) {}
     document.getElementById('fcm-sw-vis').classList.toggle('on', novo === 'publico');
-    aviso(novo === 'publico' ? 'O teu perfil aparece na pesquisa de Amigos.' : 'O teu perfil deixou de aparecer em "Descobrir".');
+    aviso(novo === 'publico' ? 'O seu perfil aparece na pesquisa de Amigos.' : 'O seu perfil deixou de aparecer em "Descobrir".');
   }
 
   async function notificacoes() {

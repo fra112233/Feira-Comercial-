@@ -123,7 +123,7 @@ a { color:inherit; text-decoration:none; }
   <a class="btn-ic" href="index.html" title="Voltar"><i class="fas fa-arrow-left"></i></a>
   <div class="separadores">
     <button id="sep-seguir" onclick="mudarSeparador('seguir')">A seguir</button>
-    <button id="sep-todos" class="ativo" onclick="mudarSeparador('todos')">Para ti</button>
+    <button id="sep-todos" class="ativo" onclick="mudarSeparador('todos')">Para si</button>
   </div>
   <button class="btn-ic" onclick="abrirPublicar()" title="Publicar vídeo"><i class="fas fa-plus"></i></button>
 </header>
@@ -239,7 +239,7 @@ function desenharVazio() {
   document.getElementById('feed').innerHTML = `
     <div class="vazio"><i class="fas fa-clapperboard"></i>
       <b style="color:#fff;font-size:18px;">${separador === 'seguir' ? 'Ainda não há vídeos de quem segues' : 'Ainda não há vídeos'}</b>
-      <span>${separador === 'seguir' ? 'Segue pessoas e empresas em Amigos, ou vê "Para ti".' : 'Sê o primeiro a mostrar o teu negócio em vídeo!'}</span>
+      <span>${separador === 'seguir' ? 'Siga pessoas e empresas em Amigos, ou veja "Para si".' : 'Seja o primeiro a mostrar o seu negócio em vídeo!'}</span>
       <button class="btn-ouro" onclick="abrirPublicar()"><i class="fas fa-plus"></i> Publicar vídeo</button></div>`;
 }
 

@@ -484,7 +484,7 @@ try { if (localStorage.getItem('lightMode') === 'true') {
             <!-- Blocked banner -->
             <div class="blocked-banner" id="blockedBanner">
                 <i class="fas fa-ban"></i>
-                <span>Bloqueaste este contacto. Não podes enviar mensagens.</span>
+                <span>Bloqueou este contacto. Não pode enviar mensagens.</span>
                 <button class="unblock-btn" onclick="unblockContact()">Desbloquear</button>
             </div>
 
@@ -795,7 +795,7 @@ function renderContacts() {
         html = `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">A carregar...</div>`;
     } else if (!lista.length && !pesquisaPerfis.length) {
         html = `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">
-                  ${q ? 'Sem resultados' : 'Ainda não tens conversas.<br>Escreve um nome acima, ou vai a <a href="amigos.html" style="color:var(--green)">Amigos</a> e carrega em "Mensagem".'}</div>`;
+                  ${q ? 'Sem resultados' : 'Ainda não tem conversas.<br>Escreva um nome acima, ou vá a <a href="amigos.html" style="color:var(--green)">Amigos</a> e carregue em "Mensagem".'}</div>`;
     }
     html += lista.map(c => {
         const bloq = bloqueei.has(c.id);
@@ -1295,7 +1295,7 @@ function ctxDelete() {
     if (!ctxTarget) return;
     const m = ctxTarget.msg;
     closeCtx();
-    if (m.sender_id !== ME.id) { showToast('Só podes apagar as tuas mensagens.'); return; }
+    if (m.sender_id !== ME.id) { showToast('Só pode apagar as suas mensagens.'); return; }
     if (!confirm('Apagar esta mensagem para todos?')) return;
     atualizarMensagem(m.id, { deleted: true });
 }
@@ -1367,7 +1367,7 @@ function toggleBlockFromProfile() { closeProfile(); if (activeContactId) toggleB
 async function clearChat() {
     const id = activeContactId;
     if (!id) return;
-    if (!confirm('Limpar esta conversa? As mensagens desaparecem só para ti.')) return;
+    if (!confirm('Limpar esta conversa? As mensagens desaparecem só para si.')) return;
     const r1 = await supabaseClient.from('messages').update({ cleared_by_sender: true }).eq('sender_id', ME.id).eq('receiver_id', id);
     const r2 = await supabaseClient.from('messages').update({ cleared_by_receiver: true }).eq('sender_id', id).eq('receiver_id', ME.id);
     if (r1.error || r2.error) { showToast('Erro ao limpar a conversa'); return; }
