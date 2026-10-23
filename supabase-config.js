@@ -95,7 +95,9 @@ FC.sincronizarHora = function () {
       const { data, error } = await supabaseClient.rpc('agora');
       if (error || !data) return;
       const t1 = Date.now();
-      FC._desvio = new Date(data).getTime() - (t0 + t1) / 2;   // desconta metade do tempo da viagem
+      const srv = new Date(data).getTime();
+      if (!isFinite(srv)) return;                              // resposta estranha: fica a hora do aparelho (nunca "Invalid Date")
+      FC._desvio = srv - (t0 + t1) / 2;   // desconta metade do tempo da viagem
       FC._horaCerta = true;
     } catch (e) {}
   })();
@@ -380,7 +382,7 @@ FC._notifTextos = {
   cobranca: 'foi-lhe atribuída para cobrar a mensalidade 💰',
   gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
-  gosto_video: 'gostou do seu vídeo', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴',
+  gosto_video: 'gostou do seu vídeo', gosto_story: 'gostou do seu story ❤️', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴',
   avaliacao: 'avaliou a sua empresa', resposta_avaliacao: 'respondeu à sua avaliação',
   convite_aceite: 'criou conta com o seu convite', convite_premio: 'pagou a mensalidade: ganhou dias grátis',
   marco_publicacao: '🎉 Parabéns! A sua primeira publicação está no ar.',
@@ -391,7 +393,7 @@ FC._notifTextos = {
   resumo_semanal: '— o seu resumo da semana 📰', lojas_hoje: 'publicou hoje 🛍️'
 };
 FC._notifIcones = {
-  gosto: 'fa-heart', gosto_video: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
+  gosto: 'fa-heart', gosto_video: 'fa-heart', gosto_story: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
   marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock',
@@ -462,7 +464,8 @@ FC.linkNotificacao = function (n) {
   if (n.tipo === 'resumo_semanal' || n.tipo === 'lojas_hoje') return 'index.html';
   if (n.tipo === 'travao') return 'admin.html';
   if (n.tipo === 'numero_proibido') return 'admin.html#suspeitos';
-  if (n.tipo === 'cobranca') return 'admin.html#mensalidades';   // conta posta em revisão pelo travão automático
+  if (n.tipo === 'cobranca') return 'admin.html#mensalidades';
+  if (n.tipo === 'gosto_story') return 'index.html';   // conta posta em revisão pelo travão automático
   if (n.post_id) return 'index.html?post=' + n.post_id;
   if (n.video_id) return 'videos.html?v=' + n.video_id;
   if (n.live_id && n.live && FC.textoNotificacao(n).terminada) return 'perfil.html?id=' + encodeURIComponent(n.autor_id || '');
