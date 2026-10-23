@@ -1232,6 +1232,7 @@
 "Só podes apagar as tuas mensagens.": "You can only delete your own messages.",
 "Só precisamos do essencial. O resto completas no teu perfil.": "We only need the essentials. You can complete the rest in your profile.",
 "Só quem eu sigo": "Only people I follow",
+"Só quem publicou vê os nomes de quem reagiu.": "Only the person who posted can see who reacted.",
 "Tamanhos, cores, entrega…": "Sizes, colours, delivery…",
 "Tecnologia e Informática": "Technology and IT",
 "Telefone": "Phone",

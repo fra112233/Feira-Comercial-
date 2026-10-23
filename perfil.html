@@ -1506,7 +1506,7 @@
             <button class="tab-btn" onclick="switchTab('media', this)">
                 <i class="fas fa-images"></i> Média
             </button>
-            <button class="tab-btn" onclick="switchTab('likes', this)">
+            <button class="tab-btn" id="tabGostos" onclick="switchTab('likes', this)">
                 <i class="fas fa-heart"></i> Gostos
             </button>
             <button class="tab-btn" onclick="switchTab('info', this)">
@@ -1696,6 +1696,8 @@
             meuId = session.user.id;
             alvoId = VER_ID || meuId;
             modoVisita = alvoId !== meuId;
+            // os gostos de cada pessoa são privados: o separador "Gostos" só aparece no meu perfil
+            const tg = document.getElementById('tabGostos'); if (tg) tg.style.display = modoVisita ? 'none' : '';
             if (!modoVisita) mostrarModoDono();
             if (perfilAtual && perfilAtual.id !== alvoId) perfilAtual = null;
 
@@ -1845,10 +1847,11 @@
         mostrarCartaoOficial();
         carregarHistoricoMedia();
         const { data, error } = await getSB().from('posts')
-            .select(`id, content, media, image_url, created_at, likes(user_id),
+            .select(`id, content, media, image_url, created_at, curtidas_count, meu:likes(user_id),
                      comments(id, content, created_at, parent_id, user_id,
                               autor:perfis!comments_user_id_fkey(full_name, avatar_url))`)
             .eq('user_id', alvoId)
+            .eq('meu.user_id', meuId || '00000000-0000-0000-0000-000000000000')   // só a MINHA reação (os nomes dos outros são privados)
             .gte('created_at', new Date(FC.agora() - TEMPO_VIDA).toISOString())
             .order('created_at', { ascending: false });
         if (error) { console.warn('Erro ao carregar publicações:', error.message); return; }
@@ -1860,8 +1863,8 @@
                 text: r.content || '',
                 media: media.map(m => ({ data: m.url, url: m.url, type: m.type })),
                 timestamp: new Date(r.created_at).getTime(),
-                reactCount: (r.likes || []).length,
-                myLike: !!(meuId && (r.likes || []).some(l => l.user_id === meuId)),   // já curti? (não deixa curtir 2 vezes)
+                reactCount: Number(r.curtidas_count || 0),        // total contado pelo servidor
+                myLike: !!(meuId && (r.meu || []).length),          // já curti? (não deixa curtir 2 vezes)
                 comments: (r.comments || []).map(c => ({
                     id: c.id, text: c.content || '', userId: c.user_id, parentId: c.parent_id,
                     nome: (c.autor && c.autor.full_name) || 'Utilizador',

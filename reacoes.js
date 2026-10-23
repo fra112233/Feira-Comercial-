@@ -90,13 +90,25 @@
     var todos = (r.data || []).filter(function (l) { return l.quem; });
     var souAutor = !!(meu && o.autorId && meu === o.autorId);
     var conta = {}; todos.forEach(function (l) { conta[l.reaction] = (conta[l.reaction] || 0) + 1; });
+    var total = todos.length, privado = false;
+    // quem não publicou: só os totais por reação (sem nomes) e a sua própria reação — migração 055
+    if (!o.story && !souAutor) {
+      var rr = await cli.rpc('reacoes_resumo', { p_post: postId });
+      if (!document.body.contains(fundo)) return;
+      if (!rr.error) {
+        privado = true; conta = {}; total = 0;
+        (rr.data || []).forEach(function (x) { conta[x.reaction] = Number(x.n) || 0; total += Number(x.n) || 0; });
+        todos = todos.filter(function (l) { return l.user_id === meu; });
+      }
+    }
 
-    var tabs = [['', (o.story ? 'Vistos ' : 'Todas ') + todos.length]].concat(ORDEM.filter(function (k) { return conta[k]; }).map(function (k) { return [k, EMOJI[k] + ' ' + conta[k]]; }));
+    var tabs = [['', (o.story ? 'Vistos ' : 'Todas ') + total]].concat(ORDEM.filter(function (k) { return conta[k]; }).map(function (k) { return [k, EMOJI[k] + ' ' + conta[k]]; }));
     abas.innerHTML = tabs.map(function (t, i) { return '<button type="button" data-r="' + t[0] + '"' + (i ? ' title="' + t[0] + '"' : '') + ' class="' + (i ? '' : 'sel') + '">' + t[1] + '</button>'; }).join('');
 
     function mostrar(filtro) {
       var v = todos.filter(function (l) { return !filtro || l.reaction === filtro; });
-      if (!v.length) { lista.innerHTML = '<p class="fcr-vazio">' + (o.story ? 'Ainda ninguém viu este story.' : 'Ainda ninguém reagiu a esta publicação.') + '</p>'; return; }
+      var nota = privado ? '<p class="fcr-vazio"><i class="fas fa-lock"></i> Só quem publicou vê os nomes de quem reagiu.</p>' : '';
+      if (!v.length) { lista.innerHTML = privado && total ? nota : '<p class="fcr-vazio">' + (o.story ? 'Ainda ninguém viu este story.' : 'Ainda ninguém reagiu a esta publicação.') + '</p>'; return; }
       lista.innerHTML = v.map(function (l) {
         var q = l.quem, nome = q.full_name || 'Utilizador';
         var av = q.avatar_url ? (window.FC && FC.u ? FC.u(q.avatar_url) : q.avatar_url)
@@ -105,7 +117,7 @@
         var msg = souAutor && q.id !== meu ? '<a class="fcr-msg" href="mensagen.html?para=' + encodeURIComponent(q.id) + '"><i class="fas fa-paper-plane"></i> Mensagem</a>' : '';
         return '<div class="fcr-p" data-id="' + esc(q.id) + '"><div class="fcr-av"><img src="' + esc(av) + '" alt="" loading="lazy">' + (l.reaction || !o.story ? '<span>' + (EMOJI[l.reaction] || '👍') + '</span>' : '') + '</div>' +
           '<div class="fcr-nome"><b data-no-i18n>' + esc(nome) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' + msg + '</div>';
-      }).join('');
+      }).join('') + nota;
     }
     mostrar('');
     abas.addEventListener('click', function (e) {
