@@ -62,7 +62,10 @@
   // "há 3 dias", "hoje", "há 2 semanas" — idade de uma conta
   function emIngles() { try { return !!(raiz.FCI18N && raiz.FCI18N.lang === 'en'); } catch (e) { return false; } }
   function idade(criada) {
-    var d = Math.floor((Date.now() - new Date(criada).getTime()) / 86400000), en = emIngles();
+    // dias do calendário (no fuso do aparelho), não períodos de 24 h: criada ontem às 21h e vista
+    // hoje às 08h é "ontem"; criada anteontem às 22h e vista hoje às 20h é "há 2 dias"
+    var c = new Date(criada), h = new Date(), en = emIngles();
+    var d = Math.round((new Date(h.getFullYear(), h.getMonth(), h.getDate()) - new Date(c.getFullYear(), c.getMonth(), c.getDate())) / 86400000);
     if (!(d >= 0)) return '';
     if (d === 0) return en ? 'today' : 'hoje';
     if (d === 1) return en ? 'yesterday' : 'ontem';
