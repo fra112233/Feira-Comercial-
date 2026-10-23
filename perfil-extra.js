@@ -217,7 +217,7 @@ window.FCX = (function () {
     if (!dono && meuId && meuId !== empresa.id) {
       estrelasEscolhidas = minha ? minha.estrelas : 0;
       html += '<div class="fcx-form"><b style="font-size:15px">' + (minha ? 'A sua avaliação' : 'Avalie ' + esc(empresa.full_name || 'esta empresa')) + '</b>' +
-        '<div class="fcx-picker" id="fcxPicker">' + [1, 2, 3, 4, 5].map(n => '<button type="button" data-n="' + n + '" aria-label="' + n + ' estrelas">★</button>').join('') + '</div>' +
+        '<div class="fcx-picker" id="fcxPicker">' + [1, 2, 3, 4, 5].map(n => '<button type="button" data-n="' + n + '" aria-label="' + n + (n === 1 ? ' estrela' : ' estrelas') + '">★</button>').join('') + '</div>' +
         '<div class="fcx-campo" style="margin-bottom:10px"><textarea id="fcxComentario" rows="2" maxlength="500" placeholder="Conte como foi (opcional): atendimento, qualidade, entrega…">' + esc(minha ? minha.comentario || '' : '') + '</textarea></div>' +
         '<button class="fcx-btn" type="button" onclick="FCX.guardarAvaliacao()"><i class="fas fa-paper-plane"></i> ' + (minha ? 'Atualizar' : 'Publicar avaliação') + '</button>' +
         (minha ? ' <button class="fcx-btn sec" type="button" onclick="FCX.apagarAvaliacao()">Apagar</button>' : '') + '</div>';

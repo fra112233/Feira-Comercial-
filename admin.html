@@ -594,12 +594,12 @@ async function carregarCrescimento() {
   const dif = c.receita_mes - c.receita_mes_anterior;
   $('crescimento').innerHTML =
     '<div class="cr-kpis">' +
-      k('Contas', c.contas, c.empresas + ' empresas · ' + c.pessoas + ' pessoas') +
+      k('Contas', c.contas, FC.plural(c.empresas, 'empresa', 'empresas') + ' · ' + FC.plural(c.pessoas, 'pessoa', 'pessoas')) +
       k('Novas hoje', c.novas_hoje, c.novas_7d + ' nos últimos 7 dias') +
       k('Ativas (7 dias)', c.ativos_7d, pct(c.ativos_7d, c.contas) + ' das contas entraram') +
-      k('Primeiros passos completos', pct(c.passos_completos, c.novas_periodo), c.passos_completos + ' de ' + c.novas_periodo + ' contas novas') +
-      k('Responderam à equipa', pct(c.responderam, c.novas_periodo), c.responderam + ' de ' + c.novas_periodo + ' contas novas') +
-      k('Empresas com mensalidade em dia', c.empresas_em_dia, 'de ' + c.empresas + ' empresas') +
+      k('Primeiros passos completos', pct(c.passos_completos, c.novas_periodo), c.passos_completos + ' de ' + FC.plural(c.novas_periodo, 'conta nova', 'contas novas')) +
+      k('Responderam à equipa', pct(c.responderam, c.novas_periodo), c.responderam + ' de ' + FC.plural(c.novas_periodo, 'conta nova', 'contas novas')) +
+      k('Empresas com mensalidade em dia', c.empresas_em_dia, 'de ' + FC.plural(c.empresas, 'empresa', 'empresas')) +
       k('Receita deste mês', mtF(c.receita_mes), (dif >= 0 ? '▲ ' : '▼ ') + mtF(Math.abs(dif)) + ' vs. mês anterior') +
       k('Produtos no catálogo', c.produtos, c.pagamentos_pendentes ? c.pagamentos_pendentes + ' pagamento(s) por confirmar' : '') +
     '</div>' +
@@ -763,7 +763,7 @@ async function carregarErros(silencioso) {
     '</article>').join('');
   document.querySelectorAll('#listaErros [data-copiar]').forEach(b => b.onclick = () => {
     const x = erros[b.dataset.copiar];
-    const t = 'Erro: ' + x.mensagem + '\nPágina: ' + x.pagina + '\nVezes: ' + x.vezes + ' (' + x.pessoas + ' pessoas)\nAparelho: ' + aparelhoDe(x.aparelho) + '\nVersão: ' + (x.versao || '') + (x.fonte ? '\nOnde: ' + x.fonte + ':' + (x.linha || '') : '') + (x.pilha ? '\n' + x.pilha : '');
+    const t = 'Erro: ' + x.mensagem + '\nPágina: ' + x.pagina + '\nVezes: ' + x.vezes + ' (' + FC.plural(x.pessoas, 'pessoa', 'pessoas') + ')\nAparelho: ' + aparelhoDe(x.aparelho) + '\nVersão: ' + (x.versao || '') + (x.fonte ? '\nOnde: ' + x.fonte + ':' + (x.linha || '') : '') + (x.pilha ? '\n' + x.pilha : '');
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('📋 Copiado. Cole na conversa comigo.'), () => toast('Não foi possível copiar.'));
   });
   document.querySelectorAll('#listaErros [data-resolvido]').forEach(b => b.onclick = async () => {
@@ -1005,7 +1005,7 @@ async function verConversas(id, prefixo) {
   if (!data || !data.length) { box.innerHTML = '<small style="color:var(--sub)">Esta conta ainda não tem conversas.</small>'; return; }
   data.forEach(o => { if (o.outro && o.nome) nomesExtra[o.outro] = o.nome; });
   box.innerHTML = '<b style="font-size:13.5px">Conversas (' + data.length + ')</b><br><small style="color:var(--sub)">Abrir uma conversa exige um motivo e fica registado.</small>' + data.map(o =>
-    '<div class="acesso"><div><b>' + esc(o.nome || 'Conta apagada') + '</b><br><small>' + o.mensagens + ' mensagens · última ' + quando(o.ultima) + '</small></div>' +
+    '<div class="acesso"><div><b>' + esc(o.nome || 'Conta apagada') + '</b><br><small>' + FC.plural(o.mensagens, 'mensagem', 'mensagens') + ' · última ' + quando(o.ultima) + '</small></div>' +
     '<div style="text-align:right"><button type="button" class="btn btn-sec" style="padding:6px 10px;font-size:12.5px" onclick="abrirConversa(\'' + id + '\', \'' + o.outro + '\')"><i class="fas fa-eye"></i> Abrir</button></div></div>').join('');
 }
 async function abrirConversa(a, b) {
@@ -1298,7 +1298,7 @@ async function atribuirCobranca(id, quem) {
 }
 async function lembrarTodas(estado, n) {
   const txt = estado === 'em_atraso' ? 'em atraso' : 'cuja mensalidade termina nos próximos 5 dias';
-  if (!confirm('Enviar um lembrete da Equipa Feira Comercial às ' + n + ' empresas ' + txt + '?\n\nA mensagem diz quanto pagar e tem o link da página de pagamento. Empresas lembradas nos últimos 3 dias ou com um pagamento à espera de confirmação não recebem outra vez.')) return;
+  if (!confirm('Enviar um lembrete da Equipa Feira Comercial ' + (n === 1 ? 'à empresa ' : 'às ' + n + ' empresas ') + txt + '?\n\nA mensagem diz quanto pagar e tem o link da página de pagamento. Empresas lembradas nos últimos 3 dias ou com um pagamento à espera de confirmação não recebem outra vez.')) return;
   const { data, error } = await supabaseClient.rpc('admin_lembrar_mensalidades', { p_estado: estado });
   if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
   toast('📣 ' + data + (data === 1 ? ' empresa lembrada.' : ' empresas lembradas.')); carregarMensalidades();

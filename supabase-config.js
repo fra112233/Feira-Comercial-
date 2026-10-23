@@ -86,7 +86,8 @@ FC.agora = () => Date.now() + FC._desvio;
 FC.inicioDia = t => { const y = new Date(t); y.setHours(0, 0, 0, 0); return y.getTime(); };
 FC.diasAte = d => Math.round((FC.inicioDia(new Date(d)) - FC.inicioDia(FC.agora())) / 864e5);   // 0 hoje · 1 amanhã · -1 ontem
 FC.hojeISO = () => { const x = new Date(FC.agora()); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
-FC.emDias = n => n <= 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias';                  // "termina hoje / amanhã / em 3 dias"
+FC.emDias = n => n <= 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias';
+FC.plural = (n, um, varios) => n + ' ' + (Number(n) === 1 ? um : varios);       // "1 vez" / "3 vezes" (nunca "1 vezes")                  // "termina hoje / amanhã / em 3 dias"
 FC.sincronizarHora = function () {
   if (!FC._sincHora) FC._sincHora = (async () => {
     try {

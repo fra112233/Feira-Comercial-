@@ -77,7 +77,7 @@
   function frase(criada) { return (emIngles() ? 'Account created ' : 'Conta criada ') + idade(criada) + '.'; }
   function contaNova(criada) {
     var t = new Date(criada).getTime();
-    return !!t && Date.now() - t < 30 * 86400000;
+    return !!t && (raiz.FC && raiz.FC.agora ? raiz.FC.agora() : Date.now()) - t < 30 * 86400000;
   }
 
   var api = { analisar: analisar, idade: idade, frase: frase, contaNova: contaNova, AVISOS: AVISOS };

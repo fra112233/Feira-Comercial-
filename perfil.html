@@ -1848,7 +1848,7 @@
                      comments(id, content, created_at, parent_id, user_id,
                               autor:perfis!comments_user_id_fkey(full_name, avatar_url))`)
             .eq('user_id', alvoId)
-            .gte('created_at', new Date(Date.now() - TEMPO_VIDA).toISOString())
+            .gte('created_at', new Date(FC.agora() - TEMPO_VIDA).toISOString())
             .order('created_at', { ascending: false });
         if (error) { console.warn('Erro ao carregar publicações:', error.message); return; }
         meusPosts = (data || []).map(r => {
@@ -1897,7 +1897,7 @@
         const postId = 'post-' + p.id;
         const avatar = (perfilAtual && perfilAtual.avatar_url) || localStorage.getItem('fc_avatar') || 'data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23475569%27/%3E%3Ccircle cx=%2732%27 cy=%2725%27 r=%2712%27 fill=%27%23cbd5e1%27/%3E%3Cpath d=%27M10 60c3-13 12-19 22-19s19 6 22 19z%27 fill=%27%23cbd5e1%27/%3E%3C/svg%3E';
         const nome = (perfilAtual && perfilAtual.full_name) || p.userName || localStorage.getItem('fc_name') || 'Você';
-        const hora = new Date(p.timestamp).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        const hora = FC.diaHora(p.timestamp);   // "hoje às 21:58" / "ontem às 9:10" (antes só a hora, sem o dia)
         const m = (p.media || [])[0];
         const nMedia = (p.media || []).length;
         let mediaTag = '';
@@ -2192,7 +2192,7 @@
         const { data, error } = await getSB().from('likes')
             .select('created_at, post:posts!inner(id, content, media, image_url, created_at, autor:perfis!posts_user_id_fkey(id, full_name, avatar_url))')
             .eq('user_id', alvoId)
-            .gte('post.created_at', new Date(Date.now() - TEMPO_VIDA).toISOString())
+            .gte('post.created_at', new Date(FC.agora() - TEMPO_VIDA).toISOString())
             .order('created_at', { ascending: false })
             .limit(50);
         if (error) {
