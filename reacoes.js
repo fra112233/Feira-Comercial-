@@ -6,6 +6,8 @@
    empresa, quem reage é um cliente interessado.
 
    FCReacoes.abrir(postId, { autorId, eu })   — abre a janela (eu = o meu id)
+   FCReacoes.abrir(storyId, { story: true, autorId, eu, aoFechar })
+       — "Quem viu" de um story (só o dono consegue ler a lista; migração 054)
    FCReacoes.EMOJI                         — { Curtir: '👍', … }
    ============================================================ */
 (function () {
@@ -48,7 +50,7 @@
 
   function fechar() {
     var f = document.querySelector('.fcr-fundo');
-    if (f) f.remove();
+    if (f) { f.remove(); if (typeof f._aoFechar === 'function') f._aoFechar(); }
     document.removeEventListener('keydown', teclaEsc);
   }
   function teclaEsc(e) { if (e.key === 'Escape') fechar(); }
@@ -63,16 +65,24 @@
     estilos(); fechar();
     var fundo = document.createElement('div');
     fundo.className = 'fcr-fundo';
-    fundo.innerHTML = '<div class="fcr-caixa" role="dialog" aria-modal="true" aria-label="Quem reagiu">' +
-      '<div class="fcr-topo"><h3>Quem reagiu</h3><button type="button" class="fcr-fechar" aria-label="Fechar">×</button></div>' +
+    var titulo = o.story ? 'Quem viu' : 'Quem reagiu';
+    fundo._aoFechar = o.aoFechar;
+    fundo.innerHTML = '<div class="fcr-caixa" role="dialog" aria-modal="true" aria-label="' + titulo + '">' +
+      '<div class="fcr-topo"><h3>' + titulo + '</h3><button type="button" class="fcr-fechar" aria-label="Fechar">×</button></div>' +
       '<div class="fcr-abas"></div><div class="fcr-lista"><p class="fcr-vazio">A carregar…</p></div></div>';
     document.body.appendChild(fundo);
     fundo.addEventListener('click', function (e) { if (e.target === fundo || e.target.closest('.fcr-fechar')) fechar(); });
     document.addEventListener('keydown', teclaEsc);
 
-    var r = await cli.from('likes')
-      .select('reaction, created_at, user_id, quem:perfis!likes_user_id_fkey(id, full_name, avatar_url, type, city)')
-      .eq('post_id', postId).order('created_at', { ascending: false }).limit(500);
+    var r = o.story
+      ? await cli.from('story_vistas')
+          .select('reacao, visto, reagiu, user_id, quem:perfis!story_vistas_user_id_fkey(id, full_name, avatar_url, type, city)')
+          .eq('story_id', postId).order('visto', { ascending: false }).limit(1000)
+      : await cli.from('likes')
+          .select('reaction, created_at, user_id, quem:perfis!likes_user_id_fkey(id, full_name, avatar_url, type, city)')
+          .eq('post_id', postId).order('created_at', { ascending: false }).limit(500);
+    if (o.story && r.data) r.data = r.data.map(function (v) { return { reaction: v.reacao, created_at: v.reagiu || v.visto, user_id: v.user_id, quem: v.quem }; })
+      .sort(function (a, b) { return (b.reaction ? 1 : 0) - (a.reaction ? 1 : 0); });   // quem gostou aparece primeiro
     if (!document.body.contains(fundo)) return;
     var lista = fundo.querySelector('.fcr-lista'), abas = fundo.querySelector('.fcr-abas');
     if (r.error) { lista.innerHTML = '<p class="fcr-vazio">Não foi possível carregar. Verifique a ligação e tente outra vez.</p>'; return; }
@@ -81,19 +91,19 @@
     var souAutor = !!(meu && o.autorId && meu === o.autorId);
     var conta = {}; todos.forEach(function (l) { conta[l.reaction] = (conta[l.reaction] || 0) + 1; });
 
-    var tabs = [['', 'Todas ' + todos.length]].concat(ORDEM.filter(function (k) { return conta[k]; }).map(function (k) { return [k, EMOJI[k] + ' ' + conta[k]]; }));
+    var tabs = [['', (o.story ? 'Vistos ' : 'Todas ') + todos.length]].concat(ORDEM.filter(function (k) { return conta[k]; }).map(function (k) { return [k, EMOJI[k] + ' ' + conta[k]]; }));
     abas.innerHTML = tabs.map(function (t, i) { return '<button type="button" data-r="' + t[0] + '"' + (i ? ' title="' + t[0] + '"' : '') + ' class="' + (i ? '' : 'sel') + '">' + t[1] + '</button>'; }).join('');
 
     function mostrar(filtro) {
       var v = todos.filter(function (l) { return !filtro || l.reaction === filtro; });
-      if (!v.length) { lista.innerHTML = '<p class="fcr-vazio">Ainda ninguém reagiu a esta publicação.</p>'; return; }
+      if (!v.length) { lista.innerHTML = '<p class="fcr-vazio">' + (o.story ? 'Ainda ninguém viu este story.' : 'Ainda ninguém reagiu a esta publicação.') + '</p>'; return; }
       lista.innerHTML = v.map(function (l) {
         var q = l.quem, nome = q.full_name || 'Utilizador';
         var av = q.avatar_url ? (window.FC && FC.u ? FC.u(q.avatar_url) : q.avatar_url)
           : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nome) + '&background=random&color=fff&size=84';
         var sub = [q.type === 'empresa' ? 'Empresa' : '', q.city || '', window.FC && FC.haQuanto ? FC.haQuanto(l.created_at) : ''].filter(Boolean).join(' · ');
         var msg = souAutor && q.id !== meu ? '<a class="fcr-msg" href="mensagen.html?para=' + encodeURIComponent(q.id) + '"><i class="fas fa-paper-plane"></i> Mensagem</a>' : '';
-        return '<div class="fcr-p" data-id="' + esc(q.id) + '"><div class="fcr-av"><img src="' + esc(av) + '" alt="" loading="lazy"><span>' + (EMOJI[l.reaction] || '👍') + '</span></div>' +
+        return '<div class="fcr-p" data-id="' + esc(q.id) + '"><div class="fcr-av"><img src="' + esc(av) + '" alt="" loading="lazy">' + (l.reaction || !o.story ? '<span>' + (EMOJI[l.reaction] || '👍') + '</span>' : '') + '</div>' +
           '<div class="fcr-nome"><b data-no-i18n>' + esc(nome) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' + msg + '</div>';
       }).join('');
     }
