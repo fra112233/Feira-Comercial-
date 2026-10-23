@@ -633,6 +633,11 @@ html, body { max-width: 100%; overflow-x: hidden; }
 <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body data-theme="dark">
+<script>/* tema escolhido (o mesmo em todas as páginas): aplica antes de desenhar, para não piscar a preto */
+try { if (localStorage.getItem('lightMode') === 'true') {
+  document.body.setAttribute('data-theme', 'light');
+  document.addEventListener('DOMContentLoaded', function () { var i = document.getElementById('theme-icon'); if (i) i.className = 'fas fa-sun'; });
+} } catch (e) {}</script>
 <script src="splash.js"></script>
 
 <!-- HEADER -->
@@ -1311,6 +1316,7 @@ function toggleDarkMode() {
     const isDark = body.getAttribute('data-theme') === 'dark';
     body.setAttribute('data-theme', isDark ? 'light' : 'dark');
     document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    try { localStorage.setItem('lightMode', isDark); } catch (e) {}   // as outras páginas abrem com o mesmo tema
 }
 
 function toggleDropdown(e) {

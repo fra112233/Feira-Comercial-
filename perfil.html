@@ -1349,6 +1349,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
+<script>/* tema escolhido (o mesmo em todas as páginas): aplica antes de desenhar */
+try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.add('light-mode'); } catch (e) {}</script>
 
 <!-- ==================== HEADER ==================== -->
 <header>
