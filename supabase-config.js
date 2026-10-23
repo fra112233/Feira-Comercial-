@@ -80,6 +80,13 @@ FC.origem = function () {
 FC._desvio = 0;
 FC._horaCerta = false;
 FC.agora = () => Date.now() + FC._desvio;
+/* Datas: conta-se em DIAS DO CALENDÁRIO, nunca em blocos de 24 horas.
+   Criada ontem às 23h e vista hoje às 8h = "ontem" (só 9 h, mas é outro dia);
+   criada anteontem às 22h e vista hoje às 20h = "há 2 dias" (46 h, mas 2 dias). */
+FC.inicioDia = t => { const y = new Date(t); y.setHours(0, 0, 0, 0); return y.getTime(); };
+FC.diasAte = d => Math.round((FC.inicioDia(new Date(d)) - FC.inicioDia(FC.agora())) / 864e5);   // 0 hoje · 1 amanhã · -1 ontem
+FC.hojeISO = () => { const x = new Date(FC.agora()); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+FC.emDias = n => n <= 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias';                  // "termina hoje / amanhã / em 3 dias"
 FC.sincronizarHora = function () {
   if (!FC._sincHora) FC._sincHora = (async () => {
     try {
@@ -394,7 +401,9 @@ FC.haQuanto = function (d) {
   if (s < 60) return 'agora';
   if (s < 3600) return 'há ' + Math.floor(s / 60) + ' min';
   if (s < 86400) return 'há ' + Math.floor(s / 3600) + ' h';
-  if (s < 7 * 86400) { const n = Math.floor(s / 86400); return 'há ' + n + (n === 1 ? ' dia' : ' dias'); }
+  const n = -FC.diasAte(d);   // dias do calendário
+  if (n <= 1) return 'ontem';
+  if (n < 7) return 'há ' + n + ' dias';
   return new Date(d).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' });
 };
 // "hoje às 10:29", "ontem às 9:44", "amanhã às 03:45", "sex., 17 out. às 03:45"
@@ -1012,8 +1021,8 @@ FC.mensalidade = function (me) {
   // sem a coluna ainda (antes da migração 010) não mostramos nada
   if (!('assinatura_ate' in me)) return { empresa: true, ativa: true, pode: true, ate: null, dias: null };
   const ate = me.assinatura_ate ? new Date(me.assinatura_ate) : null;
-  const dias = ate ? Math.ceil((ate - Date.now()) / 86400000) : 0;
-  const ativa = !!ate && ate > new Date();
+  const dias = ate ? FC.diasAte(ate) : 0;          // dias do calendário até ao fim (0 = acaba hoje)
+  const ativa = !!ate && ate.getTime() > FC.agora();
   const bloqueia = !!(FC._config && FC._config.bloquear_sem_pagamento === 'sim');
   return { empresa: true, ativa, pode: ativa || !bloqueia, ate, dias };
 };
@@ -1025,11 +1034,11 @@ FC.lembreteMensalidade = function (me) {
   if (/mensalidade\.html/.test(location.pathname)) return;
   const chave = 'fc_lembrete_mens_' + me.id;
   try { if (Date.now() - Number(localStorage.getItem(chave) || 0) < 48 * 3600 * 1000) return; localStorage.setItem(chave, String(Date.now())); } catch (e) { return; }
-  const quando = m.ativa ? (m.dias <= 1 ? 'termina amanhã' : 'termina em ' + m.dias + ' dias') : 'terminou';
+  const quando = m.ativa ? 'termina ' + FC.emDias(m.dias) : 'terminou';
   // ainda no período de teste? (a assinatura acaba até 16 dias depois de a conta ser criada)
   const teste = me.created_at && m.ate && (m.ate - new Date(me.created_at)) < 16 * 864e5;
   const oQue = teste ? (m.ativa ? 'Os seus dias grátis' : 'Os seus dias grátis') : 'A mensalidade';
-  const quando2 = teste ? (m.ativa ? (m.dias <= 1 ? 'acabam amanhã' : 'acabam em ' + m.dias + ' dias') : 'acabaram') : quando;
+  const quando2 = teste ? (m.ativa ? 'acabam ' + FC.emDias(m.dias) : 'acabaram') : quando;
   const el = document.createElement('div');
   el.id = 'fc-lembrete';
   el.innerHTML =

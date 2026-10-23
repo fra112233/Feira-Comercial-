@@ -106,7 +106,9 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const mt = n => Number(n || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const data = d => { const x = new Date(d); return x.getDate() + ' de ' + MESES[x.getMonth()] + ' de ' + x.getFullYear(); };
+// datas do recibo sempre na hora de Maputo (documento oficial), seja qual for o fuso do aparelho
+const partesMaputo = d => Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Maputo', day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(new Date(d)).map(p => [p.type, Number(p.value)]));
+const data = d => { const p = partesMaputo(d); return p.day + ' de ' + MESES[p.month - 1] + ' de ' + p.year; };
 const METODO = { banco: 'Transferência bancária', mpesa: 'M-Pesa', emola: 'e-Mola' };
 
 // ─── valor por extenso (português) ───
@@ -170,7 +172,7 @@ function mostrar(r) {
     else { base = Math.round(pago / (1 + taxa) * 100) / 100; iva = Math.round((pago - base) * 100) / 100; total = pago; }
   }
   const meses = Number(r.meses || 1), unit = base / meses;
-  const numero = 'FC-' + new Date(r.confirmado_em).getFullYear() + '-' + String(r.numero || r.id).padStart(5, '0');
+  const numero = 'FC-' + partesMaputo(r.confirmado_em).year + '-' + String(r.numero || r.id).padStart(5, '0');
   const tituloDoc = comIva ? 'FACTURA/RECIBO' : 'RECIBO';
   document.title = tituloDoc + ' ' + numero + ' | Feira Comercial';
   const c = r.cliente || {};

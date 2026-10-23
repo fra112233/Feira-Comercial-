@@ -917,7 +917,7 @@ function aplicarMe(me) {
     document.getElementById('aviso-mensalidade').style.display = aviso ? '' : 'none';
     if (aviso) {
         document.getElementById('aviso-mensalidade-txt').innerHTML = mens.ativa
-            ? '<b>A mensalidade termina ' + (mens.dias <= 1 ? 'amanhã' : 'em ' + mens.dias + ' dias') + '</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT por M-Pesa ou e-Mola para continuar a publicar.</span>'
+            ? '<b>A mensalidade termina ' + FC.emDias(mens.dias) + '</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT por M-Pesa ou e-Mola para continuar a publicar.</span>'
             : '<b>A mensalidade terminou</b><br><span style="color:var(--text-secondary);font-size:13px;">Pague 100 MT para não ficar sem acesso a publicações, anúncios e Live.</span>';
     }
     const cav = document.querySelector('.compose-avatar img');

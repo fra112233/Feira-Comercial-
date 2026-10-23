@@ -70,7 +70,7 @@
 
   // palavras soltas (horários, dias) para o resto de frases compostas
   var W = { 'segunda': 'Monday', 'terça': 'Tuesday', 'quarta': 'Wednesday', 'quinta': 'Thursday', 'sexta': 'Friday', 'sábado': 'Saturday', 'domingo': 'Sunday',
-    'às': 'at', 'amanhã': 'tomorrow', 'hoje': 'today', 'e': 'and', 'dias': 'days', 'dia': 'day', 'meses': 'months', 'mês': 'month', 'em': 'in' };
+    'às': 'at', 'amanhã': 'tomorrow', 'hoje': 'today', 'ontem': 'yesterday', 'e': 'and', 'dias': 'days', 'dia': 'day', 'meses': 'months', 'mês': 'month', 'em': 'in' };
 
   var REGRAS = [
     [/^Os seus dias grátis acabam em (\d+) dias$/, 'Your free days end in $1 days'],

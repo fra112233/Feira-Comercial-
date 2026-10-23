@@ -180,7 +180,9 @@ const numero = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + ' M' : n
 function haQuanto(ts) {
   const s = (Date.now() - new Date(ts)) / 1000;
   if (s < 60) return 'agora'; if (s < 3600) return Math.floor(s / 60) + ' min';
-  if (s < 86400) return Math.floor(s / 3600) + ' h'; if (s < 604800) return Math.floor(s / 86400) + ' d';
+  if (s < 86400) return Math.floor(s / 3600) + ' h';
+  const n = window.FC && FC.diasAte ? -FC.diasAte(ts) : Math.floor(s / 86400);   // dias do calendário
+  if (n <= 1) return 'ontem'; if (n < 7) return n + ' d';
   return new Date(ts).toLocaleDateString('pt-PT');
 }
 function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('ver'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('ver'), 2200); }

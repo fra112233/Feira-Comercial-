@@ -246,7 +246,7 @@ async function carregar() {
   const { data, error } = await q;
   if (error) { console.error(error.message); feed.innerHTML = '<p class="vazio">Erro ao carregar anúncios.</p>'; return; }
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = FC.hojeISO();   // data de hoje aqui (antes era a de Londres: errado entre 00h e 02h)
   anuncios = (data || []).filter(a =>
     (tipoAtual === 'meus' || !a.validade || a.validade >= hoje) &&     // esconde os que já expiraram
     (!prov || (a.empresa && a.empresa.province === prov)));
@@ -276,7 +276,7 @@ function render() {
       ${souEmpresa ? '<br><br><button class="btn btn-view" onclick="abrirFormulario()"><i class="fas fa-plus"></i> Publicar o primeiro</button>' : ''}</div>`;
     return;
   }
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = FC.hojeISO();
   feed.innerHTML = anuncios.map(a => {
     const [nomeTipo, classe, icone] = TIPOS[a.tipo] || TIPOS.promo;
     const expirado = a.validade && a.validade < hoje;

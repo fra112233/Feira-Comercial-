@@ -347,6 +347,8 @@
 "Conta": "Account",
 "Conta apagada ou desconhecida": "Deleted or unknown account",
 "Conta criada": "Account created",
+"Conta criada hoje.": "Account created today.",
+"Conta criada ontem.": "Account created yesterday.",
 "Conta nova a pedir pagamento. Confirme bem quem é antes de enviar dinheiro.": "New account asking for payment. Make sure who it is before sending money.",
 "Conta nova: na primeira semana pode começar conversa com até 15 pessoas novas por dia. Responda a quem já lhe escreveu ou tente amanhã.": "New account: in your first week you can start chats with up to 15 new people a day. Reply to people who already wrote to you or try again tomorrow.",
 "Conta oficial": "Official account",
@@ -1412,6 +1414,7 @@
 "o que publica: fotos, vídeos, stories, anúncios, comentários e reações;": "what you publish: photos, videos, stories, ads, comments and reactions;",
 "oferta perto de si agora": "offer near you now",
 "ofertas perto de si agora": "offers near you now",
+"ontem": "yesterday",
 "ontem às": "yesterday at",
 "ou": "or",
 "pagou a mensalidade: ganhou dias grátis": "paid the subscription: you earned free days",
@@ -1444,6 +1447,7 @@
 "só empresas com a mensalidade em dia podem adicionar produtos.": "only businesses with an up-to-date subscription can add products.",
 "termina amanhã": "ends tomorrow",
 "termina em": "ends in",
+"termina hoje": "ends today",
 "terminou": "ended",
 "visualização": "view",
 "visualizações": "views",
@@ -1526,7 +1530,7 @@
 
   // palavras soltas (horários, dias) para o resto de frases compostas
   var W = { 'segunda': 'Monday', 'terça': 'Tuesday', 'quarta': 'Wednesday', 'quinta': 'Thursday', 'sexta': 'Friday', 'sábado': 'Saturday', 'domingo': 'Sunday',
-    'às': 'at', 'amanhã': 'tomorrow', 'hoje': 'today', 'e': 'and', 'dias': 'days', 'dia': 'day', 'meses': 'months', 'mês': 'month', 'em': 'in' };
+    'às': 'at', 'amanhã': 'tomorrow', 'hoje': 'today', 'ontem': 'yesterday', 'e': 'and', 'dias': 'days', 'dia': 'day', 'meses': 'months', 'mês': 'month', 'em': 'in' };
 
   var REGRAS = [
     [/^Os seus dias grátis acabam em (\d+) dias$/, 'Your free days end in $1 days'],

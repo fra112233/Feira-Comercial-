@@ -737,7 +737,7 @@ document.querySelectorAll('#filtrosNovas [data-n]').forEach(b => b.onclick = () 
 
 // ─── Erros nos aparelhos das pessoas ───
 let erros = [];
-const haQuanto = d => { const m = Math.round((Date.now() - new Date(d)) / 6e4); return m < 60 ? 'há ' + Math.max(1, m) + ' min' : m < 1440 ? 'há ' + Math.round(m / 60) + ' h' : 'há ' + Math.round(m / 1440) + ' d'; };
+const haQuanto = d => { const m = Math.round((FC.agora() - new Date(d)) / 6e4); if (m < 60) return 'há ' + Math.max(1, m) + ' min'; if (m < 1440) return 'há ' + Math.floor(m / 60) + ' h'; const n = -FC.diasAte(d); return n <= 1 ? 'ontem' : 'há ' + n + ' dias'; };
 async function carregarErros(silencioso) {
   if (!silencioso) $('listaErros').innerHTML = '<p class="vazio">A carregar…</p>';
   const { data, error } = await supabaseClient.rpc('admin_erros', { p_dias: 7 });
@@ -850,7 +850,7 @@ async function carregarVerif(silencioso) {
 }
 
 // ─── Lojas paradas ───
-const diasDesde = d => Math.max(0, Math.floor((Date.now() - new Date(d)) / 864e5));
+const diasDesde = d => Math.max(0, -FC.diasAte(d));   // dias do calendário
 function textoParada(c) {
   const nome = String(c.full_name || '').trim().split(/\s+/)[0] || '';
   const en = c.idioma === 'en';
@@ -1223,9 +1223,11 @@ function desenharMensalidades() {
   $('listaMens').innerHTML = lista.map(m => {
     const [rot, cor] = ESTADOS_MENS[m.estado] || ['—', ''];
     const prazo = m.paga_ate == null ? 'Sem data de mensalidade'
-      : m.dias < 0 ? 'Terminou a ' + dataCurta(m.paga_ate) + ' (há ' + (-m.dias) + (m.dias === -1 ? ' dia)' : ' dias)')
-      : m.dias === 0 ? 'Termina hoje'
-      : (m.estado === 'gratis' ? 'Grátis até ' : 'Paga até ') + dataCurta(m.paga_ate) + ' (' + m.dias + (m.dias === 1 ? ' dia)' : ' dias)');
+      : new Date(m.paga_ate).getTime() <= FC.agora()
+        ? (m.dias >= 0 ? 'Terminou hoje' : m.dias === -1 ? 'Terminou ontem (' + dataCurta(m.paga_ate) + ')' : 'Terminou a ' + dataCurta(m.paga_ate) + ' (há ' + (-m.dias) + ' dias)')
+      : m.dias <= 0 ? 'Termina hoje'
+      : m.dias === 1 ? 'Termina amanhã'
+      : (m.estado === 'gratis' ? 'Grátis até ' : 'Paga até ') + dataCurta(m.paga_ate) + ' (' + m.dias + ' dias)';
     const tel = m.whatsapp || m.telefone || '';
     const membros = (membrosEquipa || []).map(x => '<option value="' + esc(x.id) + '"' + (x.id === m.responsavel ? ' selected' : '') + '>' + esc(x.nome || 'Sem nome') + (x.funcao === 'admin' ? ' (admin)' : '') + '</option>').join('');
     return '<article class="reg" id="mens-' + m.id + '">' +

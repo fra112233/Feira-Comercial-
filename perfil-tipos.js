@@ -135,7 +135,7 @@ function aplicarPerfil() {
   }
   if (p.created_at) {
     const d = new Date(p.created_at);
-    setTxt('dispDesde', 'Membro desde ' + d.toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' }));
+    setTxt('dispDesde', 'Membro desde ' + d.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }));   // 'short' dava "10/2026" em pt-PT
   }
 
   const selo = document.getElementById('tipoBadge');

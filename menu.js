@@ -102,7 +102,7 @@ window.FCMenu = (function () {
     if (!window.FC || !FC.mensalidade) return '';
     var m = FC.mensalidade(p);
     if (!m.ate) return '';
-    return m.ativa ? '<span class="dir">' + (m.dias <= 5 ? '⚠️ ' : '') + m.dias + ' dias</span>' : '<span class="dir" style="color:#ef4444;opacity:1">Expirada</span>';
+    return m.ativa ? '<span class="dir">' + (m.dias <= 5 ? '⚠️ ' : '') + (m.dias <= 0 ? 'termina hoje' : m.dias === 1 ? '1 dia' : m.dias + ' dias') + '</span>' : '<span class="dir" style="color:#ef4444;opacity:1">Expirada</span>';
   }
 
   function desenhar() {
