@@ -308,7 +308,7 @@ $('btnDados').onclick = async () => {
         estilo + ' body{background:#f4f4f5;margin:0} #relatorio{display:block;position:static}</style></head><body><div id="relatorio"><div id="relDoc">' + relatorioHtml + '</div></div></body></html>';
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([doc], { type: 'text/html' }));
-      a.download = 'os-meus-dados-feira-comercial-' + new Date().toISOString().slice(0, 10) + '.html';
+      a.download = 'os-meus-dados-feira-comercial-' + FC.hojeISO() + '.html';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     };

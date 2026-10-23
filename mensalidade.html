@@ -226,7 +226,7 @@ function desenharEstado() {
     el.innerHTML = '<div class="ic"><i class="fas fa-circle-check"></i></div><div><b>Mensalidade em dia</b><span>Válida até <b style="display:inline;font-size:inherit;color:var(--texto)">' + dataPt(m.ate) + '</b> (' + m.dias + ' dias)</span></div>';
   } else if (m.ativa) {
     el.className = 'estado aviso';
-    el.innerHTML = '<div class="ic"><i class="fas fa-triangle-exclamation"></i></div><div><b>A mensalidade termina ' + (m.dias <= 1 ? 'amanhã' : 'em ' + m.dias + ' dias') + '</b><span>Válida até ' + dataPt(m.ate) + '. Pague já para não ficar sem acesso.</span></div>';
+    el.innerHTML = '<div class="ic"><i class="fas fa-triangle-exclamation"></i></div><div><b>A mensalidade termina ' + FC.emDias(m.dias) + '</b><span>Válida até ' + dataPt(m.ate) + '. Pague já para não ficar sem acesso.</span></div>';
   } else {
     el.className = 'estado fim';
     el.innerHTML = '<div class="ic"><i class="fas fa-circle-xmark"></i></div><div><b>A mensalidade terminou</b><span>Terminou a ' + dataPt(m.ate) + '. Pague para a sua empresa não ficar sem acesso a publicações, anúncios e Live.</span></div>';
