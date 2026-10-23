@@ -187,7 +187,7 @@
 
 <div class="form-card">
     <h2>Criar Conta</h2>
-    <p class="subtitle">Só precisamos do essencial. O resto completas no teu perfil.</p>
+    <p class="subtitle">Só precisamos do essencial. O resto completa no seu perfil.</p>
     <p class="legenda-req"><span class="req">*</span> Obrigatório</p>
 
     <form id="mainForm" novalidate>
@@ -206,7 +206,7 @@
         <!-- Nome -->
         <div class="group">
             <label id="label-nome" for="nome">Nome completo <span class="req">*</span></label>
-            <input type="text" id="nome" placeholder="O teu nome" autocomplete="name" required>
+            <input type="text" id="nome" placeholder="O seu nome" autocomplete="name" required>
         </div>
 
         <!-- Email -->
@@ -338,7 +338,7 @@
 
         <div id="submit-status"></div>
 
-        <p class="login-link">Já tens conta? <a href="Portal.html">Entrar</a></p>
+        <p class="login-link">Já tem conta? <a href="Portal.html">Entrar</a></p>
     </form>
 </div>
 
@@ -391,7 +391,7 @@
         document.body.classList.toggle('tipo-empresa', empresa);
         document.body.classList.toggle('tipo-singular', !empresa);
         document.getElementById('label-nome').innerHTML = (empresa ? 'Nome da empresa' : 'Nome completo') + ' <span class="req">*</span>';
-        nomeEl.placeholder = empresa ? 'Ex: Ferragens Machava, Lda' : 'O teu nome';
+        nomeEl.placeholder = empresa ? 'Ex: Ferragens Machava, Lda' : 'O seu nome';
         $('label-celular').innerHTML = (empresa ? 'Telefone da empresa' : 'Celular') + ' <span class="req">*</span>';
         $('label-morada').innerHTML = (empresa ? 'Morada da empresa' : 'Morada') + ' <span class="req">*</span>';
         validateAll();
@@ -592,7 +592,7 @@
         const celular = celEl.value.trim();
 
         setLoading(true);
-        setStatus('A criar a tua conta...', 'info');
+        setStatus('A criar a sua conta...', 'info');
 
         try {
             // 1. Criar utilizador no Supabase Auth

@@ -70,7 +70,8 @@
     var r = await supabaseClient.rpc('primeiros_passos');
     if (r.error || !r.data) { var c0 = document.getElementById('pp-card'); if (c0) c0.remove(); return; }
     var d = r.data, empresa = d.tipo === 'empresa';
-    if (d.criado && (Date.now() - new Date(d.criado).getTime()) > DIAS * 864e5) return;
+    d.seguindo = Number(d.seguindo) || 0;      // nunca "NaN/3" se o número faltar
+    if (d.criado && ((FC.agora ? FC.agora() : Date.now()) - new Date(d.criado).getTime()) > DIAS * 864e5) return;   // hora do servidor
     var passos = [
       { ok: d.foto, t: 'Pôr uma foto de perfil', b: 'Pôr foto', a: 'FCMenu.editarPerfil()' },
       { ok: d.local, t: 'Indicar a sua cidade', b: 'Indicar', a: 'FCMenu.editarPerfil()' },
