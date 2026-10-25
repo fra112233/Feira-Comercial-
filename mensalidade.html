@@ -178,8 +178,8 @@
       </div>
     </section>
 
-    <section class="secao">
-      <h2>Os meus pagamentos</h2>
+    <section class="secao" id="recibos">
+      <h2>Os meus pagamentos e recibos</h2>
       <div class="hist" id="hist"><p class="vazio">A carregar…</p></div>
     </section>
   </div>
@@ -399,6 +399,8 @@ async function carregarHistorico() {
       '<span class="tag t-' + esc(p.estado) + '">' + (NOMES[p.estado] || esc(p.estado)) + '</span>' +
       (p.estado === 'confirmado' ? '<a class="recibo-btn" href="recibo.html?id=' + p.id + '"><i class="fas fa-file-invoice"></i> Recibo</a>' : '') +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') + '</div>').join('');
+  // vindo do menu "Recibos": salta para esta lista
+  if (location.hash === '#recibos' && !carregarHistorico._saltou) { carregarHistorico._saltou = true; $('recibos').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 
 (async function () {
