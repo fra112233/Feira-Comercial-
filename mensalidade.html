@@ -26,6 +26,8 @@
 .estado.fim { border-color: rgba(248,113,113,.35); }
 .estado b { font-size: 18px; display: block; }
 .estado span { color: var(--sub); font-size: 14px; }
+.recibos-acoes { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+.recibo-btn.pdf { background: linear-gradient(135deg, #f3c64e, #d9a52e); color: #000; border-color: transparent; }
 .recibo-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 12px; border-radius: 10px; background: rgba(243,198,78,.14); color: #f3c64e; border: 1px solid rgba(243,198,78,.35); font-weight: 700; font-size: 13px; text-decoration: none; }
 .preco { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .preco small { font-size: 16px; color: var(--sub); font-weight: 600; letter-spacing: 0; }
@@ -79,6 +81,24 @@
 .convite .nums div { background: var(--cartao); border: 1px solid var(--linha); border-radius: 14px; padding: 12px 6px; }
 .convite .nums b { display: block; font-size: 24px; color: var(--ouro); } .convite .nums span { font-size: 12px; color: var(--sub); }
 .btn-wa { background: #25d366 !important; color: #fff !important; }
+.enviado { text-align: center; padding: 8px 4px 4px; animation: aparecer .35s ease-out; }
+.enviado .visto { width: 72px; height: 72px; margin: 4px auto 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(74,222,128,.14); color: var(--ok); font-size: 34px; animation: saltar .5s cubic-bezier(.3,1.6,.5,1) .1s both; }
+.enviado h3 { font-size: 21px; margin: 0 0 6px; }
+.enviado p { color: var(--sub); font-size: 14px; line-height: 1.5; }
+.enviado .det { display: grid; gap: 8px; margin: 16px 0; text-align: left; }
+.enviado .det div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--campo); border: 1px solid var(--linha); font-size: 14px; }
+.enviado .det span { color: var(--sub); }
+.enviado .det b { text-align: right; word-break: break-all; }
+.enviado .passos { display: flex; justify-content: space-between; gap: 6px; margin: 4px 0 18px; font-size: 12px; color: var(--sub); }
+.enviado .passos div { flex: 1; display: grid; gap: 6px; justify-items: center; }
+.enviado .passos i { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--campo); border: 1px solid var(--linha); }
+.enviado .passos .feito i { background: rgba(74,222,128,.15); color: var(--ok); border-color: rgba(74,222,128,.4); }
+.enviado .passos .agora i { background: rgba(251,191,36,.15); color: #fbbf24; border-color: rgba(251,191,36,.45); }
+.enviado .btn-sec2 { display: block; width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--linha); background: var(--campo); color: var(--texto); font: inherit; font-weight: 700; cursor: pointer; }
+@keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes saltar { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.pg.novo { border-color: rgba(251,191,36,.6); box-shadow: 0 0 0 3px rgba(251,191,36,.12); }
 </style>
 </head>
 <body>
@@ -123,8 +143,10 @@
           Cada pagamento junta-se aos dias que ainda faltam: pagar antes do fim não faz perder dias.</p>
       </section>
 
-      <section class="cartao">
+      <section class="cartao" id="cartaoPagar">
         <h2 style="font-size:19px;margin-bottom:12px">Pagar</h2>
+        <div id="enviado" class="enviado" style="display:none" role="status" aria-live="polite"></div>
+        <div id="pagarCorpo">
         <div class="aviso" id="aviso" role="alert"></div>
 
         <label>Quantos meses?</label>
@@ -154,9 +176,10 @@
             </label>
           </div>
           <div class="total"><span>Total a pagar</span><b id="totalTxt">100 MT</b></div>
-          <button class="btn" id="btnEnviar" style="width:100%"><span class="girar"></span><i class="fas fa-paper-plane"></i><span>Já paguei, enviar</span></button>
+          <button class="btn" id="btnEnviar" style="width:100%"><span class="girar"></span><i class="fas fa-paper-plane" id="icEnviar"></i><span id="txtEnviar">Já paguei, enviar</span></button>
           <p style="color:var(--sub);font-size:12.5px;margin-top:10px;text-align:center">A equipa confirma o pagamento e a mensalidade é renovada. Recebe a confirmação nesta página.<br>Dúvidas? Escreva para <a href="mailto:suporte@feira-comercial.com?subject=Mensalidade">suporte@feira-comercial.com</a></p>
         </form>
+        </div>
       </section>
     </div>
 
@@ -216,6 +239,43 @@ async function copiarConvite() {
 }
 
 function aviso(txt, tipo) { const a = $('aviso'); a.className = 'aviso ' + (tipo || 'erro'); a.innerHTML = txt; }
+// erros do formulário: o aviso fica no topo do cartão, longe do botão — leva a pessoa até lá
+function avisoErro(txt) { aviso(txt); $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+// depois de carregar em "Já paguei": o formulário dá lugar a uma confirmação bem visível
+function mostrarEnviado(p) {
+  $('pagarCorpo').style.display = 'none';
+  const el = $('enviado');
+  el.innerHTML =
+    '<div class="visto"><i class="fas fa-check"></i></div>' +
+    '<h3>Pagamento enviado!</h3>' +
+    '<p>Recebemos os dados do seu pagamento. A equipa vai confirmar e a mensalidade é renovada. Recebe o aviso nesta página e no telemóvel.</p>' +
+    '<div class="det">' +
+      '<div><span>Valor</span><b>' + mt(p.valor) + '</b></div>' +
+      '<div><span>Período</span><b>' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + '</b></div>' +
+      '<div><span>Método</span><b>' + esc(nomeMetodo(p.metodo)) + '</b></div>' +
+      '<div><span>' + (p.metodo === 'banco' ? 'N.º da operação' : 'Código') + '</span><b>' + esc(p.codigo) + '</b></div>' +
+      '<div><span>Estado</span><b style="color:#fcd34d"><i class="fas fa-hourglass-half"></i> À espera de confirmação</b></div>' +
+    '</div>' +
+    '<div class="passos">' +
+      '<div class="feito"><i class="fas fa-check"></i>Pagou</div>' +
+      '<div class="feito"><i class="fas fa-check"></i>Enviou</div>' +
+      '<div class="agora"><i class="fas fa-hourglass-half"></i>Confirmação</div>' +
+      '<div><i class="fas fa-file-invoice"></i>Recibo</div>' +
+    '</div>' +
+    '<a class="btn" href="#recibos" style="width:100%" onclick="event.preventDefault();$(\'recibos\').scrollIntoView({behavior:\'smooth\',block:\'start\'})"><i class="fas fa-list"></i> Ver os meus pagamentos</a>' +
+    '<button type="button" class="btn-sec2" onclick="novoPagamento()"><i class="fas fa-plus"></i> Enviar outro pagamento</button>';
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+  if (window.FC && FC.toast) FC.toast('Pagamento enviado! Aguarde a confirmação da equipa.');
+}
+function novoPagamento() {
+  $('enviado').style.display = 'none';
+  $('pagarCorpo').style.display = '';
+  $('aviso').className = 'aviso';
+  $('cartaoPagar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function desenharEstado() {
   const m = FC.mensalidade(me);
@@ -358,10 +418,12 @@ $('form').addEventListener('submit', async e => {
   const telefone = $('telefone').value.replace(/[^\d+ ]/g, '').trim();
   const codigo = $('codigo').value.trim().toUpperCase().replace(/\s+/g, '');
   let ficheiro = $('comprovativo').files[0];
-  if (telefone.replace(/\D/g, '').length < 9) { aviso(banco ? 'Escreva um telefone de contacto (9 dígitos).' : 'Escreva o número de onde enviou o dinheiro (9 dígitos).'); $('telefone').focus(); return; }
-  if (!/^[A-Z0-9.\-\/]{4,40}$/.test(codigo)) { aviso(banco ? 'Escreva o número da operação que vem no comprovativo.' : 'Escreva o código da transação que veio na SMS (letras e números).'); $('codigo').focus(); return; }
-  if (banco && !ficheiro) { aviso('Junte a foto ou o PDF do comprovativo da transferência.'); return; }
+  if (telefone.replace(/\D/g, '').length < 9) { avisoErro(banco ? 'Escreva um telefone de contacto (9 dígitos).' : 'Escreva o número de onde enviou o dinheiro (9 dígitos).'); $('telefone').focus(); return; }
+  if (!/^[A-Z0-9.\-\/]{4,40}$/.test(codigo)) { avisoErro(banco ? 'Escreva o número da operação que vem no comprovativo.' : 'Escreva o código da transação que veio na SMS (letras e números).'); $('codigo').focus(); return; }
+  if (banco && !ficheiro) { avisoErro('Junte a foto ou o PDF do comprovativo da transferência.'); return; }
   const btn = $('btnEnviar'); btn.disabled = true; btn.classList.add('carregando');
+  $('icEnviar').style.display = 'none';
+  $('txtEnviar').textContent = banco && ficheiro ? 'A enviar o comprovativo…' : 'A enviar…';
   try {
     let comprovativo = null;
     if (banco && ficheiro) {
@@ -378,13 +440,14 @@ $('form').addEventListener('submit', async e => {
       throw error;
     }
     $('codigo').value = ''; $('comprovativo').value = ''; $('comprovativo').dispatchEvent(new Event('change'));
-    aviso('<b>Recebido!</b> O pagamento de ' + mt(preco * meses) + ' está à espera de confirmação. Assim que a equipa confirmar, a mensalidade é renovada.', 'ok');
-    carregarHistorico();
-  } catch (err) { aviso(traduzir(err)); }
-  finally { btn.classList.remove('carregando'); btn.disabled = false; }
+    $('aviso').className = 'aviso';
+    mostrarEnviado({ valor: preco * meses, meses, metodo, codigo });
+    carregarHistorico(codigo);
+  } catch (err) { avisoErro(traduzir(err)); }
+  finally { btn.classList.remove('carregando'); btn.disabled = false; $('icEnviar').style.display = ''; $('txtEnviar').textContent = 'Já paguei, enviar'; }
 });
 
-async function carregarHistorico() {
+async function carregarHistorico(novoCodigo) {
   const { data, error } = await supabaseClient.from('pagamentos')
     .select('id,metodo,meses,valor,codigo_transacao,estado,nota_admin,created_at,confirmado_em')
     .eq('empresa_id', me.id)
@@ -394,10 +457,11 @@ async function carregarHistorico() {
   if (!data.length) { h.innerHTML = '<p class="vazio">Ainda não fez nenhum pagamento.</p>'; return; }
   const NOMES = { pendente: 'À espera de confirmação', confirmado: 'Confirmado', rejeitado: 'Recusado' };
   h.innerHTML = data.map(p =>
-    '<div class="pg"><div><b>' + mt(p.valor) + '</b> · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + esc(nomeMetodo(p.metodo)) +
+    '<div class="pg' + (novoCodigo && p.codigo_transacao === novoCodigo && p.estado === 'pendente' ? ' novo' : '') + '"><div><b>' + mt(p.valor) + '</b> · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + esc(nomeMetodo(p.metodo)) +
       '<div class="m">' + (p.metodo === 'banco' ? 'Operação ' : 'Código ') + esc(p.codigo_transacao) + ' · ' + dataPt(p.created_at) + (p.confirmado_em ? ' · confirmado a ' + dataPt(p.confirmado_em) : '') + '</div></div>' +
       '<span class="tag t-' + esc(p.estado) + '">' + (NOMES[p.estado] || esc(p.estado)) + '</span>' +
-      (p.estado === 'confirmado' ? '<a class="recibo-btn" href="recibo.html?id=' + p.id + '"><i class="fas fa-file-invoice"></i> Recibo</a>' : '') +
+      (p.estado === 'confirmado' ? '<div class="recibos-acoes"><a class="recibo-btn" href="recibo.html?id=' + p.id + '"><i class="fas fa-file-invoice"></i> Ver recibo</a>' +
+        '<a class="recibo-btn pdf" href="recibo.html?id=' + p.id + '&baixar=1"><i class="fas fa-download"></i> Baixar PDF</a></div>' : '') +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') + '</div>').join('');
   // vindo do menu "Recibos": salta para esta lista
   if (location.hash === '#recibos' && !carregarHistorico._saltou) { carregarHistorico._saltou = true; $('recibos').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
