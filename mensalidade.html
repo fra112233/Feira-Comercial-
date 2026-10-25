@@ -26,6 +26,8 @@
 .estado.fim { border-color: rgba(248,113,113,.35); }
 .estado b { font-size: 18px; display: block; }
 .estado span { color: var(--sub); font-size: 14px; }
+.recibos-acoes { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
+.recibo-btn.pdf { background: linear-gradient(135deg, #f3c64e, #d9a52e); color: #000; border-color: transparent; }
 .recibo-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 12px; border-radius: 10px; background: rgba(243,198,78,.14); color: #f3c64e; border: 1px solid rgba(243,198,78,.35); font-weight: 700; font-size: 13px; text-decoration: none; }
 .preco { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .preco small { font-size: 16px; color: var(--sub); font-weight: 600; letter-spacing: 0; }
@@ -200,8 +202,7 @@
     </section>
 
     <section class="secao" id="recibos">
-      <h2>Os meus pagamentos</h2>
-      <p style="color:var(--sub);font-size:14px;margin:-6px 0 14px">Os recibos dos pagamentos confirmados ficam em <a href="recibos.html"><i class="fas fa-file-invoice"></i> Recibos</a>, prontos a baixar em PDF.</p>
+      <h2>Os meus pagamentos e recibos</h2>
       <div class="hist" id="hist"><p class="vazio">A carregar…</p></div>
     </section>
   </div>
@@ -459,7 +460,8 @@ async function carregarHistorico(novoCodigo) {
     '<div class="pg' + (novoCodigo && p.codigo_transacao === novoCodigo && p.estado === 'pendente' ? ' novo' : '') + '"><div><b>' + mt(p.valor) + '</b> · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + esc(nomeMetodo(p.metodo)) +
       '<div class="m">' + (p.metodo === 'banco' ? 'Operação ' : 'Código ') + esc(p.codigo_transacao) + ' · ' + dataPt(p.created_at) + (p.confirmado_em ? ' · confirmado a ' + dataPt(p.confirmado_em) : '') + '</div></div>' +
       '<span class="tag t-' + esc(p.estado) + '">' + (NOMES[p.estado] || esc(p.estado)) + '</span>' +
-      (p.estado === 'confirmado' ? '<a class="recibo-btn" href="recibo.html?id=' + p.id + '"><i class="fas fa-file-invoice"></i> Recibo</a>' : '') +
+      (p.estado === 'confirmado' ? '<div class="recibos-acoes"><a class="recibo-btn" href="recibo.html?id=' + p.id + '"><i class="fas fa-file-invoice"></i> Ver recibo</a>' +
+        '<a class="recibo-btn pdf" href="recibo.html?id=' + p.id + '&baixar=1"><i class="fas fa-download"></i> Baixar PDF</a></div>' : '') +
       (p.nota_admin ? '<div class="nota"><i class="fas fa-comment"></i> ' + esc(p.nota_admin) + '</div>' : '') + '</div>').join('');
   // vindo do menu "Recibos": salta para esta lista
   if (location.hash === '#recibos' && !carregarHistorico._saltou) { carregarHistorico._saltou = true; $('recibos').scrollIntoView({ behavior: 'smooth', block: 'start' }); }

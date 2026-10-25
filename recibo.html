@@ -89,7 +89,7 @@
 <body>
 <div class="barra">
   <button class="pdf" type="button" onclick="window.print()">⬇ Guardar PDF / Imprimir</button>
-  <a class="voltar" href="javascript:history.length>1?history.back():location.href='recibos.html'">← Voltar</a>
+  <a class="voltar" href="javascript:history.length>1?history.back():location.href='mensalidade.html#recibos'">← Voltar</a>
 </div>
 <p class="dica">Para guardar em PDF: toque em <b>Guardar PDF / Imprimir</b> e escolha <b>Guardar como PDF</b>.</p>
 <div id="conteudo"><div class="estado">A carregar o recibo…</div></div>
@@ -262,7 +262,7 @@ let _aj; window.addEventListener('resize', () => { clearTimeout(_aj); _aj = setT
     return;
   }
   mostrar(r);
-  // vindo de "Baixar PDF" (recibos.html): abre logo a janela para guardar em PDF
+  // vindo de "Baixar PDF" (lista de pagamentos da mensalidade): abre logo a janela para guardar em PDF
   if (new URLSearchParams(location.search).get('baixar') === '1') {
     history.replaceState(null, '', location.pathname + '?id=' + id);
     const imgs = Array.from(document.images).map(i => i.complete ? null : new Promise(ok => { i.onload = i.onerror = ok; })).filter(Boolean);
