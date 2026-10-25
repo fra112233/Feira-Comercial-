@@ -107,9 +107,9 @@ async function carregar(me) {
   $('nMeses').textContent = recibos.reduce((s, p) => s + Number(p.meses || 0), 0);
 
   $('pendentes').innerHTML = pend.length
-    ? '<div class="pendentes"><i class="fas fa-hourglass-half"></i><div>' +
-      (pend.length === 1 ? '1 pagamento está' : pend.length + ' pagamentos estão') +
-      ' à espera de confirmação. O recibo aparece aqui assim que a equipa confirmar. <a href="mensalidade.html#recibos">Ver pagamentos</a></div></div>'
+    ? '<div class="pendentes"><i class="fas fa-hourglass-half"></i><div><b>' + pend.length + '</b> <span>' +
+      (pend.length === 1 ? 'pagamento à espera de confirmação.' : 'pagamentos à espera de confirmação.') +
+      '</span> <span>O recibo aparece aqui assim que a equipa confirmar.</span> <a href="mensalidade.html#recibos">Ver pagamentos</a></div></div>'
     : '';
 
   if (!recibos.length) {
@@ -122,7 +122,7 @@ async function carregar(me) {
       '<div class="ic"><i class="fas fa-file-invoice"></i></div>' +
       '<div><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap">' +
         '<span class="num">' + esc(numeroRecibo(p)) + '</span><span class="valor">' + mt(p.valor) + '</span></div>' +
-        '<div class="m">' + dataPt(p.confirmado_em || p.created_at) + ' · ' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + ' · ' + esc(METODO[p.metodo] || p.metodo) + '</div></div>' +
+        '<div class="m"><span>' + dataPt(p.confirmado_em || p.created_at) + '</span> · <span>' + p.meses + (p.meses > 1 ? ' meses' : ' mês') + '</span> · <span>' + esc(METODO[p.metodo] || p.metodo) + '</span></div></div>' +
       '<div class="acoes">' +
         '<a class="ver" href="recibo.html?id=' + p.id + '"><i class="fas fa-eye"></i> Ver</a>' +
         '<a class="baixar" href="recibo.html?id=' + p.id + '&baixar=1"><i class="fas fa-download"></i> Baixar PDF</a>' +
