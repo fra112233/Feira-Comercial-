@@ -504,8 +504,9 @@ FC.sino = async function () {
       '#fcn .cab{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--fcn-borda)}#fcn .cab b{font-size:17px;flex:1}' +
       '#fcn .cab button{border:none;background:none;color:var(--primary,#f3c64e);font-weight:600;font-size:13px;font-family:inherit;cursor:pointer;padding:6px}' +
       '#fcn .fechar{width:36px;height:36px;border-radius:50%;background:var(--fcn-hover)!important;color:inherit!important;font-size:18px!important}' +
-      '#fcn .lista{flex:1;overflow-y:auto}' +
-      '#fcn .n{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--fcn-borda)}' +
+      // a lista do painel não herda o .lista das páginas (na Administração é display:grid e esticava cada notificação até encher o ecrã)
+      '#fcn .lista{flex:1;overflow-y:auto;display:block;gap:0;align-content:start}' +
+      '#fcn .n{display:flex;gap:12px;align-items:flex-start;height:auto;min-height:0;margin:0;border-radius:0;padding:12px 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--fcn-borda)}' +
       '#fcn .n:hover{background:var(--fcn-hover)}#fcn .n.nova{background:rgba(243,198,78,.08)}#fcn .n.fim .av i{background:#6b7280 !important;color:#fff !important}' +
       '#fcn .av{position:relative;flex-shrink:0}#fcn .av img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#475569}' +
       '#fcn .av i{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:#f3c64e;color:#111;font-size:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--fcn-bg)}' +
