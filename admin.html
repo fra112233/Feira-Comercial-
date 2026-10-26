@@ -215,6 +215,9 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
         .cx-c .t{flex:1;min-width:0}.cx-c b{display:block;font-size:15px}.cx-c small{display:block;color:var(--sub);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .cx-c .h{font-size:11.5px;color:var(--sub);text-align:right;flex-shrink:0}.cx-c .n{display:inline-block;margin-top:4px;background:var(--ouro);color:#000;font-weight:800;font-size:12px;border-radius:999px;padding:1px 8px}
         .cx-c.nova{border-color:rgba(243,198,78,.6)}
+        .cx-c .lock,.caso-lock{display:inline-block;font-size:11.5px;font-weight:700;color:#93c5fd;background:rgba(96,165,250,.15);border-radius:999px;padding:1px 8px;margin-top:3px}
+        .cx-aviso{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:8px 0;padding:10px 12px;border-radius:12px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.35);color:#bfdbfe;font-size:14px}
+        .cx-aviso .btn{padding:7px 12px;font-size:13px}
         .cx-conv{display:none;background:var(--cartao);border:1px solid var(--linha);border-radius:16px;overflow:hidden}
         .cx-cab{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--linha)}
         .cx-cab img{width:40px;height:40px;border-radius:50%;object-fit:cover}.cx-cab b{flex:1;font-size:15px}
@@ -233,6 +236,7 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
       <div class="cx-conv" id="cxConv">
         <div class="cx-cab"><button type="button" onclick="fecharConversaEquipa()" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button><img id="cxFoto" alt=""><b id="cxNome"></b><a id="cxPerfil" class="btn btn-sec" style="padding:7px 12px;font-size:13px" href="#">Perfil</a></div>
         <div class="cx-msgs" id="cxMsgs"></div>
+        <div class="cx-aviso" id="cxAviso" style="display:none"><span id="cxAvisoTxt"></span><button type="button" class="btn btn-sec" onclick="tomarConversa()">Responder na mesma</button></div>
         <form class="cx-esc" onsubmit="event.preventDefault(); responderEquipa();">
           <textarea id="cxTexto" maxlength="2000" placeholder="Responder como Equipa Feira Comercial…"></textarea>
           <button class="btn" type="submit" id="cxEnviar" aria-label="Enviar"><i class="fas fa-paper-plane"></i></button>
@@ -433,7 +437,7 @@ async function carregarReclamacoes() {
     .order('created_at', { ascending: false }).limit(300);
   if (error) { $('listaRecl').innerHTML = '<p class="vazio">Erro ao carregar: ' + esc(FC.traduzirErro(error)) + '</p>'; return; }
   reclamacoes = data || [];
-  await carregarOcultos();
+  await Promise.all([carregarOcultos(), carregarCasos()]);
   const abertas = reclamacoes.filter(r => r.estado === 'recebida' || r.estado === 'em_analise').length;
   $('nRecl').textContent = abertas; $('cRecl').textContent = abertas;
   desenharReclamacoes();
@@ -445,7 +449,8 @@ function desenharReclamacoes() {
   $('listaRecl').innerHTML = lista.map(r =>
     '<article class="reg">' +
       '<div class="cab"><div style="min-width:0"><b>' + esc(r.assunto) + '</b><div style="color:var(--sub);font-size:13px">' + esc(TIPO_RECL[r.tipo] || r.tipo) + ' · ' + quando(r.created_at) + '</div></div>' +
-        '<span class="tag t-' + esc(r.estado) + '">' + (EST_RECL[r.estado] || esc(r.estado)) + '</span></div>' +
+        '<div style="text-align:right"><span class="tag t-' + esc(r.estado) + '">' + (EST_RECL[r.estado] || esc(r.estado)) + '</span>' +
+        (casoDeOutro('reclamacao', r.id) ? '<br><span class="caso-lock">🔒 ' + esc(casoDeOutro('reclamacao', r.id)) + ' está a tratar</span>' : '') + '</div></div>' +
       '<div class="det">' +
         '<div><span>Nome</span><b>' + (r.user_id ? '<a href="perfil.html?id=' + esc(r.user_id) + '">' + esc(r.nome) + '</a>' : esc(r.nome)) + '</b></div>' +
         '<div><span>E-mail</span><b><a href="mailto:' + esc(r.email) + '?subject=' + encodeURIComponent('Re: ' + r.assunto) + '">' + esc(r.email) + '</a></b></div>' +
@@ -455,7 +460,7 @@ function desenharReclamacoes() {
       '<div class="msg">' + esc(r.mensagem) + '</div>' +
       botaoEsconder(r) +
       '<div class="resp">' +
-        '<textarea id="resp-' + r.id + '" maxlength="2000" placeholder="Resposta (a pessoa vê-a na página de reclamações)">' + esc(r.resposta || '') + '</textarea>' +
+        '<textarea id="resp-' + r.id + '" onfocus="pegarReclamacao(' + r.id + ', this)" maxlength="2000" placeholder="Resposta (a pessoa vê-a na página de reclamações)">' + esc(r.resposta || '') + '</textarea>' +
         '<div class="linha"><select id="est-' + r.id + '">' +
           Object.keys(EST_RECL).map(k => '<option value="' + k + '"' + (k === r.estado ? ' selected' : '') + '>' + EST_RECL[k] + '</option>').join('') +
         '</select><button type="button" class="btn" style="padding:10px 16px;font-size:14px" onclick="guardarReclamacao(' + r.id + ')"><i class="fas fa-floppy-disk"></i> Guardar</button>' +
@@ -509,11 +514,21 @@ async function esconder(tipo, id, sim) {
   desenharReclamacoes();
 }
 
+// ao começar a escrever, a reclamação fica com quem escreve (15 min ou até guardar)
+const reclMinhas = new Set();
+async function pegarReclamacao(id, el) {
+  if (reclMinhas.has(id)) return;
+  const quem = await pegarCaso('reclamacao', id);
+  if (quem && !confirm('🔒 ' + quem + ' já está a tratar esta reclamação.\n\nTratar na mesma?')) { el.blur(); return; }
+  if (quem) await pegarCaso('reclamacao', id, true);
+  reclMinhas.add(id);
+}
 async function guardarReclamacao(id) {
   const resposta = $('resp-' + id).value.trim() || null;
   const estado = $('est-' + id).value;
   const { error } = await supabaseClient.from('reclamacoes').update({ estado, resposta }).eq('id', id);
   if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  if (reclMinhas.delete(id)) largarCaso('reclamacao', id);
   toast('Guardado.');
   carregarReclamacoes();
 }
@@ -630,19 +645,34 @@ document.querySelectorAll('#filtrosCresc [data-d]').forEach(b => b.onclick = () 
 });
 
 // ─── Caixa da Equipa (conversas da conta oficial) ───
-let cxAberta = null, cxTimer = null, SOU_AJUDANTE = false;
+let cxAberta = null, cxTimer = null, SOU_AJUDANTE = false, cxMeu = false;
+// "Pegar" um caso: quem o está a tratar agora (evita respostas em dobro)
+let casos = {};
+async function carregarCasos() {
+  const { data, error } = await supabaseClient.rpc('equipa_casos_ativos');
+  casos = {};
+  if (!error) (data || []).forEach(c => casos[c.tipo + ':' + c.alvo] = c);
+}
+const casoDeOutro = (tipo, alvo) => { const c = casos[tipo + ':' + alvo]; return c && !c.meu ? c.nome : null; };
+async function pegarCaso(tipo, alvo, forcar) {
+  const { data, error } = await supabaseClient.rpc('equipa_pegar', { p_tipo: tipo, p_alvo: String(alvo), p_forcar: !!forcar });
+  if (error) return null;   // se falhar, não bloqueia o trabalho
+  return data || null;      // nome de quem já o tem, ou null se ficou meu
+}
+function largarCaso(tipo, alvo) { supabaseClient.rpc('equipa_largar', { p_tipo: tipo, p_alvo: String(alvo) }).then(() => {}, () => {}); }
 const horaCurta = d => { const x = new Date(d), hoje = new Date().toDateString() === x.toDateString();
   return hoje ? x.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }); };
 async function carregarCaixa(silencioso) {
   if (!silencioso) $('cxLista').innerHTML = '<p class="vazio">A carregar…</p>';
-  const { data, error } = await supabaseClient.rpc('equipa_conversas');
+  const [{ data, error }] = await Promise.all([supabaseClient.rpc('equipa_conversas'), carregarCasos()]);
   if (error) { $('cxLista').innerHTML = '<p class="vazio">Ainda não disponível (falta correr a migração 042).</p>'; return; }
   const lista = data || [];
   $('cCaixa').textContent = lista.reduce((s, c) => s + (c.por_ler || 0), 0);
   $('cxLista').innerHTML = lista.length ? lista.map(c =>
     '<button type="button" class="cx-c' + (c.por_ler ? ' nova' : '') + '" data-id="' + esc(c.outro) + '" data-nome="' + esc(c.nome || '') + '" data-foto="' + esc(avatar({ avatar_url: c.avatar, full_name: c.nome })) + '">' +
       '<img src="' + esc(avatar({ avatar_url: c.avatar, full_name: c.nome })) + '" alt=""><div class="t"><b>' + esc(c.nome || 'Utilizador') + (c.tipo === 'empresa' ? ' <small style="display:inline;font-size:11px">🏢</small>' : '') + '</b>' +
-      '<small>' + (c.de_mim ? 'Equipa: ' : '') + esc(c.ultima || '') + '</small></div>' +
+      '<small>' + (c.de_mim ? 'Equipa: ' : '') + esc(c.ultima || '') + '</small>' +
+      (casoDeOutro('caixa', c.outro) ? '<span class="lock">🔒 ' + esc(casoDeOutro('caixa', c.outro)) + ' está a responder</span>' : '') + '</div>' +
       '<div class="h">' + horaCurta(c.ultima_em) + (c.por_ler ? '<br><span class="n">' + c.por_ler + '</span>' : '') + '</div></button>').join('')
     : '<p class="vazio">Ainda não há conversas.</p>';
   document.querySelectorAll('#cxLista .cx-c').forEach(b => b.onclick = () => abrirConversaEquipa(b.dataset.id, b.dataset.nome, b.dataset.foto));
@@ -653,8 +683,27 @@ async function abrirConversaEquipa(id, nome, foto, textoSugerido) {
   $('cxPerfil').href = 'perfil.html?id=' + encodeURIComponent(id);
   $('cxLista').style.display = 'none'; $('cxConv').style.display = 'block';
   if (textoSugerido && !$('cxTexto').value) $('cxTexto').value = textoSugerido;
+  mostrarDono(await pegarCaso('caixa', id));
   await desenharConversaEquipa();
-  clearInterval(cxTimer); cxTimer = setInterval(() => { if (cxAberta && !document.hidden) desenharConversaEquipa(true); }, 15000);
+  clearInterval(cxTimer); cxTimer = setInterval(async () => {
+    if (!cxAberta || document.hidden) return;
+    const quem = await pegarCaso('caixa', cxAberta);   // renova o meu, ou vê se a outra pessoa já largou
+    if (cxMeu || !quem) mostrarDono(quem);
+    desenharConversaEquipa(true);
+  }, 15000);
+  if (cxMeu) $('cxTexto').focus();
+}
+// mostra quem está a tratar a conversa; se for outra pessoa, não deixa escrever sem confirmar
+function mostrarDono(quem) {
+  cxMeu = !quem;
+  $('cxAviso').style.display = quem ? 'flex' : 'none';
+  $('cxAvisoTxt').textContent = quem ? '🔒 ' + quem + ' está a responder a esta pessoa.' : '';
+  $('cxTexto').disabled = !!quem; $('cxEnviar').disabled = !!quem;
+}
+async function tomarConversa() {
+  if (!cxAberta) return;
+  if (!confirm('Responder na mesma?\n\nA outra pessoa da equipa pode estar a escrever agora. Combinem para não responderem as duas.')) return;
+  mostrarDono(await pegarCaso('caixa', cxAberta, true));
   $('cxTexto').focus();
 }
 async function desenharConversaEquipa(silencioso) {
@@ -682,7 +731,8 @@ async function responderEquipa() {
   $('cxMsgs').scrollTop = $('cxMsgs').scrollHeight;
 }
 function fecharConversaEquipa() {
-  cxAberta = null; clearInterval(cxTimer);
+  if (cxAberta && cxMeu) largarCaso('caixa', cxAberta);
+  cxAberta = null; clearInterval(cxTimer); mostrarDono(null);
   $('cxConv').style.display = 'none'; $('cxLista').style.display = '';
   carregarCaixa(true);
 }
@@ -949,7 +999,7 @@ function desenharContas() {
     '</article>';
   }).join('');
 }
-// Ajudante: pode responder na Caixa da Equipa, tratar reclamações e acolher contas novas (sem pagamentos nem conversas privadas)
+// Ajudante: Caixa da Equipa, reclamações, contas novas, lojas paradas, parecer nas verificações e cobranças atribuídas (sem pagamentos nem conversas privadas)
 async function retirarCoroa(id) {
   const c = contas.find(x => x.id === id); const nome = (c && c.full_name) || 'esta loja';
   const motivo = prompt('Retirar a coroa dourada de ' + nome + '?\n\nMotivo (fica registado):', 'Denúncias de burla confirmadas');
@@ -963,7 +1013,7 @@ async function retirarCoroa(id) {
 async function definirAjudante(id, sim) {
   const c = contas.find(x => x.id === id); const nome = (c && c.full_name) || 'esta conta';
   const pergunta = sim
-    ? 'Tornar ' + nome + ' Ajudante?\n\nPode: responder na Caixa da Equipa, tratar reclamações e dar boas-vindas a contas novas.\nNão pode: ver pagamentos, configurações, conversas privadas nem suspender contas.'
+    ? 'Tornar ' + nome + ' Ajudante?\n\nPode: responder na Caixa da Equipa, tratar reclamações, dar boas-vindas a contas novas, acompanhar lojas paradas, entrevistar pedidos de coroa e dar parecer (só o administrador aprova), e cobrar as mensalidades que lhe atribuir.\nNão pode: ver pagamentos, suspeitos, conversas privadas, números nem definições, e não pode suspender contas.'
     : 'Tirar ' + nome + ' de Ajudante?';
   if (!confirm(pergunta)) return;
   const { error } = await supabaseClient.rpc('admin_definir_ajudante', { p_uid: id, p_sim: sim });
