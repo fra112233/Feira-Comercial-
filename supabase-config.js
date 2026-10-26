@@ -810,7 +810,7 @@ FC.seloHtml = function (id) {
   const s = FC._selos.get(id);
   if (!s) return '';
   // loja verificada: coroa dourada 👑 (toque para saber o que significa)
-  if (s === 'verificada') return '<span class="fc-coroa" role="img" aria-label="' + FC.t('Loja verificada') + '" title="' + FC.t('Loja verificada') + '"><svg viewBox="0 0 24 20" width="1em" height="0.84em" aria-hidden="true"><path fill="currentColor" d="M2 6.5l5.2 4.2L12 2l4.8 8.7L22 6.5 20 17H4L2 6.5z"/><rect x="4" y="18" width="16" height="2" rx="1" fill="currentColor"/></svg></span>';
+  if (s === 'verificada') return '<span class="fc-coroa" role="img" aria-label="' + FC.t('Loja verificada') + '" title="' + FC.t('Loja verificada') + '"><svg viewBox="0 0 26 22" width="1.18em" height="1em" aria-hidden="true"><path fill="#f6c94f" stroke="#9a6a0c" stroke-width=".7" stroke-linejoin="round" d="M3.2 8.2L8 12.6 13 4.2l5 8.4 4.8-4.4-1.7 9.6H4.9z"/><path fill="#d99e22" d="M13 4.2l5 8.4 4.8-4.4-1.7 9.6H13z"/><path fill="#fff3c4" opacity=".55" d="M5.6 11.6l2.6 2.3L13 6.4l-.6 3.1-4.3 6.3-2.3-1.9z"/><rect x="4.4" y="17.6" width="17.2" height="3.4" rx="1.2" fill="#c38b1c" stroke="#9a6a0c" stroke-width=".7"/><circle cx="3.2" cy="7.4" r="1.7" fill="#ffe08a" stroke="#9a6a0c" stroke-width=".6"/><circle cx="13" cy="3.2" r="2" fill="#ffe08a" stroke="#9a6a0c" stroke-width=".6"/><circle cx="22.8" cy="7.4" r="1.7" fill="#ffe08a" stroke="#9a6a0c" stroke-width=".6"/><circle cx="13" cy="19.3" r="1.1" fill="#ef4444"/><circle cx="8.6" cy="19.3" r=".8" fill="#fff6d5"/><circle cx="17.4" cy="19.3" r=".8" fill="#fff6d5"/></svg></span>';
   return '<span class="fc-selo" title="Conta oficial — ' + s + '"><i class="fas fa-circle-check"></i> ' + s + '</span>';
 };
 FC.aplicarSelos = function (raiz) {
@@ -826,7 +826,7 @@ FC.aplicarSelos = function (raiz) {
 (function () {
   const css = document.createElement('style');
   css.textContent = '.fc-selo{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font:700 11px/1.4 Inter,"Segoe UI",system-ui,sans-serif;vertical-align:middle;white-space:nowrap;letter-spacing:.1px}.fc-selo i{font-size:11px}' +
-    '.fc-coroa{display:inline-flex;align-items:center;margin-left:5px;color:#f3c64e;font-size:.95em;vertical-align:baseline;cursor:pointer;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}' +
+    '.fc-coroa{display:inline-flex;align-items:center;margin-left:6px;font-size:1.15em;line-height:1;vertical-align:-.12em;cursor:pointer;filter:drop-shadow(0 0 3px rgba(243,198,78,.55)) drop-shadow(0 1px 1px rgba(0,0,0,.5))}' +
     '#fc-coroa-info{position:fixed;z-index:9000;max-width:260px;background:#18181b;color:#f4f4f5;border:1px solid rgba(243,198,78,.5);border-radius:12px;padding:10px 12px;font:500 13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.45)}' +
     '#fc-coroa-info b{color:#f3c64e;display:block;margin-bottom:2px}';
   // toque na coroa → explica o que é (sem abrir o perfil por baixo)
