@@ -815,10 +815,31 @@ FC.seloHtml = function (id) {
 };
 FC.aplicarSelos = function (raiz) {
   (raiz || document).querySelectorAll('[data-selo]').forEach(el => {
-    const id = el.getAttribute('data-selo'), atual = el.querySelector(':scope > .fc-selo, :scope > .fc-coroa');
+    const id = el.getAttribute('data-selo'), atual = el.querySelector(':scope > .fc-selo, :scope > .fc-coroa, :scope > .fc-nw');
     if (atual && atual.dataset.de === id) return;
-    if (atual) atual.remove();
+    if (atual) {
+      // desfaz o selo anterior (a coroa vive dentro de .fc-nw, junto à última palavra do nome)
+      if (atual.classList.contains('fc-nw')) atual.replaceWith(document.createTextNode(atual.textContent)); else atual.remove();
+      el.normalize();
+    }
+    el.querySelectorAll(':scope > .fc-escondido').forEach(x => x.classList.remove('fc-escondido'));
     const h = FC.seloHtml(id); if (!h) return;
+    if (FC._selos.get(id) === 'verificada') {
+      // loja verificada: a coroa já diz que é uma empresa real — esconde o ícone 🏢
+      el.querySelectorAll(':scope > i.fa-building').forEach(x => x.classList.add('fc-escondido'));
+      // a coroa fica sempre colada à última palavra do nome (não salta sozinha para a linha de baixo)
+      const textos = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
+      const t = textos[textos.length - 1], m = t && t.textContent.match(/^([\s\S]*?)(\S+)(\s*)$/);
+      if (m) {
+        const nw = document.createElement('span');
+        nw.className = 'fc-nw'; nw.dataset.de = id; nw.textContent = m[2];
+        nw.insertAdjacentHTML('beforeend', h);
+        nw.lastElementChild.dataset.de = id;
+        t.textContent = m[1]; t.after(nw);
+        if (m[3]) nw.after(document.createTextNode(m[3]));
+        return;
+      }
+    }
     el.insertAdjacentHTML('beforeend', h);
     el.lastElementChild.dataset.de = id;
   });
@@ -827,6 +848,7 @@ FC.aplicarSelos = function (raiz) {
   const css = document.createElement('style');
   css.textContent = '.fc-selo{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font:700 11px/1.4 Inter,"Segoe UI",system-ui,sans-serif;vertical-align:middle;white-space:nowrap;letter-spacing:.1px}.fc-selo i{font-size:11px}' +
     '.fc-coroa{display:inline-flex;align-items:center;margin-left:6px;font-size:1.15em;line-height:1;vertical-align:-.12em;cursor:pointer;filter:drop-shadow(0 0 3px rgba(243,198,78,.55)) drop-shadow(0 1px 1px rgba(0,0,0,.5))}' +
+    '.fc-nw{white-space:nowrap}.fc-escondido{display:none!important}' +
     '#fc-coroa-info{position:fixed;z-index:9000;max-width:260px;background:#18181b;color:#f4f4f5;border:1px solid rgba(243,198,78,.5);border-radius:12px;padding:10px 12px;font:500 13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.45)}' +
     '#fc-coroa-info b{color:#f3c64e;display:block;margin-bottom:2px}';
   // toque na coroa → explica o que é (sem abrir o perfil por baixo)
