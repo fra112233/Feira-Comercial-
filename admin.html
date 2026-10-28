@@ -278,6 +278,10 @@ body.com-grupos #toast { bottom: calc(86px + env(safe-area-inset-bottom)); }
         </div>
         <div id="listaNumeros" style="margin-top:10px"><small style="color:var(--sub)">A carregar…</small></div>
       </article>
+      <article class="reg" style="margin-top:18px">
+        <div class="cab"><div><b><i class="fas fa-flag"></i> Números denunciados pela comunidade</b><br><small style="color:var(--sub)">Denúncias feitas em "Verificar número". Com 3 pessoas diferentes (contas com 3+ dias), o número entra sozinho na lista acima, exceto se for de uma loja com coroa: aí decide o administrador. Quem denunciou nunca é mostrado.</small></div></div>
+        <div id="listaDenunciados" style="margin-top:10px"><small style="color:var(--sub)">A carregar…</small></div>
+      </article>
     </section>
 
     <section id="aba-paradas" style="display:none">
@@ -1172,6 +1176,37 @@ async function carregarNumeros() {
   $('listaNumeros').innerHTML = !(data || []).length ? '<small style="color:var(--sub)">Nenhum número proibido.</small>' :
     data.map(x => '<div class="acesso"><div><b>' + esc(fmt(x.numero)) + '</b><br><small>' + esc(x.nome ? 'De ' + x.nome : 'Adicionado pela equipa') + (x.motivo ? ' · ' + esc(x.motivo) : '') + ' · ' + quando(x.criado) + '</small></div>' +
       '<div style="text-align:right"><button type="button" class="btn btn-sec" style="padding:6px 10px;font-size:12.5px" onclick="libertarNumero(\'' + esc(x.numero) + '\')">Tirar da lista</button></div></div>').join('');
+  carregarDenunciados();
+}
+// ─── Números denunciados pela comunidade (verificar-numero.html) ───
+const TIPOS_DEN = { adiantado: 'pagamento adiantado', produto: 'produto falso/não entregue', codigo: 'pediu código', premio: 'prémio falso', falsa_equipa: 'fingiu ser a Feira', outro: 'outro' };
+async function carregarDenunciados() {
+  const box = $('listaDenunciados'); if (!box) return;
+  const { data, error } = await supabaseClient.rpc('admin_numeros_denunciados');
+  if (error) { box.innerHTML = '<small style="color:var(--sub)">Ainda não disponível.</small>'; return; }
+  const fmt = n => n.replace(/^(\d{2})(\d{3})(\d{4})$/, '$1 $2 $3');
+  box.innerHTML = !(data || []).length ? '<small style="color:var(--sub)">Nenhuma denúncia de números.</small>' :
+    data.map(x => '<div class="acesso"><div><b>' + esc(fmt(x.numero)) + '</b> ' +
+        (x.na_lista ? '<small style="color:#fca5a5">· na lista</small>' : '') +
+        (x.dono_nome ? '<br><small>' + (x.dono_verificada ? '👑 ' : '') + 'Número de <a href="perfil.html?id=' + encodeURIComponent(x.dono_id) + '">' + esc(x.dono_nome) + '</a></small>' : '') +
+        '<br><small>' + x.denuncias + ' denúncia(s) que contam' + (x.total > x.denuncias ? ' (+' + (x.total - x.denuncias) + ' de contas novas)' : '') +
+        ' · ' + esc((x.tipos || []).map(t => TIPOS_DEN[t] || t).join(', ')) + ' · ' + quando(x.ultima) + '</small>' +
+        ((x.detalhes || []).length ? '<br><small style="color:var(--texto);opacity:.85">“' + (x.detalhes || []).map(esc).join('” · “') + '”</small>' : '') + '</div>' +
+      '<div style="text-align:right;display:flex;flex-direction:column;gap:6px">' +
+        (x.na_lista ? '' : '<button type="button" class="btn btn-nao" style="padding:6px 10px;font-size:12.5px" onclick="proibirDenunciado(\'' + esc(x.numero) + '\', ' + x.denuncias + ')">Proibir</button>') +
+        '<button type="button" class="btn btn-sec" style="padding:6px 10px;font-size:12.5px" onclick="ignorarDenunciado(\'' + esc(x.numero) + '\')">Ignorar</button></div></div>').join('');
+}
+async function proibirDenunciado(n, total) {
+  if (!confirm('Pôr ' + n + ' na lista de números proibidos?')) return;
+  const { error } = await supabaseClient.rpc('admin_numero_proibido', { p_numero: n, p_proibir: true, p_motivo: 'Denunciado por ' + total + ' pessoas (decisão da equipa)' });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast('🚫 Número proibido.'); carregarNumeros();
+}
+async function ignorarDenunciado(n) {
+  if (!confirm('Ignorar as denúncias de ' + n + '?\n\nUse quando as denúncias são falsas. As denúncias são apagadas (fica registado).')) return;
+  const { error } = await supabaseClient.rpc('admin_ignorar_denuncias_numero', { p_numero: n });
+  if (error) { toast('Erro: ' + esc(FC.traduzirErro(error))); return; }
+  toast('Denúncias ignoradas.'); carregarDenunciados();
 }
 async function proibirNumero() {
   const v = $('novoNumero').value.trim(); if (!v) return;

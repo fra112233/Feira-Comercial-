@@ -16,7 +16,7 @@
         '<a href="index.html" class="fc-marca" title="Feira Comercial"><img src="images/logo-icone.svg" alt="Feira Comercial">' +
           '<span class="fc-marca-txt"><b>Feira Comercial</b><small>Explore, Exiba, Expanda</small></span></a>' +
         '<nav aria-label="Ajuda">' + link('sobre', 'about.html', 'Sobre') + link('politicas', 'politicas.html', 'Termos e privacidade') +
-          link('reclamacao', 'reclamacao.html', 'Reclamações') + '</nav>' +
+          link('reclamacao', 'reclamacao.html', 'Reclamações') + link('verificar', 'verificar-numero.html', 'Verificar número') + '</nav>' +
         '<div class="acoes" id="topoAcoes"><a class="entrar" href="Portal.html"><i class="fas fa-right-to-bracket"></i> Entrar</a></div>' +
       '</div>';
   }
@@ -25,7 +25,7 @@
   if (rodape) {
     rodape.innerHTML =
       '<div class="rodape-in"><span>© ' + new Date().getFullYear() + ' Feira Comercial · Moçambique</span>' +
-      '<nav><a href="about.html">Sobre</a><a href="politicas.html">Termos e privacidade</a><a href="reclamacao.html">Reclamações e sugestões</a>' +
+      '<nav><a href="about.html">Sobre</a><a href="politicas.html">Termos e privacidade</a><a href="reclamacao.html">Reclamações e sugestões</a><a href="verificar-numero.html">Verificar número</a>' +
       '<a href="Formulario.html">Criar conta</a></nav>' +
       '<div class="rodape-mail"><a href="mailto:contacto@feira-comercial.com"><i class="fas fa-envelope"></i> contacto@feira-comercial.com</a>' +
       '<a href="mailto:suporte@feira-comercial.com"><i class="fas fa-life-ring"></i> suporte@feira-comercial.com</a></div></div>';
