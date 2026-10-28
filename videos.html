@@ -379,7 +379,7 @@ const observador = new IntersectionObserver(entradas => {
       const id = Number(slide.dataset.id);
       clearTimeout(slide._vista);
       slide._vista = setTimeout(() => {
-        if (!vistos.has(id)) { vistos.add(id); supabaseClient.rpc('ver_video', { vid: id }); }
+        if (!vistos.has(id)) { vistos.add(id); supabaseClient.rpc('ver_video', { vid: id }).then(() => {}, () => {}); }   // .then: sem ele o pedido nunca é enviado
       }, 2000);
       // pré-carregar o seguinte e pedir mais vídeos perto do fim
       const seg = slide.nextElementSibling;
