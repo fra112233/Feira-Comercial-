@@ -52,8 +52,8 @@ window.FCMenu = (function () {
     '#fcm details.grupo>summary .seta{margin-left:auto;font-size:12px;opacity:.6;transition:transform .2s}',
     '#fcm details.grupo[open]>summary .seta{transform:rotate(180deg)}',
     '#fcm details.grupo>summary b{font-weight:600}',
-    '#fcm details.grupo .dentro .it{padding-left:56px;font-size:14px}',
-    '#fcm details.grupo .dentro .it i.ic{display:none}',
+    '#fcm details.grupo .dentro .it{font-size:14px}',
+    '#fcm details.grupo .dentro .it i.ic{font-size:14px;opacity:.85}',
     '#fcm .linha{height:1px;background:var(--fcm-borda);margin:8px 16px;opacity:.6}'
   ].join('');
 

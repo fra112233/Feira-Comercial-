@@ -851,7 +851,7 @@ FC.aplicarSelos = function (raiz) {
 (function () {
   const css = document.createElement('style');
   css.textContent = '.fc-selo{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 8px;border-radius:999px;background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111;font:700 11px/1.4 Inter,"Segoe UI",system-ui,sans-serif;vertical-align:middle;white-space:nowrap;letter-spacing:.1px}.fc-selo i{font-size:11px}' +
-    '.fc-coroa{display:inline-flex;align-items:center;margin-left:6px;font-size:1.15em;line-height:1;vertical-align:-.12em;cursor:pointer;filter:drop-shadow(0 0 3px rgba(243,198,78,.55)) drop-shadow(0 1px 1px rgba(0,0,0,.5))}' +
+    '.fc-coroa{display:inline-flex;align-items:center;margin-left:6px;font-size:1.3em;line-height:1;vertical-align:-.12em;cursor:pointer;filter:drop-shadow(0 0 3px rgba(243,198,78,.55)) drop-shadow(0 1px 1px rgba(0,0,0,.5))}' +
     '.fc-nw{white-space:nowrap}.fc-escondido{display:none!important}' +
     '#fc-coroa-info{position:fixed;z-index:9000;max-width:260px;background:#18181b;color:#f4f4f5;border:1px solid rgba(243,198,78,.5);border-radius:12px;padding:10px 12px;font:500 13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.45)}' +
     '#fc-coroa-info b{color:#f3c64e;display:block;margin-bottom:2px}';
