@@ -85,6 +85,12 @@ a { color:inherit; text-decoration:none; }
 .info-card { display:flex; flex-direction:column; gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid #eee; }
 .info-row { display:flex; align-items:flex-start; gap:10px; font-size:.93rem; }
 .info-row i { color:var(--primary); width:18px; margin-top:3px; }
+.alerta-burla { display:flex; gap:10px; align-items:flex-start; margin-top:14px; padding:11px 13px; border-radius:12px; font-size:.86rem; line-height:1.45;
+  background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; }
+.alerta-burla.vaga { background:#fef2f2; border-color:#fecaca; color:#991b1b; }
+.alerta-burla a { color:inherit; font-weight:700; text-decoration:underline; }
+.alerta-burla .ic { font-size:1.1rem; line-height:1.2; }
+.badge i { margin-right:4px; }
 .empresa-box { display:flex; align-items:center; gap:12px; margin-top:16px; padding:12px; border-radius:14px; background:#f8fafc; }
 .empresa-box img { width:46px; height:46px; border-radius:12px; object-fit:cover; }
 .acoes-det { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
@@ -233,7 +239,7 @@ async function carregar() {
   const prov = document.getElementById('filtroProvincia').value;
 
   let q = supabaseClient.from('vagas_anuncios')
-    .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey(id, full_name, avatar_url, province, city, sector, website)')
+    .select('*, empresa:perfis!vagas_anuncios_empresa_perfil_fkey' + (prov ? '!inner' : '') + '(id, full_name, avatar_url, province, city, sector, website)')
     .order('data_publicacao', { ascending: false })
     .limit(60);
   if (tipoAtual === 'meus') q = q.eq('empresa_id', me.id);
@@ -241,6 +247,7 @@ async function carregar() {
     q = q.eq('ativo', true);
     if (tipoAtual !== 'todos') q = q.eq('tipo', tipoAtual);
   }
+  if (prov) q = q.eq('empresa.province', prov);
   if (termo) q = q.or(`titulo.ilike.%${termo}%,descricao.ilike.%${termo}%,localizacao.ilike.%${termo}%`);
 
   const { data, error } = await q;
@@ -282,15 +289,15 @@ function render() {
     const expirado = a.validade && a.validade < hoje;
     return `
     <article class="card" onclick="mostrarDetalhes('${a.id}')">
-      ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="card-img" loading="lazy" alt="">` : `<div class="card-sem-img"><i class="fas ${icone}"></i></div>`}
+      ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="card-img" loading="lazy" alt="">` : ''}
       <div class="card-body">
-        <div><span class="badge ${classe}">${nomeTipo}</span>${!a.ativo ? '<span class="badge badge-inativo">Pausado</span>' : ''}${expirado ? '<span class="badge badge-inativo">Expirado</span>' : ''}</div>
+        <div><span class="badge ${classe}"><i class="fas ${icone}"></i>${nomeTipo}</span>${!a.ativo ? '<span class="badge badge-inativo">Pausado</span>' : ''}${expirado ? '<span class="badge badge-inativo">Expirado</span>' : ''}</div>
         <div class="card-title" data-no-i18n>${esc(a.titulo)}</div>
         ${a.preco ? `<div class="preco">${esc(a.preco)}</div>` : ''}
         <p class="card-desc" data-no-i18n>${esc(a.descricao)}</p>
         ${a.localizacao ? `<div style="font-size:.78rem;color:var(--primary);font-weight:700;"><i class="fa-solid fa-location-dot"></i> ${esc(a.localizacao)}</div>` : ''}
         <div class="card-rodape">
-          <img src="${esc(logo(a.empresa))}" alt=""><b data-no-i18n>${esc(a.empresa ? a.empresa.full_name : FC.t('Empresa'))}</b>
+          <img src="${esc(logo(a.empresa))}" alt=""><b data-no-i18n data-selo="${esc(a.empresa_id || '')}">${esc(a.empresa ? a.empresa.full_name : FC.t('Empresa'))}</b>
           <span>${new Date(a.data_publicacao).toLocaleDateString('pt-PT')}</span>
         </div>
       </div>
@@ -329,9 +336,10 @@ async function mostrarDetalhes(id) {
       ${a.link ? `<div class="info-row"><i class="fa-solid fa-link"></i><a href="${esc(FCP.linkSite(a.link))}" target="_blank" rel="noopener" style="color:var(--primary);">${esc(a.link)}</a></div>` : ''}
       ${meu ? `<div class="info-row"><i class="fa-solid fa-eye"></i><span><b>Visto</b> ${FC.plural(a.views || 0, 'vez', 'vezes')}</span></div>` : ''}
     </div>
+    ${meu ? '' : avisoBurla(a, contacto)}
     <a class="empresa-box" href="perfil.html?id=${e.id}">
       <img src="${esc(logo(e))}" alt="">
-      <div><b data-no-i18n>${esc(e.full_name || FC.t('Empresa'))}</b><div style="font-size:.8rem;color:var(--text-muted);">${esc([e.sector, e.city, e.province].filter(Boolean).join(' · '))}</div></div>
+      <div><b data-no-i18n data-selo="${esc(e.id || '')}">${esc(e.full_name || FC.t('Empresa'))}</b><div style="font-size:.8rem;color:var(--text-muted);">${esc([e.sector, e.city, e.province].filter(Boolean).join(' · '))}</div></div>
       <i class="fas fa-chevron-right" style="margin-left:auto;color:#94a3b8;"></i>
     </a>
     <div class="acoes-det">
@@ -346,6 +354,16 @@ async function mostrarDetalhes(id) {
       <button class="btn btn-claro" onclick="partilharAnuncio('${a.id}')"><i class="fas fa-share"></i> Partilhar</button>
     </div>`;
   abrirModal('detailModal');
+}
+
+// aviso contra burlas no detalhe de um anúncio de outra empresa
+function avisoBurla(a, contacto) {
+  const n = String(contacto || '').replace(/\D/g, '').replace(/^258(?=8[2-7]\d{7}$)/, '');
+  const verificar = /^8[2-7]\d{7}$/.test(n) ? ` <a href="verificar-numero.html?n=${n}" target="_blank" rel="noopener">${FC.t('Verificar número')}</a>` : '';
+  if (a.tipo === 'vaga')
+    return `<div class="alerta-burla vaga"><span class="ic">⚠️</span><span><b>${FC.t('Nenhuma empresa séria cobra dinheiro para dar emprego.')}</b> ` +
+      `${FC.t('Se pedirem uma taxa de inscrição, formação ou uniforme antes de começar, é burla.')}${verificar}</span></div>`;
+  return `<div class="alerta-burla"><span class="ic">💸</span><span>${FC.t('Não pague adiantado: combine a entrega e pague quando receber.')}${verificar}</span></div>`;
 }
 
 async function partilharAnuncio(id) {
