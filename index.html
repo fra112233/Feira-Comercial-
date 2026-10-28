@@ -736,7 +736,7 @@ try { if (localStorage.getItem('lightMode') === 'true') {
         <!-- Compose (só empresas) -->
         <div class="post-compose" id="post-compose" style="display:none">
             <div class="compose-top">
-                <div class="compose-avatar"><img src="data:," data-fc-avatar alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user" style="display:none"></i></div>
+                <div class="compose-avatar"><img src="data:," data-fc-avatar alt="" onload="this.style.display='';this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user" style="display:none"></i></div>
                 <textarea class="compose-input" id="post-text" maxlength="5000" placeholder="No que está a pensar?"></textarea>
             </div>
             <div id="post-preview-area"></div>
