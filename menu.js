@@ -153,6 +153,7 @@ window.FCMenu = (function () {
 
         grupo('ajuda', 'fa-circle-question', 'Ajuda e informações',
           ((window.FC && FC.appInstalada && !FC.appInstalada()) ? item('fa-download', 'Instalar aplicação', 'FCMenu.instalar()') : '') +
+          item('fa-shield-halved', 'Verificar número (anti-burla)', 'verificar-numero.html') +
           item('fa-circle-info', 'Sobre a Feira Comercial', 'about.html') +
           item('fa-shield-halved', 'Políticas e privacidade', 'politicas.html') +
           item('fa-flag', 'Reclamações e sugestões', 'reclamacao.html')) +

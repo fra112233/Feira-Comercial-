@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<script src="i18n.js"></script>
+<link rel="canonical" href="https://www.feira-comercial.com/verificar-numero.html">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificar número antes de pagar | Feira Comercial</title>
+<meta name="description" content="Antes de enviar dinheiro por M-Pesa, confirme se o número já foi denunciado como burla. Denuncie números de burlões e proteja outras pessoas em Moçambique.">
+<meta property="og:title" content="Verificar número antes de pagar — Feira Comercial">
+<meta property="og:description" content="Confirme se um número M-Pesa já foi denunciado como burla. Grátis, para todos.">
+<meta property="og:image" content="https://www.feira-comercial.com/images/icone-512.png">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="atualizacao.js"></script>
+<script src="menu.js"></script>
+<style>
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; margin-top: 26px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.coluna { display: grid; gap: 20px; min-width: 0; }
+.cartao h2 { font-size: 18px; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+.cartao h2 i { color: var(--ouro); }
+.cartao .sub { font-size: 14px; color: var(--sub); margin-bottom: 16px; }
+.linha-num { display: flex; gap: 10px; }
+.linha-num input { flex: 1; min-width: 0; padding: 14px; background: var(--campo); border: 1.5px solid var(--linha); border-radius: 12px;
+  color: var(--texto); font: inherit; font-size: 17px; font-weight: 600; letter-spacing: .5px; outline: none; }
+.linha-num input:focus { border-color: var(--ouro); }
+.linha-num .btn { flex-shrink: 0; }
+@media (max-width: 420px) { .linha-num { flex-direction: column; } }
+
+.resultado { display: none; margin-top: 16px; padding: 16px; border-radius: 14px; border: 1.5px solid; }
+.resultado .topo-r { display: flex; gap: 12px; align-items: flex-start; }
+.resultado .ic { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.resultado b.t { display: block; font-size: 16px; }
+.resultado .num { font-size: 13px; opacity: .8; letter-spacing: .5px; }
+.resultado p { font-size: 14px; margin-top: 8px; }
+.resultado .acoes-r { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.resultado .acoes-r .btn { padding: 9px 14px; font-size: 13.5px; }
+.r-proibido { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.55); }
+.r-proibido .ic { background: rgba(239,68,68,.2); color: #fca5a5; } .r-proibido b.t { color: #fca5a5; }
+.r-denunciado { background: rgba(251,191,36,.08); border-color: rgba(251,191,36,.5); }
+.r-denunciado .ic { background: rgba(251,191,36,.18); color: #fcd34d; } .r-denunciado b.t { color: #fcd34d; }
+.r-verificada { background: rgba(243,198,78,.08); border-color: rgba(243,198,78,.5); }
+.r-verificada .ic { background: rgba(243,198,78,.18); } .r-verificada b.t { color: var(--ouro); }
+.r-limpo { background: rgba(74,222,128,.07); border-color: rgba(74,222,128,.4); }
+.r-limpo .ic { background: rgba(74,222,128,.15); color: var(--ok); } .r-limpo b.t { color: #86efac; }
+.etiquetas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.etiquetas span { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
+
+.tipos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+@media (max-width: 480px) { .tipos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tipo { position: relative; }
+.tipo input { position: absolute; opacity: 0; pointer-events: none; }
+.tipo span { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 12px; cursor: pointer; height: 100%;
+  background: var(--campo); border: 1.5px solid var(--linha); font-size: 12.5px; font-weight: 600; text-align: center; color: var(--sub); line-height: 1.25; transition: .15s; }
+.tipo span i { font-size: 18px; }
+.tipo input:checked + span { border-color: var(--ouro); color: var(--texto); background: rgba(243,198,78,.1); }
+.tipo input:checked + span i { color: var(--ouro); }
+.tipo input:focus-visible + span { outline: 2px solid var(--ouro); outline-offset: 2px; }
+label.rot { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.nota { font-size: 13px; color: var(--sub); margin: 4px 0 16px; display: flex; gap: 8px; }
+.nota i { color: var(--ouro); margin-top: 3px; }
+.entrar-p { text-align: center; padding: 8px 4px; }
+.entrar-p p { color: var(--sub); font-size: 14px; margin-bottom: 14px; }
+
+.lado h3 { font-size: 15px; margin-bottom: 12px; }
+.dicas { list-style: none; display: grid; gap: 14px; }
+.dicas li { display: flex; gap: 12px; font-size: 14px; color: var(--sub); }
+.dicas li b { color: var(--texto); display: block; }
+.dicas .e { font-size: 20px; line-height: 1.2; flex-shrink: 0; }
+
+.minhas { display: none; }
+.minha { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--linha);
+  border-radius: 12px; background: var(--cartao); margin-bottom: 8px; font-size: 14px; }
+.minha .meta { font-size: 12.5px; color: var(--sub); }
+.minha .est { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.est.lista { background: rgba(239,68,68,.15); color: #fca5a5; }
+.est.analise { background: rgba(251,191,36,.15); color: #fcd34d; }
+</style>
+</head>
+<body>
+<header class="topo" data-atual="verificar"></header>
+
+<main class="pagina">
+  <span class="etiqueta"><i class="fas fa-shield-halved"></i> Proteção contra burlas</span>
+  <h1 class="titulo">Verificar <em>número</em></h1>
+  <p class="intro">Antes de enviar dinheiro por M-Pesa, confirme se o número já foi denunciado. É grátis e para todos.</p>
+
+  <div class="layout">
+    <div class="coluna">
+      <section class="cartao" id="secVerificar">
+        <h2><i class="fas fa-magnifying-glass"></i> Verificar antes de pagar</h2>
+        <p class="sub">Cole o número que lhe pediram para pagar ou que lhe ligou.</p>
+        <form id="formVer" class="linha-num" novalidate>
+          <input id="numVer" type="tel" inputmode="tel" autocomplete="off" maxlength="20" placeholder="84 123 4567" aria-label="Número de telefone">
+          <button class="btn" id="btnVer"><span class="girar"></span><i class="fas fa-shield-halved"></i><span>Verificar</span></button>
+        </form>
+        <div class="resultado" id="resultado" aria-live="polite"></div>
+      </section>
+
+      <section class="cartao" id="secDenunciar">
+        <h2><i class="fas fa-flag"></i> Denunciar um burlão</h2>
+        <p class="sub">Tentaram burlá-lo? Denuncie o número e ajude a proteger outras pessoas.</p>
+        <div id="denConteudo"><p style="color:var(--sub);font-size:14px">A carregar…</p></div>
+      </section>
+    </div>
+
+    <aside class="cartao lado">
+      <h3>Como se proteger</h3>
+      <ul class="dicas">
+        <li><span class="e">💸</span><div><b>Não pague adiantado</b>Combine a entrega e pague quando receber ou vir o produto.</div></li>
+        <li><span class="e">🔐</span><div><b>Nunca partilhe códigos</b>Códigos SMS, PIN e palavras-passe são só seus. Nem a Equipa os pede.</div></li>
+        <li><span class="e">🎁</span><div><b>Prémios que pedem dinheiro são burla</b>Ninguém pede uma taxa para lhe dar um prémio.</div></li>
+        <li><span class="e">👑</span><div><b>Prefira lojas com coroa</b>A Feira Comercial confirmou quem são.</div></li>
+        <li><span class="e">💬</span><div><b>Fale pelo chat da Feira</b>Se algo correr mal, a equipa pode ver a conversa e ajudar.</div></li>
+      </ul>
+      <p style="font-size:13px;color:var(--sub);margin-top:16px"><i class="fas fa-circle-info" style="color:var(--ouro)"></i>
+        Um número "sem denúncias" não é garantia de confiança. Desconfie sempre de pedidos de pagamento adiantado.</p>
+    </aside>
+  </div>
+
+  <section class="secao minhas" id="secMinhas">
+    <h2>As minhas denúncias</h2>
+    <div id="listaMinhas"></div>
+  </section>
+</main>
+
+<footer class="rodape"></footer>
+<script src="ajuda.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const TIPOS = {
+  adiantado:    ['fa-money-bill-transfer', 'Pediu pagamento adiantado'],
+  produto:      ['fa-box-open', 'Produto falso ou não entregue'],
+  codigo:       ['fa-key', 'Pediu código ou PIN'],
+  premio:       ['fa-gift', 'Prémio falso'],
+  falsa_equipa: ['fa-user-secret', 'Fingiu ser a Feira Comercial'],
+  outro:        ['fa-ellipsis', 'Outro']
+};
+let sessao = null;
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function formatar(n) { return n && n.length === 9 ? '+258 ' + n.slice(0, 2) + ' ' + n.slice(2, 5) + ' ' + n.slice(5) : n; }
+function dataPt(d) { return new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }); }
+// mesma regra da base de dados: números de Moçambique 82–87 + 7 algarismos, com ou sem +258
+function normalizar(t) {
+  let d = String(t || '').replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('258')) d = d.slice(3);
+  return /^8[2-7]\d{7}$/.test(d) ? d : null;
+}
+function erro(e) { return (window.FC && FC.traduzirErro) ? FC.traduzirErro(e) : 'Algo correu mal. Tente outra vez.'; }
+
+// ---------- verificar ----------
+async function verificar(valor) {
+  const r = $('resultado');
+  const n = normalizar(valor);
+  if (!n) {
+    r.className = 'resultado r-denunciado'; r.style.display = 'block';
+    r.innerHTML = '<div class="topo-r"><div class="ic"><i class="fas fa-keyboard"></i></div><div><b class="t">Número inválido</b>' +
+      '<p>Escreva um número de Moçambique, por exemplo 84 123 4567 ou +258 84 123 4567.</p></div></div>';
+    return;
+  }
+  const btn = $('btnVer'); btn.disabled = true; btn.classList.add('carregando');
+  try {
+    const { data, error } = await supabaseClient.rpc('verificar_numero', { p_numero: n });
+    if (error) throw error;
+    mostrar(data || {});
+    try { history.replaceState(null, '', '?n=' + n); } catch (e) {}
+  } catch (e) {
+    r.className = 'resultado r-denunciado'; r.style.display = 'block';
+    r.innerHTML = '<div class="topo-r"><div class="ic"><i class="fas fa-wifi"></i></div><div><b class="t">Não foi possível verificar</b><p>' + esc(erro(e)) + '</p></div></div>';
+  } finally { btn.disabled = false; btn.classList.remove('carregando'); }
+}
+
+function mostrar(d) {
+  const r = $('resultado'), n = d.numero, num = '<div class="num">' + esc(formatar(n)) + '</div>';
+  const etq = (d.tipos || []).filter(t => TIPOS[t]).map(t => '<span>' + esc(TIPOS[t][1]) + '</span>').join('');
+  const denunciarBtn = '<button type="button" class="btn btn-sec" onclick="irDenunciar(\'' + n + '\')"><i class="fas fa-flag"></i> Denunciar este número</button>';
+  const defesa = '<a class="btn btn-sec" href="reclamacao.html?tipo=reclamacao&assunto=' + encodeURIComponent('O meu número foi denunciado: ' + formatar(n)) + '">' +
+    '<i class="fas fa-scale-balanced"></i> É o seu número? Fale connosco</a>';
+  let h = '';
+  if (d.estado === 'proibido') {
+    r.className = 'resultado r-proibido';
+    h = '<div class="topo-r"><div class="ic"><i class="fas fa-ban"></i></div><div><b class="t">Não envie dinheiro para este número</b>' + num +
+      '<p>Este número está na lista de burlas da Feira Comercial: foi usado por uma conta suspensa ou denunciado por várias pessoas.</p>' +
+      (etq ? '<div class="etiquetas">' + etq + '</div>' : '') + '</div></div>' +
+      '<div class="acoes-r">' + defesa + '</div>';
+  } else if (d.estado === 'denunciado') {
+    r.className = 'resultado r-denunciado';
+    h = '<div class="topo-r"><div class="ic"><i class="fas fa-triangle-exclamation"></i></div><div><b class="t">Cuidado: ' +
+      (d.denuncias === 1 ? '1 pessoa denunciou' : d.denuncias + ' pessoas denunciaram') + ' este número</b>' + num +
+      '<p>A equipa está a acompanhar. Não pague adiantado: combine a entrega e pague quando receber.</p>' +
+      (etq ? '<div class="etiquetas">' + etq + '</div>' : '') + '</div></div>' +
+      '<div class="acoes-r">' + denunciarBtn + defesa + '</div>';
+  } else if (d.estado === 'verificada') {
+    r.className = 'resultado r-verificada';
+    h = '<div class="topo-r"><div class="ic">👑</div><div><b class="t">Número de uma loja verificada</b>' + num +
+      '<p>Pertence a <a href="perfil.html?id=' + encodeURIComponent(d.loja_id) + '">' + esc(d.loja) + '</a>, uma loja que a Feira Comercial confirmou. ' +
+      'Confirme que está mesmo a falar com esta loja (pelo chat da Feira, por exemplo).</p>' +
+      (d.denuncias > 0 ? '<p style="color:#fcd34d">⚠️ Tem ' + d.denuncias + ' denúncia(s) em análise pela equipa.</p>' : '') + '</div></div>';
+  } else {
+    r.className = 'resultado r-limpo';
+    h = '<div class="topo-r"><div class="ic"><i class="fas fa-check"></i></div><div><b class="t">Sem denúncias na Feira Comercial</b>' + num +
+      '<p>Isto não garante que seja de confiança. Nunca pague adiantado a quem não conhece.</p></div></div>' +
+      '<div class="acoes-r">' + denunciarBtn + '</div>';
+  }
+  r.innerHTML = h; r.style.display = 'block';
+}
+
+$('formVer').addEventListener('submit', e => { e.preventDefault(); verificar($('numVer').value); });
+
+function irDenunciar(n) {
+  const campo = $('numDen');
+  if (campo) { campo.value = formatar(n); }
+  $('secDenunciar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => { const t = document.querySelector('input[name=tipoDen]'); if (t && campo) t.focus(); }, 400);
+}
+
+// ---------- denunciar ----------
+function desenharDenuncia() {
+  const c = $('denConteudo');
+  if (!sessao) {
+    c.innerHTML = '<div class="entrar-p"><p>Para evitar denúncias falsas, só quem tem conta pode denunciar. É rápido e grátis.</p>' +
+      '<a class="btn" href="Portal.html"><i class="fas fa-right-to-bracket"></i> Entrar</a> ' +
+      '<a class="btn btn-sec" href="Formulario.html"><i class="fas fa-user-plus"></i> Criar conta</a></div>';
+    return;
+  }
+  c.innerHTML =
+    '<form id="formDen" novalidate>' +
+      '<div class="aviso" id="avisoDen" role="alert"></div>' +
+      '<div class="campo"><label for="numDen" class="rot">Número do burlão</label>' +
+        '<input id="numDen" type="tel" inputmode="tel" autocomplete="off" maxlength="20" placeholder="84 123 4567"></div>' +
+      '<label class="rot">O que aconteceu?</label>' +
+      '<div class="tipos" role="radiogroup" aria-label="O que aconteceu">' +
+        Object.keys(TIPOS).map(k => '<label class="tipo"><input type="radio" name="tipoDen" value="' + k + '"><span><i class="fas ' + TIPOS[k][0] + '"></i>' + TIPOS[k][1] + '</span></label>').join('') +
+      '</div>' +
+      '<div class="campo"><label for="detDen" class="rot">Conte em poucas palavras <span style="color:var(--sub);font-weight:400">(opcional)</span></label>' +
+        '<textarea id="detDen" maxlength="300" style="min-height:80px" placeholder="Ex.: vendia um telemóvel, pediu 2 000 MT de sinal e desapareceu."></textarea></div>' +
+      '<p class="nota"><i class="fas fa-user-shield"></i><span>Quem denuncia <b>nunca</b> é mostrado. O número entra na lista de burlas quando 3 pessoas diferentes o denunciam. ' +
+        'Denúncias falsas são verificadas pela equipa.</span></p>' +
+      '<button class="btn" id="btnDen" style="width:100%"><span class="girar"></span><i class="fas fa-flag"></i><span>Denunciar número</span></button>' +
+    '</form>';
+  $('formDen').addEventListener('submit', denunciar);
+}
+
+async function denunciar(e) {
+  e.preventDefault();
+  const av = $('avisoDen'); av.className = 'aviso';
+  const n = normalizar($('numDen').value);
+  const t = document.querySelector('input[name=tipoDen]:checked');
+  if (!n) { av.className = 'aviso erro'; av.textContent = 'Escreva um número de Moçambique válido (82 a 87 + 7 algarismos).'; $('numDen').focus(); return; }
+  if (!t) { av.className = 'aviso erro'; av.textContent = 'Escolha o que aconteceu.'; return; }
+  const btn = $('btnDen'); btn.disabled = true; btn.classList.add('carregando');
+  try {
+    const { error } = await supabaseClient.rpc('denunciar_numero', { p_numero: n, p_tipo: t.value, p_detalhe: $('detDen').value.trim() || null });
+    if (error) throw error;
+    av.className = 'aviso ok';
+    av.innerHTML = '<b>Obrigado!</b> A denúncia de ' + esc(formatar(n)) + ' foi registada. Está a ajudar a proteger outras pessoas.';
+    $('numDen').value = ''; $('detDen').value = ''; t.checked = false;
+    carregarMinhas();
+    if ($('resultado').style.display === 'block' && normalizar($('numVer').value) === n) verificar(n);
+  } catch (err) {
+    av.className = 'aviso erro'; av.textContent = erro(err);
+  } finally { btn.disabled = false; btn.classList.remove('carregando'); }
+}
+
+async function carregarMinhas() {
+  const { data, error } = await supabaseClient.rpc('minhas_denuncias_numeros');
+  if (error || !data || !data.length) { $('secMinhas').style.display = 'none'; return; }
+  $('secMinhas').style.display = 'block';
+  $('listaMinhas').innerHTML = data.map(d =>
+    '<div class="minha"><div><b>' + esc(formatar(d.numero)) + '</b><div class="meta">' + esc((TIPOS[d.tipo] || ['', d.tipo])[1]) + ' · ' + dataPt(d.criado) + '</div></div>' +
+    (d.na_lista ? '<span class="est lista">Na lista de burlas</span>' : '<span class="est analise">Em acompanhamento</span>') + '</div>').join('');
+}
+
+// vindo do chat: verificar-numero.html?n=841234567
+(function () {
+  const q = new URLSearchParams(location.search).get('n');
+  if (q) { $('numVer').value = q.slice(0, 20); verificar(q); }
+})();
+
+FCAjuda.pronto.then(s => {
+  sessao = s;
+  desenharDenuncia();
+  if (s) carregarMinhas();
+});
+</script>
+</body>
+</html>

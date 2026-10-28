@@ -1417,13 +1417,21 @@ function avisoBurla(msg) {
     if (!window.FCBurlas || msg.sender_id === ME.id || msg.deleted || !msg.content) return '';
     // número que já foi de uma conta suspensa (a base de dados marca a mensagem): aviso vermelho, sempre
     if (msg.alerta === 'numero_proibido')
-        return '<div class="aviso-burla perigo" role="alert">🚫 <span>' + escHtml(FC.t('Este número já foi usado por uma conta suspensa pela Feira Comercial. Não envie dinheiro.')) + '</span> <a onclick="denunciarConversa()">' + FC.t('Denunciar') + '</a></div>';
+        return '<div class="aviso-burla perigo" role="alert">🚫 <span>' + escHtml(FC.t('Este número está na lista de burlas da Feira Comercial (conta suspensa ou várias denúncias). Não envie dinheiro.')) + '</span> ' + linkVerificar(msg.content) + '<a onclick="denunciarConversa()">' + FC.t('Denunciar') + '</a></div>';
     const s = seloDe(msg.sender_id);
     if (s && s !== 'verificada') return '';          // Equipa / Administrador
     const p = perfisCache[msg.sender_id] || {};
     const r = FCBurlas.analisar(msg.content, { nova: p.created_at ? FCBurlas.contaNova(p.created_at) : false, verificada: s === 'verificada' });
     if (!r) return '';
-    return '<div class="aviso-burla" role="note">' + r.icone + ' <span>' + escHtml(r.texto) + '</span> <a onclick="denunciarConversa()">Denunciar</a></div>';
+    return '<div class="aviso-burla" role="note">' + r.icone + ' <span>' + escHtml(r.texto) + '</span> ' + linkVerificar(msg.content) + '<a onclick="denunciarConversa()">Denunciar</a></div>';
+}
+
+// se a mensagem tem um número de Moçambique: ligação para o verificar antes de pagar
+function linkVerificar(texto) {
+    const m = String(texto || '').match(/(?:\+?258[\s.-]?)?(8[2-7](?:[\s.-]?\d){7})/);
+    if (!m) return '';
+    const n = m[1].replace(/\D/g, '');
+    return '<a href="verificar-numero.html?n=' + n + '" target="_blank" rel="noopener" style="margin-right:8px">' + FC.t('Verificar número') + '</a>';
 }
 
 // denunciar: abre o formulário de denúncia já com a conta indicada (a conversa fica guardada mesmo que seja apagada)

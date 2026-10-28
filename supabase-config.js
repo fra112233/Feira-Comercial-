@@ -379,6 +379,7 @@ FC._fimAvisado = new Set();
 FC._notifTextos = {
   travao: '🛑 Travão automático: conta posta em revisão por denúncias',
   numero_proibido: '🚫 enviou um número de uma conta suspensa',
+  numero_denunciado: '🚩 número denunciado pela comunidade:',
   cobranca: 'foi-lhe atribuída para cobrar a mensalidade 💰',
   gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
@@ -397,7 +398,7 @@ FC._notifIcones = {
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
   marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock',
-  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper', lojas_hoje: 'fa-store', travao: 'fa-shield-halved', numero_proibido: 'fa-phone-slash', cobranca: 'fa-calendar-check'
+  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper', lojas_hoje: 'fa-store', travao: 'fa-shield-halved', numero_proibido: 'fa-phone-slash', numero_denunciado: 'fa-flag', cobranca: 'fa-calendar-check'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
@@ -469,7 +470,7 @@ FC.linkNotificacao = function (n) {
   if (n.tipo === 'gratis_fim' || n.tipo === 'mensalidade_fim') return 'mensalidade.html';
   if (n.tipo === 'resumo_semanal' || n.tipo === 'lojas_hoje') return 'index.html';
   if (n.tipo === 'travao') return 'admin.html';
-  if (n.tipo === 'numero_proibido') return 'admin.html#suspeitos';
+  if (n.tipo === 'numero_proibido' || n.tipo === 'numero_denunciado') return 'admin.html#suspeitos';
   if (n.tipo === 'cobranca') return 'admin.html#mensalidades';
   if (n.tipo === 'gosto_story') return 'index.html';   // conta posta em revisão pelo travão automático
   if (n.post_id) return 'index.html?post=' + n.post_id;
