@@ -76,10 +76,14 @@ window.FCMenu = (function () {
     var fundo = document.createElement('div'); fundo.id = 'fcm-fundo'; fundo.onclick = fechar;
     var m = document.createElement('aside'); m.id = 'fcm'; m.setAttribute('aria-label', 'Menu');
     document.body.appendChild(fundo); document.body.appendChild(m);
-    m.addEventListener('toggle', function (e) {
-      var d = e.target; if (!d.classList || !d.classList.contains('grupo')) return;
-      try { localStorage.setItem('fcm_g_' + d.getAttribute('data-g'), d.open ? '1' : '0'); } catch (x) {}
-    }, true);
+    // os grupos começam sempre fechados; limpa o que ficou guardado da versão antiga
+    try { localStorage.removeItem('fcm_g_conta'); localStorage.removeItem('fcm_g_ajuda'); } catch (x) {}
+    // ao voltar atrás, o telemóvel pode mostrar a página como estava (menu aberto): fecha tudo
+    window.addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      fechar();
+      m.querySelectorAll('details.grupo[open]').forEach(function (d) { d.open = false; });
+    });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
   }
 
@@ -95,10 +99,8 @@ window.FCMenu = (function () {
     return '<' + tag + ' class="tile" ' + attr + '><i class="fas ' + icone + ' ic"></i><span class="lb">' + texto + '</span>' + (extra || '') + '</' + tag + '>';
   }
 
-  // grupos abertos/fechados ficam lembrados neste aparelho
-  function grupoAberto(g) { try { return localStorage.getItem('fcm_g_' + g) === '1'; } catch (e) { return false; } }
   function grupo(g, icone, titulo, dentro) {
-    return '<details class="grupo" data-g="' + g + '"' + (grupoAberto(g) ? ' open' : '') + '><summary class="it"><i class="fas ' + icone + ' ic"></i><b>' + titulo +
+    return '<details class="grupo" data-g="' + g + '"><summary class="it"><i class="fas ' + icone + ' ic"></i><b>' + titulo +
       '</b><i class="fas fa-chevron-down seta"></i></summary><div class="dentro">' + dentro + '</div></details>';
   }
 
