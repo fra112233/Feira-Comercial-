@@ -828,10 +828,10 @@ FC.aplicarSelos = function (raiz) {
     const etiqueta = el.nextElementSibling && el.nextElementSibling.querySelector(':scope > i.fa-building') ? el.nextElementSibling : null;
     if (etiqueta) etiqueta.classList.remove('fc-escondido');
     const h = FC.seloHtml(id); if (!h) return;
+    // com coroa ou selo "Oficial"/"Administrador", o selo já diz quem é: esconde o ícone 🏢
+    el.querySelectorAll(':scope > i.fa-building').forEach(x => x.classList.add('fc-escondido'));
+    if (etiqueta) etiqueta.classList.add('fc-escondido');
     if (FC._selos.get(id) === 'verificada') {
-      // loja verificada: a coroa já diz que é uma empresa real — esconde o ícone 🏢
-      el.querySelectorAll(':scope > i.fa-building').forEach(x => x.classList.add('fc-escondido'));
-      if (etiqueta) etiqueta.classList.add('fc-escondido');
       // a coroa fica sempre colada à última palavra do nome (não salta sozinha para a linha de baixo)
       const textos = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
       const t = textos[textos.length - 1], m = t && t.textContent.match(/^([\s\S]*?)(\S+)(\s*)$/);
