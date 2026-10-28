@@ -308,7 +308,7 @@ async function mostrarDetalhes(id) {
     if (a) await juntarContactos([a]);
   }
   if (!a) { toast('Este anúncio já não existe.'); return; }
-  if (!vistos.has(a.id) && a.empresa_id !== me.id) { vistos.add(a.id); supabaseClient.rpc('ver_anuncio', { aid: a.id }); FC.registarEvento(a.empresa_id, 'anuncio', a.id); }
+  if (!vistos.has(a.id) && a.empresa_id !== me.id) { vistos.add(a.id); supabaseClient.rpc('ver_anuncio', { aid: a.id }).then(() => {}, () => {}); FC.registarEvento(a.empresa_id, 'anuncio', a.id); }
 
   const e = a.empresa || {};
   const [nomeTipo, classe] = TIPOS[a.tipo] || TIPOS.promo;
