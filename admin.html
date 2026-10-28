@@ -1013,7 +1013,7 @@ async function retirarCoroa(id) {
 async function definirAjudante(id, sim) {
   const c = contas.find(x => x.id === id); const nome = (c && c.full_name) || 'esta conta';
   const pergunta = sim
-    ? 'Tornar ' + nome + ' Ajudante?\n\nPode: responder na Caixa da Equipa, tratar reclamações, dar boas-vindas a contas novas, acompanhar lojas paradas, entrevistar pedidos de coroa e dar parecer (só o administrador aprova), e cobrar as mensalidades que lhe atribuir.\nNão pode: ver pagamentos, suspeitos, conversas privadas, números nem definições, e não pode suspender contas.'
+    ? 'Tornar ' + nome + ' Ajudante?\n\nPode: responder na Caixa da Equipa, tratar reclamações, dar boas-vindas a contas novas, acompanhar lojas paradas, entrevistar pedidos de coroa e dar parecer (só o administrador aprova), e cobrar as mensalidades que lhe atribuir.\nNão pode: ver pagamentos, suspeitos, conversas privadas, números nem definições, e não pode suspender contas.\n\nA pessoa tem de ter a verificação em dois passos ativa.'
     : 'Tirar ' + nome + ' de Ajudante?';
   if (!confirm(pergunta)) return;
   const { error } = await supabaseClient.rpc('admin_definir_ajudante', { p_uid: id, p_sim: sim });
@@ -1475,6 +1475,18 @@ document.querySelectorAll('#filtrosRecl button').forEach(b => b.onclick = () => 
   const me = await FC.boot();
   if (!me) return;
   if (me.role !== 'admin' && me.role !== 'ajudante') { $('intro').textContent = ''; $('semAcesso').style.display = 'block'; return; }
+  if (me.role === 'ajudante') {
+    // Ajudante só trabalha com a verificação em dois passos ativa (protege a conta da equipa)
+    const { data: falta2 } = await supabaseClient.rpc('ajudante_precisa_2passos');
+    if (falta2) {
+      $('intro').textContent = '';
+      const s = $('semAcesso'); s.style.display = 'block';
+      s.innerHTML = '<div style="font-size:40px">🔐</div><h2 style="margin:6px 0">Ative a verificação em dois passos</h2>' +
+        '<p style="color:var(--sub)">Para ajudar em nome da Equipa Feira Comercial, a sua conta tem de estar protegida com o código da app de autenticação. Assim, mesmo que alguém descubra a sua palavra-passe, não consegue entrar.</p>' +
+        '<a class="btn" href="privacidade.html#2fa" style="margin-top:14px"><i class="fas fa-shield-halved"></i> Ativar agora</a>';
+      return;
+    }
+  }
   $('conteudo').style.display = 'block';
   $('grupos').style.display = 'flex'; document.body.classList.add('com-grupos');
   $('intro').style.display = 'none';   // o "Hoje" já diz o essencial
