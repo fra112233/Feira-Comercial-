@@ -16,40 +16,51 @@
 
 <style>
 :root {
-    --green: #00a884;
-    --green-dark: #008069;
-    --green-light: #d9fdd3;
-    --bg-app: #111b21;
-    --bg-sidebar: #111b21;
-    --bg-chat: #0b141a;
-    --bg-header: #202c33;
-    --bg-input: #202c33;
-    --bg-bubble-in: #202c33;
-    --bg-bubble-out: #005c4b;
-    --bg-search: #2a3942;
-    --text-primary: #e9edef;
-    --text-secondary: #8696a0;
-    --text-bubble: #e9edef;
-    --border: #2a3942;
-    --hover: #2a3942;
-    --danger: #ea0038;
-    --icon: #aebac1;
+    /* cores da Feira Comercial: dourado sobre preto (as mesmas do logótipo e da página de entrar) */
+    --ouro: #f3c64e;            /* fundo de botões e destaques */
+    --ouro-esc: #d9a52e;
+    --ouro-texto: #f3c64e;      /* dourado usado como cor de texto (no tema claro é mais escuro) */
+    --sobre-ouro: #111111;      /* texto e ícones em cima do dourado */
+    --online: #22c55e;
+    --bg-app: #0b0b0c;
+    --bg-sidebar: #111114;
+    --bg-chat: #0b0b0c;
+    --bg-header: #16161a;
+    --bg-input: #16161a;
+    --bg-bubble-in: #1f1f25;
+    --bg-bubble-out: #3d3110;
+    --bg-search: #1f1f25;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-bubble: #f4f4f5;
+    --border: #2c2c34;
+    --hover: #24242b;
+    --danger: #ef4444;
+    --icon: #b4b4bd;
+    --tick-lida: #f3c64e;
+    --fundo-brilho: rgba(243,198,78,.10);
+    --fundo-pontos: rgba(243,198,78,.07);
 }
 [data-theme="light"] {
-    --bg-app: #f0f2f5;
+    --ouro-texto: #8a5a00;
+    --bg-app: #f4f1ea;
     --bg-sidebar: #ffffff;
-    --bg-chat: #efeae2;
-    --bg-header: #f0f2f5;
-    --bg-input: #f0f2f5;
+    --bg-chat: #f4f1ea;
+    --bg-header: #ffffff;
+    --bg-input: #ffffff;
     --bg-bubble-in: #ffffff;
-    --bg-bubble-out: #d9fdd3;
-    --bg-search: #f0f2f5;
-    --text-primary: #111b21;
-    --text-secondary: #667781;
-    --text-bubble: #111b21;
-    --border: #d1d7db;
-    --hover: #f5f6f6;
-    --icon: #54656f;
+    --bg-bubble-out: #fbe9b0;
+    --bg-search: #efebe2;
+    --text-primary: #1c1917;
+    --text-secondary: #6b6457;
+    --text-bubble: #1c1917;
+    --border: #e4ddcc;
+    --hover: #f6f1e4;
+    --danger: #dc2626;
+    --icon: #6b6457;
+    --tick-lida: #a16207;
+    --fundo-brilho: rgba(217,165,46,.16);
+    --fundo-pontos: rgba(138,90,0,.08);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
@@ -69,7 +80,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
 }
 .sidebar-header-left { display: flex; align-items: center; gap: 12px; }
-.my-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; overflow: hidden; }
+.my-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--ouro); display: flex; align-items: center; justify-content: center; color: var(--sobre-ouro); font-size: 18px; cursor: pointer; flex-shrink: 0; overflow: hidden; }
 .my-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .sidebar-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .header-icons { display: flex; gap: 6px; }
@@ -98,21 +109,23 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
 .contact-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-search); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 22px; flex-shrink: 0; overflow: hidden; position: relative; }
 .contact-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.online-dot { position: absolute; bottom: 2px; right: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--green); border: 2px solid var(--bg-sidebar); }
+.online-dot { position: absolute; bottom: 2px; right: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--online); border: 2px solid var(--bg-sidebar); }
 .contact-info { flex: 1; min-width: 0; }
 .contact-name { font-size: 15px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .contact-preview { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .contact-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .contact-time { font-size: 11px; color: var(--text-secondary); }
-.unread-badge { background: var(--green); color: white; font-size: 11px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.unread-badge { background: var(--ouro); color: var(--sobre-ouro); font-size: 11px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .blocked-tag { font-size: 10px; color: var(--danger); font-weight: 600; }
 
 /* ── MAIN CHAT ── */
 .main-chat { flex: 1; display: flex; flex-direction: column; background: var(--bg-chat); overflow: hidden; position: relative; }
 
 .main-chat::before {
-    content: ''; position: absolute; inset: 0; opacity: 0.04;
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 50% -15%, var(--fundo-brilho), transparent 60%),
+                      radial-gradient(var(--fundo-pontos) 1px, transparent 1.5px);
+    background-size: 100% 100%, 22px 22px;
     pointer-events: none; z-index: 0;
 }
 
@@ -140,7 +153,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .aviso-burla a { color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; white-space: nowrap; }
 .aviso-burla.perigo { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.55); }
 .chat-peer-info .peer-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
-.chat-peer-info .peer-status { font-size: 12px; color: var(--green); }
+.chat-peer-info .peer-status { font-size: 12px; color: var(--ouro-texto); }
 .chat-peer-info .peer-status.blocked-status { color: var(--danger); }
 
 /* Chat window */
@@ -173,7 +186,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; float: right; margin-left: 12px; }
 .bubble-time { font-size: 10px; color: var(--text-secondary); white-space: nowrap; }
 .bubble-ticks { font-size: 11px; color: var(--text-secondary); }
-.bubble-ticks.read { color: #53bdeb; }
+.bubble-ticks.read { color: var(--tick-lida); }
 
 /* Reaction badge */
 .bubble-reaction { font-size: 16px; margin-top: 2px; cursor: pointer; }
@@ -189,8 +202,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .bubble-doc-size { font-size: 11px; color: var(--text-secondary); }
 
 /* Reply preview inside bubble */
-.reply-ref { background: rgba(0,0,0,0.2); border-left: 3px solid var(--green); border-radius: 4px; padding: 5px 8px; margin-bottom: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
-.reply-ref b { display: block; color: var(--green); font-size: 11px; margin-bottom: 2px; }
+.reply-ref { background: rgba(0,0,0,0.2); border-left: 3px solid var(--ouro); border-radius: 4px; padding: 5px 8px; margin-bottom: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+.reply-ref b { display: block; color: var(--ouro-texto); font-size: 11px; margin-bottom: 2px; }
 .reply-ref.resp { display: flex; gap: 8px; align-items: center; }
 .reply-ref.resp .rt { flex: 1; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .reply-ref.resp img, .reply-ref.resp .mini { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; font-size: 18px; }
@@ -257,13 +270,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 
 /* Reply bar above footer */
 .reply-bar {
-    display: none; background: linear-gradient(90deg, rgba(245,166,35,.22), rgba(245,166,35,.08)), var(--bg-header); padding: 8px 16px;
-    border-left: 4px solid #f5a623; border-top: 1px solid rgba(245,166,35,.35); align-items: center; gap: 10px;
+    display: none; background: linear-gradient(90deg, rgba(243,198,78,.22), rgba(243,198,78,.08)), var(--bg-header); padding: 8px 16px;
+    border-left: 4px solid var(--ouro); border-top: 1px solid rgba(243,198,78,.35); align-items: center; gap: 10px;
     flex-shrink: 0; position: relative;
 }
 .reply-bar.show { display: flex; }
 .reply-bar-info { flex: 1; min-width: 0; }
-.reply-bar-name { font-size: 12px; font-weight: 700; color: #f5a623; }
+.reply-bar-name { font-size: 12px; font-weight: 700; color: var(--ouro-texto); }
 .reply-bar-text { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
 .reply-bar-close { cursor: pointer; color: var(--text-secondary); font-size: 18px; }
 
@@ -276,8 +289,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .emoji-toggle-btn { color: var(--icon); cursor: pointer; font-size: 20px; flex-shrink: 0; background: none; border: none; padding: 0; transition: color 0.15s; }
 .emoji-toggle-btn:hover { color: var(--text-primary); }
 
-.send-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--green); border: none; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
-.send-btn:hover { background: var(--green-dark); }
+.send-btn { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--ouro), var(--ouro-esc)); border: none; color: var(--sobre-ouro); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, transform 0.1s; }
+.send-btn:hover { filter: brightness(1.08); }
 .send-btn:active { transform: scale(0.92); }
 
 .user-switch-bar { display: none !important; }
@@ -322,24 +335,23 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .profile-modal.show { display: flex; }
 .profile-card { background: var(--bg-header); border-radius: 16px; padding: 28px; width: 320px; text-align: center; position: relative; }
 .profile-close { position: absolute; top: 12px; right: 14px; cursor: pointer; color: var(--text-secondary); font-size: 20px; }
-.profile-big-avatar { width: 90px; height: 90px; border-radius: 50%; background: var(--green); margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 40px; overflow: hidden; }
+.profile-big-avatar { width: 90px; height: 90px; border-radius: 50%; background: var(--ouro); margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; color: var(--sobre-ouro); font-size: 40px; overflow: hidden; }
 .profile-big-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .profile-name { font-size: 20px; font-weight: 700; color: var(--text-primary); }
 .profile-status-text { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
 .profile-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
 .profile-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.15s; }
-.profile-btn.msg { background: var(--green); color: white; }
+.profile-btn.msg { background: var(--ouro); color: var(--sobre-ouro); }
 .profile-btn.block { background: rgba(234,0,56,0.1); color: var(--danger); }
 .profile-btn.block.active { background: var(--danger); color: white; }
 .profile-btn:hover { opacity: 0.88; }
 
 /* Mensagens de voz */
 .voz { display: flex; align-items: center; gap: 10px; width: 250px; max-width: 100%; padding: 2px 0; }
-.voz-play { width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--green); color: #fff; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.bubble.sent .voz-play { background: #fff; color: var(--green-dark); }
+.voz-play { width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--ouro); color: var(--sobre-ouro); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .voz-play .fa-play { margin-left: 3px; }
 .voz-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.voz-barra { width: 100%; height: 4px; margin: 6px 0 0; accent-color: var(--green); cursor: pointer; }
+.voz-barra { width: 100%; height: 4px; margin: 6px 0 0; accent-color: var(--ouro-esc); cursor: pointer; }
 .voz-info { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .voz-vel { border: none; background: rgba(0,0,0,.2); color: var(--text-bubble); font-size: 11px; font-weight: 700; border-radius: 10px; padding: 3px 8px; cursor: pointer; min-width: 36px; }
 
@@ -359,7 +371,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .falhou-acoes button { border: none; background: none; color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; padding: 8px 6px; text-decoration: underline; }
 
 /* "a escrever…" */
-.peer-status.a-escrever { color: var(--green); font-style: italic; }
+.peer-status.a-escrever { color: var(--ouro-texto); font-style: italic; }
 
 /* Anexar (📎): documento, fotos e vídeos, câmara */
 .anexar-btn { background: none; border: none; padding: 0; }
@@ -380,7 +392,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .rr-painel.show { display: flex; }
 .rr-cab { display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 16px; border-bottom: 1px solid var(--border); }
 .rr-cab b { flex: 1; color: var(--text-primary); font-size: 15px; }
-.rr-cab button { border: none; background: none; color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 10px; border-radius: 8px; }
+.rr-cab button { border: none; background: none; color: var(--ouro-texto); font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 10px; border-radius: 8px; }
 .rr-cab button.rr-fechar { color: var(--text-secondary); font-size: 18px; }
 .rr-lista { overflow-y: auto; flex: 1; padding: 4px 0; }
 .rr-sub { padding: 10px 16px 4px; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .03em; }
@@ -394,10 +406,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .rr-form { border-top: 1px solid var(--border); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
 .rr-form label { font-size: 12px; color: var(--text-secondary); }
 .rr-form textarea { width: 100%; min-height: 64px; resize: vertical; background: var(--bg-search); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 14px; outline: none; }
-.rr-form textarea:focus { border-color: var(--green); }
+.rr-form textarea:focus { border-color: var(--ouro); }
 .rr-form-botoes { display: flex; gap: 8px; justify-content: flex-end; }
 .rr-form-botoes button { border: none; border-radius: 18px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
-.rr-guardar { background: var(--green); color: #fff; }
+.rr-guardar { background: var(--ouro); color: var(--sobre-ouro); }
 .rr-cancelar { background: transparent; color: var(--text-secondary); }
 
 /* Mobile */
@@ -912,7 +924,7 @@ function renderContacts() {
         html = `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">A carregar...</div>`;
     } else if (!lista.length && !pesquisaPerfis.length) {
         html = `<div style="padding:30px;text-align:center;color:var(--text-secondary);font-size:14px;">
-                  ${q ? 'Sem resultados' : 'Ainda não tem conversas.<br>Escreva um nome acima, ou vá a <a href="amigos.html" style="color:var(--green)">Amigos</a> e carregue em "Mensagem".'}</div>`;
+                  ${q ? 'Sem resultados' : 'Ainda não tem conversas.<br>Escreva um nome acima, ou vá a <a href="amigos.html" style="color:var(--ouro-texto)">Amigos</a> e carregue em "Mensagem".'}</div>`;
     }
     html += lista.map(c => {
         const bloq = bloqueei.has(c.id);
@@ -1166,7 +1178,7 @@ function scrollToMsg(id) {
     const el = document.getElementById(`msg-${id}`);
     if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.querySelector('.bubble').style.outline = '2px solid var(--green)';
+        el.querySelector('.bubble').style.outline = '2px solid var(--ouro-texto)';
         setTimeout(() => el.querySelector('.bubble').style.outline = '', 1500);
     }
 }
@@ -1773,7 +1785,7 @@ function openPeerProfile() {
     document.getElementById('pm-name').textContent = p.full_name || 'Utilizador';
     document.getElementById('pm-status').innerHTML =
         (bloqueei.has(id) ? 'Bloqueado' : (online.has(id) ? '🟢 ' + FC.t('está na conversa') : (p.type === 'empresa' ? '🏢 Empresa' : '👤 Pessoa'))) +
-        `<br><a href="perfil.html?id=${encodeURIComponent(id)}" style="color:var(--green);font-weight:600;">Ver perfil completo</a>`;
+        `<br><a href="perfil.html?id=${encodeURIComponent(id)}" style="color:var(--ouro-texto);font-weight:600;">Ver perfil completo</a>`;
     const btn = document.getElementById('pm-block-btn');
     const label = document.getElementById('pm-block-label');
     if (bloqueei.has(id)) { btn.classList.add('active'); label.textContent = 'Desbloquear'; }
@@ -2231,7 +2243,7 @@ function rrDesenhar() {
                 <button type="button" class="rr-acao" title="Guardar" aria-label="Guardar esta sugestão" onclick="rrAdicionar(this.previousElementSibling.textContent)"><i class="fas fa-plus"></i></button>
             </div>`).join('');
         }
-        html += `<div class="rr-item"><button type="button" class="rr-usar" style="color:var(--green);font-weight:700" onclick="rrAbrirForm(null)"><i class="fas fa-plus"></i> ${FC.t('Nova resposta rápida')}</button></div>`;
+        html += `<div class="rr-item"><button type="button" class="rr-usar" style="color:var(--ouro-texto);font-weight:700" onclick="rrAbrirForm(null)"><i class="fas fa-plus"></i> ${FC.t('Nova resposta rápida')}</button></div>`;
     }
     lista.innerHTML = html;
 }
