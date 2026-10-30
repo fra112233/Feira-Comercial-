@@ -37,10 +37,27 @@
     t: function (s) { return s; }
   };
 
+  // Bandeiras desenhadas (SVG): os emojis 🇲🇿 🇬🇧 não existem no Windows nem em alguns telemóveis,
+  // que mostravam só as letras "MZ" e "GB" no lugar da bandeira.
+  var BANDEIRA = {
+    pt: '<svg viewBox="0 0 30 20" width="21" height="14" aria-hidden="true" focusable="false" style="flex:none;display:block;border-radius:2px">' +
+        '<rect width="30" height="6.2" fill="#007168"/><rect width="30" height=".8" y="6.2" fill="#fff"/><rect width="30" height="6" y="7" fill="#000"/>' +
+        '<rect width="30" height=".8" y="13" fill="#fff"/><rect width="30" height="6.2" y="13.8" fill="#FCE100"/>' +
+        '<path d="M0 0L13 10L0 20Z" fill="#D21034"/>' +
+        '<path d="M5 6.6l.8 2.4h2.5l-2 1.5.8 2.4-2.1-1.5-2.1 1.5.8-2.4-2-1.5h2.5z" fill="#FCE100"/></svg>',
+    en: '<svg viewBox="0 0 60 40" width="21" height="14" aria-hidden="true" focusable="false" style="flex:none;display:block;border-radius:2px">' +
+        '<rect width="60" height="40" fill="#012169"/>' +
+        '<path d="M0 0L60 40M60 0L0 40" stroke="#fff" stroke-width="8"/>' +
+        '<path d="M0 0L60 40M60 0L0 40" stroke="#C8102E" stroke-width="3"/>' +
+        '<path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="12"/>' +
+        '<path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="7"/></svg>'
+  };
+
   // botão PT / EN nas páginas sem menu (entrar, criar conta, recuperar palavra-passe, vídeos)
   function pilula() {
-    if (window.FCMenu || document.getElementById('fc-lang')) return;
-    if (!/(Portal|Formulario|password|loja)\.html/i.test(location.pathname) && !/\/$/.test(location.pathname)) return;   // só nas páginas de entrada
+    if (window.FCMenu || document.getElementById('fc-lang') || !document.body) return;
+    // só nas páginas de entrada (aceita também "/portal" sem ".html" e letras minúsculas)
+    if (!/\/(Portal|Formulario|password|loja)(\.html)?$/i.test(location.pathname) && !/\/$/.test(location.pathname)) return;
     // seletor "PT | EN" no canto de cima (páginas de entrar, criar conta, recuperar palavra-passe…)
     var w = document.createElement('div');
     w.id = 'fc-lang';
@@ -51,9 +68,9 @@
     ['pt', 'en'].forEach(function (l) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.textContent = (l === 'pt' ? '🇲🇿 PT' : '🇬🇧 EN');
+      b.innerHTML = BANDEIRA[l] + '<span>' + (l === 'pt' ? 'PT' : 'EN') + '</span>';
       var on = l === lang;
-      b.style.cssText = 'border:none;cursor:pointer;padding:7px 12px;border-radius:999px;font:inherit;' + (on ? 'background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111' : 'background:transparent;color:#f3c64e');
+      b.style.cssText = 'border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font:inherit;line-height:1;' +(on ? 'background:linear-gradient(135deg,#f3c64e,#d9a52e);color:#111' : 'background:transparent;color:#f3c64e');
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
       b.onclick = function () { if (l !== lang) api.definir(l); };
       w.appendChild(b);
