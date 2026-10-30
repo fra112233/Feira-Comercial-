@@ -370,6 +370,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .falhou-acoes { white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 12px; color: var(--danger); margin: 2px 4px 0; flex-basis: 100%; }
 .falhou-acoes button { border: none; background: none; color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; padding: 8px 6px; text-decoration: underline; }
 
+/* 🛡️ Verificar número (por baixo de uma mensagem recebida com um número) */
+.verif-num { display: inline-flex; align-items: center; gap: 6px; margin: 4px 2px 0; padding: 6px 12px; min-height: 32px; border-radius: 999px; font-size: 12px; font-weight: 700; text-decoration: none;
+    background: rgba(243,198,78,.14); border: 1px solid rgba(243,198,78,.4); color: var(--ouro-texto); }
+.verif-num:hover { background: rgba(243,198,78,.24); }
+
 /* "a escrever…" */
 .peer-status.a-escrever { color: var(--ouro-texto); font-style: italic; }
 
@@ -1135,6 +1140,7 @@ function buildBubble(msg) {
     wrap.appendChild(bubble);
     const aviso = avisoBurla(msg);
     if (aviso) wrap.insertAdjacentHTML('beforeend', aviso);
+    else if (!minha && !msg.deleted) { const v = chipVerificar(msg.content); if (v) wrap.insertAdjacentHTML('beforeend', v); }
     if (msg._falhou) {
         // sem rede: fica guardada e sai sozinha quando a rede voltar; também se pode tentar já
         wrap.insertAdjacentHTML('beforeend', '<div class="falhou-acoes"><span>Não enviada</span>·<button type="button" data-a="tentar">Tentar de novo</button>·<button type="button" data-a="apagar">Apagar</button></div>');
@@ -1715,7 +1721,21 @@ document.addEventListener('fc:selos', mostrarAvisoOficial);
 
 // Aviso no topo da conversa: conta suspensa, conta nova ou loja verificada
 function seloDe(id) { return id && window.FC && FC._selos ? FC._selos.get(id) : null; }
+// contas com um número da lista de burlas no perfil (migração 064; sem ela, não avisa)
+const numeroBurla = new Map();   // id → true/false
+async function verNumeroBurla(id) {
+    if (!id || numeroBurla.has(id)) return;
+    numeroBurla.set(id, false);
+    try {
+        const { data, error } = await supabaseClient.rpc('contas_numero_burla', { p_ids: [id] });
+        if (!error && Array.isArray(data) && data.some(r => r.id === id)) {
+            numeroBurla.set(id, true);
+            if (activeContactId === id) mostrarAvisoSeguranca();
+        }
+    } catch (e) {}
+}
 function mostrarAvisoSeguranca() {
+    verNumeroBurla(activeContactId);
     const el = document.getElementById('avisoSeguranca'); if (!el) return;
     const id = activeContactId, p = id ? perfisCache[id] : null, s = seloDe(id);
     el.className = 'aviso-seg';
@@ -1724,6 +1744,10 @@ function mostrarAvisoSeguranca() {
     if (p.bloqueado) {
         el.classList.add('perigo');
         el.innerHTML = '<span class="ic">🚫</span><span><b>Esta conta está suspensa pela Feira Comercial.</b> Não faça pagamentos nem envie dados a esta conta.</span>';
+    } else if (numeroBurla.get(id)) {
+        // o telefone/WhatsApp do perfil desta conta está na lista de burlas (migração 064)
+        el.classList.add('perigo');
+        el.innerHTML = '<span class="ic">🚫</span><span><b>' + escHtml(FC.t('O número desta conta está na lista de burlas da Feira Comercial.')) + '</b> ' + escHtml(FC.t('Não envie dinheiro nem códigos.')) + denunciar + '</span>';
     } else if (s === 'verificada') {
         el.classList.add('verificada');
         el.innerHTML = '<span class="ic">👑</span><span><b>Loja verificada.</b> A Feira Comercial confirmou quem é esta loja.</span>';
@@ -1745,6 +1769,16 @@ function avisoBurla(msg) {
     const r = FCBurlas.analisar(msg.content, { nova: p.created_at ? FCBurlas.contaNova(p.created_at) : false, verificada: s === 'verificada' });
     if (!r) return '';
     return '<div class="aviso-burla" role="note">' + r.icone + ' <span>' + escHtml(r.texto) + '</span> ' + linkVerificar(msg.content) + '<a onclick="denunciarConversa()">Denunciar</a></div>';
+}
+
+// número de Moçambique numa mensagem recebida: botão 🛡️ para verificar antes de pagar
+function chipVerificar(texto) {
+    const m = String(texto || '').match(/(?:\+?258[\s.-]?)?(8[2-7](?:[\s.-]?\d){7})/);
+    if (!m) return '';
+    const n = m[1].replace(/\D/g, '');
+    const bonito = n.slice(0, 2) + ' ' + n.slice(2, 5) + ' ' + n.slice(5);
+    return '<a class="verif-num" href="verificar-numero.html?n=' + n + '" target="_blank" rel="noopener" title="' + escAttr(FC.t('Ver se este número está na lista de burlas')) + '">' +
+        '<i class="fas fa-shield-halved"></i> ' + escHtml(FC.t('Verificar')) + ' <span data-no-i18n>' + bonito + '</span></a>';
 }
 
 // se a mensagem tem um número de Moçambique: ligação para o verificar antes de pagar

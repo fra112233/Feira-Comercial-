@@ -83,6 +83,10 @@ const TEXTOS: Record<string, string> = {
   oferta_guardado: "pôs em oferta algo que guardou ⚡",
   oferta_loja: "fez uma oferta para si ⚡",
   resumo_semanal: "— o seu resumo da semana 📰",
+  travao: "🛑 Travão automático: conta posta em revisão",
+  numero_proibido: "🚫 enviou um número de uma conta suspensa",
+  numero_denunciado: "🚩 número denunciado pela comunidade:",
+  numero_no_perfil: "🚫 número da lista de burlas num perfil:",
 };
 const TEXTOS_EN: Record<string, string> = {
   gosto: "liked your post",
@@ -106,6 +110,10 @@ const TEXTOS_EN: Record<string, string> = {
   oferta_guardado: "put something you saved on sale ⚡",
   oferta_loja: "made an offer for you ⚡",
   resumo_semanal: "— your weekly summary 📰",
+  travao: "🛑 Automatic brake: account put under review",
+  numero_proibido: "🚫 sent a number from a suspended account",
+  numero_denunciado: "🚩 number reported by the community:",
+  numero_no_perfil: "🚫 scam-list number on a profile:",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -148,6 +156,8 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : n.tipo.startsWith("convite") ? "/mensalidade.html#convites"
     : n.tipo === "gratis_fim" || n.tipo === "mensalidade_fim" ? "/mensalidade.html"
     : n.tipo === "resumo_semanal" ? "/index.html"
+    : n.tipo === "travao" ? "/admin.html"
+    : n.tipo.startsWith("numero_") ? "/admin.html#suspeitos"
     : n.post_id ? "/index.html?post=" + n.post_id
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
