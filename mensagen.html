@@ -361,6 +361,21 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 /* "a escrever…" */
 .peer-status.a-escrever { color: var(--green); font-style: italic; }
 
+/* Anexar (📎): documento, fotos e vídeos, câmara */
+.anexar-btn { background: none; border: none; padding: 0; }
+.anexar-btn:hover { color: var(--text-primary); }
+.anexar-menu { position: fixed; left: 16px; bottom: 78px; width: 300px; max-width: calc(100vw - 32px); background: var(--bg-header); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,.4); z-index: 4000; padding: 6px; display: none; flex-direction: column; }
+.anexar-menu.show { display: flex; }
+.anexar-item { display: flex; align-items: center; gap: 12px; padding: 10px; min-height: 52px; border-radius: 8px; cursor: pointer; color: var(--text-primary); }
+.anexar-item:hover, .anexar-item:focus-visible { background: var(--hover); outline: none; }
+.anexar-item b { display: block; font-size: 14px; font-weight: 600; }
+.anexar-item small { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+.anexar-ico { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px; flex-shrink: 0; }
+.anexar-ico.doc { background: #7f66ff; }
+.anexar-ico.galeria { background: #c2185b; }
+.anexar-ico.camara { background: #e8590c; }
+.anexar-ico.video { background: #1971c2; }
+
 /* Respostas rápidas */
 .rr-painel { position: fixed; right: 16px; bottom: 78px; width: 380px; max-width: calc(100vw - 32px); max-height: min(70vh, 520px); background: var(--bg-header); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,.4); z-index: 4000; display: none; flex-direction: column; overflow: hidden; }
 .rr-painel.show { display: flex; }
@@ -389,6 +404,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 /* Mobile */
 @media (max-width: 768px) {
     .rr-painel { left: 8px; right: 8px; width: auto; max-width: none; bottom: 72px; }
+    .anexar-menu { left: 8px; right: 8px; width: auto; max-width: none; bottom: 72px; }
     .sidebar { width: 100%; max-width: 100%; position: relative; }
     .main-chat { display: none; width: 100%; }
     .back-btn { display: flex !important; }
@@ -450,6 +466,26 @@ try { if (localStorage.getItem('lightMode') === 'true') {
             <button class="profile-btn block" onclick="denunciarConversa()" style="margin-top:8px"><i class="fas fa-flag"></i> Denunciar</button>
         </div>
     </div>
+</div>
+
+<!-- ANEXAR (📎) -->
+<div class="anexar-menu" id="anexarMenu" role="menu" aria-label="Anexar">
+    <label class="anexar-item" role="menuitem" tabindex="0">
+        <span class="anexar-ico doc"><i class="fas fa-file-lines"></i></span><span><b>Documento</b><small>PDF, Word, Excel… até 50 MB</small></span>
+        <input type="file" id="file-input" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,application/*,text/*" onchange="fecharAnexar(); handleFile(event)">
+    </label>
+    <label class="anexar-item" role="menuitem" tabindex="0">
+        <span class="anexar-ico galeria"><i class="fas fa-images"></i></span><span><b>Fotos e vídeos</b><small>Da galeria do telemóvel</small></span>
+        <input type="file" id="galeria-input" hidden accept="image/*,video/*" onchange="fecharAnexar(); handleFile(event)">
+    </label>
+    <label class="anexar-item" role="menuitem" tabindex="0">
+        <span class="anexar-ico camara"><i class="fas fa-camera"></i></span><span><b>Câmara</b><small>Tirar uma foto agora</small></span>
+        <input type="file" id="camara-input" hidden accept="image/*" capture="environment" onchange="fecharAnexar(); handleFile(event)">
+    </label>
+    <label class="anexar-item" role="menuitem" tabindex="0">
+        <span class="anexar-ico video"><i class="fas fa-video"></i></span><span><b>Gravar vídeo</b><small>Até 3 minutos</small></span>
+        <input type="file" id="video-input" hidden accept="video/*" capture="environment" onchange="fecharAnexar(); handleFile(event)">
+    </label>
 </div>
 
 <!-- RESPOSTAS RÁPIDAS -->
@@ -564,10 +600,9 @@ try { if (localStorage.getItem('lightMode') === 'true') {
 
             <div class="chat-footer" id="chatFooter">
                 <div class="msg-input-wrap">
-                    <label class="attach-btn" title="Anexar">
+                    <button type="button" class="attach-btn anexar-btn" id="anexarBtn" title="Anexar" aria-label="Anexar" aria-haspopup="menu" aria-expanded="false" onclick="abrirAnexar(event)">
                         <i class="fas fa-paperclip"></i>
-                        <input type="file" id="file-input" hidden accept="image/*,video/*,application/*,text/*" onchange="handleFile(event)">
-                    </label>
+                    </button>
                     <button class="emoji-toggle-btn" title="Emoji" onclick="toggleEmojiPicker(event)">
                         <i class="fas fa-face-smile"></i>
                     </button>
@@ -575,9 +610,9 @@ try { if (localStorage.getItem('lightMode') === 'true') {
                         <i class="fas fa-bolt"></i>
                     </button>
                     <textarea class="msg-input" id="msgInput" maxlength="5000" placeholder="Mensagem" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-                    <label class="attach-btn" title="Foto">
+                    <label class="attach-btn" title="Tirar foto" aria-label="Tirar foto com a câmara">
                         <i class="fas fa-camera"></i>
-                        <input type="file" id="img-input" hidden accept="image/*" onchange="handleFile(event)">
+                        <input type="file" id="img-input" hidden accept="image/*" capture="environment" onchange="handleFile(event)">
                     </label>
                 </div>
                 <!-- a gravar uma mensagem de voz (aparece no lugar da caixa de texto) -->
@@ -2301,6 +2336,36 @@ async function rrApagar(id) {
     if (!rrNaConta) rrGuardarLocal();
     rrDesenhar();
 }
+
+// ─── ANEXAR (📎) ─────────────────────────────────────────
+// 📎 abre um menu: Documento, Fotos e vídeos (galeria), Câmara, Gravar vídeo.
+// O botão 📷 da caixa abre logo a câmara (no computador abre a escolha de ficheiro).
+function abrirAnexar(ev) {
+    if (ev) ev.stopPropagation();
+    const m = document.getElementById('anexarMenu');
+    if (m.classList.contains('show')) { fecharAnexar(); return; }
+    fecharRespostas();
+    const ep = document.getElementById('emojiPicker'); if (ep) ep.classList.remove('show');
+    m.classList.add('show');
+    document.getElementById('anexarBtn').setAttribute('aria-expanded', 'true');
+    const primeiro = m.querySelector('.anexar-item'); if (primeiro) primeiro.focus();
+}
+function fecharAnexar() {
+    const m = document.getElementById('anexarMenu');
+    if (!m || !m.classList.contains('show')) return;
+    m.classList.remove('show');
+    document.getElementById('anexarBtn').setAttribute('aria-expanded', 'false');
+}
+// teclado: Enter/Espaço numa opção abre a escolha de ficheiro
+document.getElementById('anexarMenu').addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('anexar-item')) {
+        e.preventDefault(); e.target.querySelector('input').click();
+    }
+});
+document.addEventListener('click', e => {
+    if (e.target.isConnected && !e.target.closest('#anexarMenu, #anexarBtn')) fecharAnexar();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharAnexar(); });
 
 // tocar fora do painel fecha-o
 document.addEventListener('click', e => {
