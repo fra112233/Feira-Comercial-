@@ -87,6 +87,7 @@ const TEXTOS: Record<string, string> = {
   numero_proibido: "🚫 enviou um número de uma conta suspensa",
   numero_denunciado: "🚩 número denunciado pela comunidade:",
   numero_no_perfil: "🚫 número da lista de burlas num perfil:",
+  mesmo_aparelho: "📱 usa o mesmo aparelho de uma conta suspensa:",
 };
 const TEXTOS_EN: Record<string, string> = {
   gosto: "liked your post",
@@ -114,6 +115,7 @@ const TEXTOS_EN: Record<string, string> = {
   numero_proibido: "🚫 sent a number from a suspended account",
   numero_denunciado: "🚩 number reported by the community:",
   numero_no_perfil: "🚫 scam-list number on a profile:",
+  mesmo_aparelho: "📱 uses the same device as a suspended account:",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -157,7 +159,7 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : n.tipo === "gratis_fim" || n.tipo === "mensalidade_fim" ? "/mensalidade.html"
     : n.tipo === "resumo_semanal" ? "/index.html"
     : n.tipo === "travao" ? "/admin.html"
-    : n.tipo.startsWith("numero_") ? "/admin.html#suspeitos"
+    : n.tipo.startsWith("numero_") || n.tipo === "mesmo_aparelho" ? "/admin.html#suspeitos"
     : n.post_id ? "/index.html?post=" + n.post_id
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
