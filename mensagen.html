@@ -268,8 +268,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .reply-bar-close { cursor: pointer; color: var(--text-secondary); font-size: 18px; }
 
 /* Typing area */
-.msg-input-wrap { flex: 1; background: var(--bg-search); border-radius: 24px; padding: 10px 16px; display: flex; align-items: flex-end; gap: 8px; }
-.msg-input { flex: 1; border: none; background: none; outline: none; color: var(--text-primary); font-size: 15px; resize: none; max-height: 140px; overflow-y: auto; line-height: 1.4; scrollbar-width: none; }
+.msg-input-wrap { flex: 1; min-width: 0; background: var(--bg-search); border-radius: 24px; padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px; }
+.msg-input { flex: 1; min-width: 0; width: 100%; border: none; background: none; outline: none; color: var(--text-primary); font-size: 15px; resize: none; max-height: 140px; overflow-y: auto; line-height: 1.4; scrollbar-width: none; }
 .msg-input::-webkit-scrollbar { display: none; }
 .msg-input::placeholder { color: var(--text-secondary); }
 .attach-btn { color: var(--icon); cursor: pointer; font-size: 20px; flex-shrink: 0; }
@@ -312,7 +312,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
     background: var(--bg-header); color: var(--text-primary); padding: 10px 20px;
     border-radius: 8px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.3s, transform 0.3s;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3); pointer-events: none; white-space: nowrap;
+    max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
 }
+@media (max-width: 768px) { .toast { white-space: normal; text-align: center; width: max-content; } }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Profile modal */
@@ -331,8 +333,62 @@ html, body { height: 100%; overflow: hidden; background: var(--bg-app); }
 .profile-btn.block.active { background: var(--danger); color: white; }
 .profile-btn:hover { opacity: 0.88; }
 
+/* Mensagens de voz */
+.voz { display: flex; align-items: center; gap: 10px; width: 250px; max-width: 100%; padding: 2px 0; }
+.voz-play { width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--green); color: #fff; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bubble.sent .voz-play { background: #fff; color: var(--green-dark); }
+.voz-play .fa-play { margin-left: 3px; }
+.voz-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.voz-barra { width: 100%; height: 4px; margin: 6px 0 0; accent-color: var(--green); cursor: pointer; }
+.voz-info { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.voz-vel { border: none; background: rgba(0,0,0,.2); color: var(--text-bubble); font-size: 11px; font-weight: 700; border-radius: 10px; padding: 3px 8px; cursor: pointer; min-width: 36px; }
+
+/* A gravar (no lugar da caixa de texto) */
+.gravar-bar { display: none; flex: 1; min-width: 0; align-items: center; gap: 10px; background: var(--bg-search); border-radius: 24px; padding: 2px 8px 2px 4px; min-height: 48px; }
+.chat-footer.a-gravar .msg-input-wrap { display: none; }
+.chat-footer.a-gravar .gravar-bar { display: flex; }
+.gravar-cancelar { border: none; background: none; color: var(--danger); font-size: 18px; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
+.gravar-ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); flex-shrink: 0; animation: gravar-piscar 1s infinite; }
+@keyframes gravar-piscar { 50% { opacity: .2; } }
+.gravar-tempo { color: var(--text-primary); font-size: 16px; font-variant-numeric: tabular-nums; }
+.gravar-dica { flex: 1; min-width: 0; color: var(--text-secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mensagem que não saiu (sem rede) */
+.bubble-ticks.falhou { color: var(--danger); }
+.falhou-acoes { white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 12px; color: var(--danger); margin: 2px 4px 0; flex-basis: 100%; }
+.falhou-acoes button { border: none; background: none; color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; padding: 8px 6px; text-decoration: underline; }
+
+/* "a escrever…" */
+.peer-status.a-escrever { color: var(--green); font-style: italic; }
+
+/* Respostas rápidas */
+.rr-painel { position: fixed; right: 16px; bottom: 78px; width: 380px; max-width: calc(100vw - 32px); max-height: min(70vh, 520px); background: var(--bg-header); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,.4); z-index: 4000; display: none; flex-direction: column; overflow: hidden; }
+.rr-painel.show { display: flex; }
+.rr-cab { display: flex; align-items: center; gap: 8px; padding: 10px 8px 10px 16px; border-bottom: 1px solid var(--border); }
+.rr-cab b { flex: 1; color: var(--text-primary); font-size: 15px; }
+.rr-cab button { border: none; background: none; color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 10px; border-radius: 8px; }
+.rr-cab button.rr-fechar { color: var(--text-secondary); font-size: 18px; }
+.rr-lista { overflow-y: auto; flex: 1; padding: 4px 0; }
+.rr-sub { padding: 10px 16px 4px; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .03em; }
+.rr-item { display: flex; align-items: flex-start; gap: 6px; padding: 2px 8px 2px 4px; }
+.rr-usar { flex: 1; min-width: 0; text-align: left; border: none; background: none; color: var(--text-primary); font-size: 14px; line-height: 1.4; padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: pre-wrap; word-break: break-word; }
+.rr-usar:hover, .rr-usar:focus-visible { background: var(--hover); }
+.rr-acao { border: none; background: none; color: var(--icon); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; flex-shrink: 0; font-size: 14px; }
+.rr-acao:hover { background: var(--hover); color: var(--text-primary); }
+.rr-acao.apagar:hover { color: var(--danger); }
+.rr-vazio { padding: 18px 16px; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.rr-form { border-top: 1px solid var(--border); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.rr-form label { font-size: 12px; color: var(--text-secondary); }
+.rr-form textarea { width: 100%; min-height: 64px; resize: vertical; background: var(--bg-search); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 14px; outline: none; }
+.rr-form textarea:focus { border-color: var(--green); }
+.rr-form-botoes { display: flex; gap: 8px; justify-content: flex-end; }
+.rr-form-botoes button { border: none; border-radius: 18px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.rr-guardar { background: var(--green); color: #fff; }
+.rr-cancelar { background: transparent; color: var(--text-secondary); }
+
 /* Mobile */
 @media (max-width: 768px) {
+    .rr-painel { left: 8px; right: 8px; width: auto; max-width: none; bottom: 72px; }
     .sidebar { width: 100%; max-width: 100%; position: relative; }
     .main-chat { display: none; width: 100%; }
     .back-btn { display: flex !important; }
@@ -394,6 +450,24 @@ try { if (localStorage.getItem('lightMode') === 'true') {
             <button class="profile-btn block" onclick="denunciarConversa()" style="margin-top:8px"><i class="fas fa-flag"></i> Denunciar</button>
         </div>
     </div>
+</div>
+
+<!-- RESPOSTAS RÁPIDAS -->
+<div class="rr-painel" id="rrPainel" role="dialog" aria-label="Respostas rápidas">
+    <div class="rr-cab">
+        <b>Respostas rápidas</b>
+        <button type="button" id="rrGerir" onclick="rrModoGerir()">Gerir</button>
+        <button type="button" class="rr-fechar" onclick="fecharRespostas()" title="Fechar" aria-label="Fechar"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="rr-lista" id="rrLista"></div>
+    <form class="rr-form" id="rrForm" style="display:none" onsubmit="rrGuardar(event)">
+        <label for="rrTexto" id="rrFormTitulo">Nova resposta rápida</label>
+        <textarea id="rrTexto" maxlength="1000" placeholder="Ex.: Fazemos entrega em Maputo e Matola. Diga-nos o bairro, por favor."></textarea>
+        <div class="rr-form-botoes">
+            <button type="button" class="rr-cancelar" onclick="rrFecharForm()">Cancelar</button>
+            <button type="submit" class="rr-guardar">Guardar</button>
+        </div>
+    </form>
 </div>
 
 <!-- TOAST -->
@@ -497,13 +571,23 @@ try { if (localStorage.getItem('lightMode') === 'true') {
                     <button class="emoji-toggle-btn" title="Emoji" onclick="toggleEmojiPicker(event)">
                         <i class="fas fa-face-smile"></i>
                     </button>
+                    <button type="button" class="emoji-toggle-btn" id="rrBtn" title="Respostas rápidas" aria-label="Respostas rápidas" aria-expanded="false" onclick="abrirRespostas(event)">
+                        <i class="fas fa-bolt"></i>
+                    </button>
                     <textarea class="msg-input" id="msgInput" maxlength="5000" placeholder="Mensagem" rows="1" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
                     <label class="attach-btn" title="Foto">
                         <i class="fas fa-camera"></i>
                         <input type="file" id="img-input" hidden accept="image/*" onchange="handleFile(event)">
                     </label>
                 </div>
-                <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                <!-- a gravar uma mensagem de voz (aparece no lugar da caixa de texto) -->
+                <div class="gravar-bar" id="gravarBar" role="status">
+                    <button type="button" class="gravar-cancelar" onclick="pararGravacao(false)" title="Cancelar" aria-label="Cancelar a gravação"><i class="fas fa-trash"></i></button>
+                    <span class="gravar-ponto" aria-hidden="true"></span>
+                    <span class="gravar-tempo" id="gravarTempo">0:00</span>
+                    <span class="gravar-dica">A gravar…</span>
+                </div>
+                <button type="button" class="send-btn" id="sendBtn" data-modo="gravar" onclick="botaoEnviar()" title="Gravar mensagem de voz" aria-label="Gravar mensagem de voz"><i class="fas fa-microphone"></i></button>
             </div>
         </div>
     </main>
@@ -554,7 +638,7 @@ function oculta(m) {
 function previewDe(m) {
     // o texto da mensagem não é traduzido (a pré-visualização tem data-no-i18n): as partes da Feira traduzem-se aqui
     if (m.deleted) return '🚫 ' + FC.t('Mensagem apagada');
-    const p = m.media_type === 'image' ? '📷 ' + FC.t('Foto') : m.media_type === 'video' ? '🎥 ' + FC.t('Vídeo') : m.media_type === 'doc' ? '📎 ' + (m.file_name || FC.t('Ficheiro')) : (m.content || '');
+    const p = m.media_type === 'image' ? '📷 ' + FC.t('Foto') : m.media_type === 'video' ? '🎥 ' + FC.t('Vídeo') : m.media_type === 'audio' ? '🎤 ' + FC.t('Mensagem de voz') + (m.file_size ? ' (' + m.file_size + ')' : '') : m.media_type === 'doc' ? '📎 ' + (m.file_name || FC.t('Ficheiro')) : (m.content || '');
     return (m.sender_id === ME.id ? FC.t('Tu:') + ' ' : '') + p;
 }
 
@@ -661,11 +745,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     ME.id = perfil.id;
     ME.name = perfil.full_name || 'Eu';
     ME.avatar = avatarDe(perfil);
+    ME.type = perfil.type;
     applyMyIdentity();
+    lerFila();                                // mensagens que ficaram por enviar (sem rede)
 
     await Promise.all([carregarConversas(), carregarBloqueios()]);
     ligarTempoReal();
     ligarPresenca();
+    reenviarPendentes();
 
     // vindo de "Mensagem" (amigos/perfil) ou de "Responder" (feed/perfil)
     const para = new URLSearchParams(location.search).get('para');
@@ -833,6 +920,9 @@ function renderContacts() {
 
 async function openContact(id) {
     if (!id || id === ME.id) return;
+    if (grav) pararGravacao(false);          // mudar de conversa cancela a gravação
+    if (activeContactId && activeContactId !== id) avisarEscrever('parou');
+    peerEscreve = null;
     activeContactId = id;
     presencaConversa(id);
     await carregarPerfis([id]);
@@ -869,8 +959,16 @@ async function openContact(id) {
         .order('created_at', { ascending: false })     // as 300 MAIS RECENTES (antes vinham as 300 mais antigas)
         .limit(300);
     if (activeContactId !== id) return;      // mudou de conversa entretanto
-    if (error) { win.innerHTML = ''; showToast('Erro ao carregar mensagens'); return; }
+    if (error) {
+        // sem rede: mostra pelo menos as que ficaram por enviar
+        mensagens = [];
+        juntarPendentes(id);
+        if (mensagens.length) renderMessages(); else win.innerHTML = '';
+        showToast(erroDeRede(error) ? 'Sem rede. As mensagens aparecem quando a rede voltar.' : 'Erro ao carregar mensagens');
+        return;
+    }
     mensagens = (data || []).reverse().filter(m => !oculta(m));
+    juntarPendentes(id);
     renderMessages();
     marcarLidas(id);
 }
@@ -889,16 +987,22 @@ function atualizarEstadoPeer() {
         footer.style.display = 'none';
         document.getElementById('replyBar').classList.remove('show');
     } else {
+        const escreve = peerEscreve && !bloquearamMe.has(id);
         statusEl.textContent = bloquearamMe.has(id) ? 'Não é possível enviar mensagens'
+            : escreve ? (peerEscreve === 'gravar' ? FC.t('a gravar áudio…') : FC.t('a escrever…'))
             : online.has(id) ? '🟢 ' + FC.t('está na conversa')
             : (p.type === 'empresa' ? 'Empresa' + (p.sector ? ' · ' + p.sector : '') : 'toca para ver o perfil');
-        statusEl.className = 'peer-status';
+        statusEl.className = 'peer-status' + (escreve ? ' a-escrever' : '');
         banner.classList.remove('show');
         footer.style.display = bloquearamMe.has(id) ? 'none' : 'flex';
     }
 }
 
 function goBackToList() {
+    if (grav) pararGravacao(false);
+    avisarEscrever('parou');
+    peerEscreve = null;
+    fecharRespostas();
     document.getElementById('sidebar').style.display = 'flex';
     document.querySelector('.main-chat').style.display = 'none';
     activeContactId = null;
@@ -959,10 +1063,12 @@ function buildBubble(msg) {
     if (msg.deleted) {
         inner += `<em style="color:var(--text-secondary);font-size:13px;"><i class="fas fa-ban" style="font-size:11px;"></i> Mensagem apagada</em>`;
     } else if (msg.media_type === 'image') {
-        inner += `<img src="${escAttr(cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url)}" class="bubble-img" loading="lazy" onclick="if (this.src) openLightbox(this.src)">`;
+        inner += `<img src="${escAttr(msg._local || cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url || '')}" class="bubble-img" loading="lazy" onclick="if (this.src) openLightbox(this.src)">`;
         if (msg.content) inner += `<br><span style="font-size:14px;" data-no-i18n>${ligarLinks(escHtml(msg.content))}</span>`;
     } else if (msg.media_type === 'video') {
-        inner += `<video controls preload="metadata" class="bubble-video" src="${escAttr(cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url)}"></video>`;
+        inner += `<video controls preload="metadata" class="bubble-video" src="${escAttr(msg._local || cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url || '')}"></video>`;
+    } else if (msg.media_type === 'audio') {
+        inner += htmlVoz(msg);
     } else if (msg.media_type === 'doc') {
         inner += `<a href="${escAttr(cmUrl(msg.file_url))}" data-cm="${escAttr(msg.file_url)}" data-cm-attr="href" target="_blank" rel="noopener" class="bubble-doc" style="color:inherit;text-decoration:none;">
                     <i class="fas fa-file-lines"></i><div class="bubble-doc-info"><div class="bubble-doc-name" data-no-i18n>${escHtml(msg.file_name || FC.t('Ficheiro'))}</div><div class="bubble-doc-size">${escHtml(msg.file_size || '')}</div></div></a>`;
@@ -971,7 +1077,8 @@ function buildBubble(msg) {
     }
 
     const ticks = minha
-        ? (msg._aEnviar ? `<span class="bubble-ticks"><i class="far fa-clock"></i></span>`
+        ? (msg._falhou ? `<span class="bubble-ticks falhou" title="Não enviada"><i class="fas fa-circle-exclamation"></i></span>`
+           : msg._aEnviar ? `<span class="bubble-ticks" title="A enviar"><i class="far fa-clock"></i></span>`
            : msg.read_at ? `<span class="bubble-ticks read" title="Lida"><i class="fas fa-check-double"></i></span>`
            : `<span class="bubble-ticks" title="Enviada"><i class="fas fa-check"></i></span>`)
         : '';
@@ -986,7 +1093,13 @@ function buildBubble(msg) {
     wrap.appendChild(bubble);
     const aviso = avisoBurla(msg);
     if (aviso) wrap.insertAdjacentHTML('beforeend', aviso);
-    if (!msg.deleted && !msg._aEnviar) {
+    if (msg._falhou) {
+        // sem rede: fica guardada e sai sozinha quando a rede voltar; também se pode tentar já
+        wrap.insertAdjacentHTML('beforeend', '<div class="falhou-acoes"><span>Não enviada</span>·<button type="button" data-a="tentar">Tentar de novo</button>·<button type="button" data-a="apagar">Apagar</button></div>');
+        wrap.querySelector('[data-a="tentar"]').onclick = () => tentarEnviar(msg, 'manual');
+        wrap.querySelector('[data-a="apagar"]').onclick = () => esquecerPendente(msg);
+    }
+    if (!msg.deleted && !msg._aEnviar && !msg._falhou) {
         wrap.insertAdjacentHTML('beforeend', '<span class="swipe-resp"><i class="fas fa-reply"></i></span><button type="button" class="btn-resp" title="Responder" aria-label="Responder"><i class="fas fa-reply"></i></button>');
         wrap.querySelector('.btn-resp').onclick = ev => { ev.stopPropagation(); iniciarResposta(msg); };
         deslizarParaResponder(wrap, bubble, msg);
@@ -1047,7 +1160,8 @@ function aplicarMensagem(m) {
         else {
             // substituir a versão provisória (a enviar) se existir
             const j = mensagens.findIndex(x => x._aEnviar && x.sender_id === m.sender_id && x.content === m.content && x.file_url === m.file_url);
-            if (j >= 0) mensagens[j] = m; else mensagens.push(m);
+            if (j >= 0) { esquecerPendente(mensagens[j], true); mensagens[j] = m; } else mensagens.push(m);
+            if (m.sender_id === activeContactId) mostrarEscrever('parou');   // respondeu: já não está a escrever
         }
         const cw = document.getElementById('chatWindow');
         const noFundo = cw.scrollHeight - cw.scrollTop - cw.clientHeight < 120;
@@ -1075,39 +1189,190 @@ async function sendMessage(text = null, mediaType = null, fileUrl = null, fileNa
     };
 
     // mostra logo (com relógio) enquanto envia
-    const provisoria = Object.assign({ id: 'tmp-' + Date.now(), created_at: new Date().toISOString(), _aEnviar: true }, nova);
+    const provisoria = Object.assign({ id: novoIdProvisorio(), created_at: new Date().toISOString(), _aEnviar: true }, nova);
+    if (text === null) provisoria._doTeclado = msgText;     // se for recusada, o texto volta para a caixa
     mensagens.push(provisoria);
     renderMessages();
     if (text === null) inputEl.value = '';
     inputEl.style.height = 'auto';
+    atualizarBotaoEnviar();
+    avisarEscrever('parou');
     cancelReply();
     refPendente = null;
+    await tentarEnviar(provisoria);
+}
 
-    const { data, error } = await supabaseClient.from('messages').insert(nova).select(CAMPOS_MSG).single();
-    const i = mensagens.indexOf(provisoria);
-    if (error) {
-        if (i >= 0) mensagens.splice(i, 1);
-        renderMessages();
-        showToast(bloquearamMe.has(activeContactId) ? 'Não é possível enviar mensagens a esta conta.'
+// ─── ENVIO COM REDE FRACA ────────────────────────────────
+// Uma mensagem que não sai por falta de rede não se perde: fica na conversa com "Não enviada",
+// guardada no telemóvel (as de texto, mesmo fechando a página), e sai sozinha quando a rede volta.
+const pendentes = new Map();            // id provisório → mensagem por enviar (inclui as de voz, em memória)
+let _seqProv = 0;
+function novoIdProvisorio() { return 'tmp-' + Date.now() + '-' + (++_seqProv); }
+function chaveFila() { return 'fc_fila_' + ME.id; }
+const CAMPOS_FILA = ['id', 'created_at', 'sender_id', 'receiver_id', 'content', 'file_url', 'media_type', 'file_name', 'file_size', 'reply_to', 'ref'];
+function guardarFila() {
+    if (!ME.id) return;
+    // só as que já não precisam do ficheiro local (texto, ou ficheiro já carregado)
+    const lista = [...pendentes.values()].filter(p => !p._blob || p._carregado).map(p => {
+        const o = {}; CAMPOS_FILA.forEach(k => { o[k] = p[k] === undefined ? null : p[k]; }); return o;
+    });
+    try { lista.length ? localStorage.setItem(chaveFila(), JSON.stringify(lista)) : localStorage.removeItem(chaveFila()); } catch (e) {}
+}
+function lerFila() {
+    try {
+        const lista = JSON.parse(localStorage.getItem(chaveFila()) || '[]');
+        (Array.isArray(lista) ? lista : []).forEach(p => {
+            if (p && p.id && p.receiver_id && !pendentes.has(p.id)) pendentes.set(p.id, Object.assign(p, { _falhou: true, _aEnviar: false }));
+        });
+    } catch (e) {}
+}
+function erroDeRede(err) {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+    const t = String((err && (err.message || err.error_description || err.name)) || err || '');
+    return /Failed to fetch|NetworkError|Network request failed|Load failed|fetch failed|ERR_(INTERNET|NETWORK|CONNECTION)|timed? ?out|TypeError: (Failed|Load|Network)/i.test(t);
+}
+// já chegou à base de dados? (a rede pode cair depois de a mensagem sair, antes da resposta)
+async function jaFoiEnviada(p) {
+    try {
+        let q = supabaseClient.from('messages').select(CAMPOS_MSG)
+            .eq('sender_id', ME.id).eq('receiver_id', p.receiver_id)
+            .gte('created_at', new Date(new Date(p.created_at).getTime() - 2 * 60 * 1000).toISOString());
+        q = p.file_url ? q.eq('file_url', p.file_url) : q.eq('content', p.content || '');
+        const { data } = await q.order('created_at', { ascending: false }).limit(1);
+        return data && data[0] ? data[0] : null;
+    } catch (e) { return null; }
+}
+function voltarAoTeclado(p) {
+    if (!p._doTeclado || p.receiver_id !== activeContactId) return;
+    const el = document.getElementById('msgInput');
+    if (el && !el.value) { el.value = p._doTeclado; autoResize(el); }
+}
+
+// modo: 'manual' (tocou em Tentar de novo), 'auto' (reenvio sozinho, sem avisos de rede) ou nada
+async function tentarEnviar(p, modo = '') {
+    if (!p || p._emCurso) return;
+    p._emCurso = true;
+    p._aEnviar = true; p._falhou = false;
+    if (p.receiver_id === activeContactId) renderMessages();
+    try {
+        let data = null;
+        if (p._jaFalhou) data = await jaFoiEnviada(p);
+        if (!data) {
+            // mensagem de voz/ficheiro: primeiro carregar o ficheiro (só uma vez)
+            if (p._blob && !p._carregado) {
+                const caminho = `${ME.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${p._ext || 'bin'}`;
+                const up = await supabaseClient.storage.from('chat-media').upload(caminho, p._blob, { contentType: p._blob.type || 'application/octet-stream' });
+                if (up.error) throw up.error;
+                p.file_url = supabaseClient.storage.from('chat-media').getPublicUrl(caminho).data.publicUrl;
+                p._carregado = true;
+            }
+            const nova = {
+                sender_id: ME.id, receiver_id: p.receiver_id, content: p.content || '',
+                file_url: p.file_url || null, media_type: p.media_type || null, file_name: p.file_name || null, file_size: p.file_size || null,
+                reply_to: typeof p.reply_to === 'number' ? p.reply_to : null, ref: p.ref || null
+            };
+            const r = await supabaseClient.from('messages').insert(nova).select(CAMPOS_MSG).single();
+            if (r.error) throw r.error;
+            data = r.data;
+        }
+        p._emCurso = false;
+        esquecerPendente(p, true);
+        if (p._local) data._local = p._local;         // a voz continua a tocar do telemóvel, sem descarregar
+        if (data.receiver_id === activeContactId) {
+            const i = mensagens.indexOf(p);
+            if (i >= 0) mensagens[i] = data;
+            else {
+                const k = mensagens.findIndex(m => m.id === data.id);
+                if (k >= 0) { if (p._local) mensagens[k]._local = p._local; } else mensagens.push(data);
+            }
+            renderMessages();
+        }
+        const c = conversas.get(data.receiver_id);
+        if (c) { c.last = data; renderContacts(); }
+        return true;
+    } catch (error) {
+        p._emCurso = false;
+        p._aEnviar = false;
+        if (erroDeRede(error)) {
+            // sem rede: fica guardada, com "Não enviada", e sai quando a rede voltar
+            p._falhou = true; p._jaFalhou = true;
+            pendentes.set(p.id, p);
+            guardarFila();
+            if (p.receiver_id === activeContactId) {
+                if (!mensagens.includes(p)) mensagens.push(p);
+                renderMessages();
+            }
+            if (modo !== 'auto') showToast(modo === 'manual' ? 'Ainda sem rede. Vamos tentar de novo quando a rede voltar.' : 'Sem rede. A mensagem sai sozinha quando a rede voltar.');
+            return false;
+        }
+        // recusada pela Feira (bloqueio, limite de conta nova, conta suspensa…): não adianta tentar de novo
+        esquecerPendente(p);
+        showToast(bloquearamMe.has(p.receiver_id) ? 'Não é possível enviar mensagens a esta conta.'
             : /row-level security/i.test(error.message || '') ? 'Esta pessoa só recebe mensagens de quem ela segue.'
             : /^Conta (nova|suspensa)/.test(error.message || '') ? FC.t(error.message)      // limite de contas novas / suspensa
             : 'Erro ao enviar: ' + FC.traduzirErro(error));
-        if (text === null && msgText) inputEl.value = msgText;
-        return;
+        voltarAoTeclado(p);
+        return false;
     }
-    if (i >= 0) mensagens[i] = data; else if (!mensagens.some(m => m.id === data.id)) mensagens.push(data);
-    renderMessages();
-    const c = conversas.get(activeContactId);
-    if (c) { c.last = data; renderContacts(); }
+}
+
+// tira a mensagem da lista das por enviar (e, se não foi enviada, também da conversa)
+function esquecerPendente(p, enviada = false) {
+    if (!p) return;
+    pendentes.delete(p.id);
+    guardarFila();
+    if (!enviada) {
+        if (p._local && !p._carregado) { try { URL.revokeObjectURL(p._local); } catch (e) {} }
+        const i = mensagens.indexOf(p);
+        if (i >= 0) { mensagens.splice(i, 1); renderMessages(); }
+    }
+}
+
+// rede de volta (ou página aberta de novo): envia as que ficaram, pela ordem em que foram escritas
+let _aReenviar = false;
+async function reenviarPendentes() {
+    if (_aReenviar || !ME.id || !pendentes.size || navigator.onLine === false) return;
+    _aReenviar = true;
+    try {
+        const lista = [...pendentes.values()].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        for (const p of lista) {
+            if (!pendentes.has(p.id)) continue;
+            const ok = await tentarEnviar(p, 'auto');
+            if (!ok && pendentes.has(p.id)) break;      // a rede caiu outra vez: espera pela próxima
+        }
+    } finally { _aReenviar = false; }
+}
+window.addEventListener('online', () => { if (pendentes.size) { showToast('Rede de volta. A enviar as mensagens que ficaram…'); reenviarPendentes(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) reenviarPendentes(); });
+setInterval(() => { if (pendentes.size && !document.hidden) reenviarPendentes(); }, 30000);
+
+// as por enviar desta conversa aparecem no fim, com "Não enviada"
+function juntarPendentes(outroId) {
+    [...pendentes.values()]
+        .filter(p => p.receiver_id === outroId && !mensagens.includes(p))
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+        .forEach(p => mensagens.push(p));
 }
 
 function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        // a procurar uma resposta rápida com "/": Enter escolhe a primeira
+        const p = document.getElementById('rrPainel');
+        const primeira = p && p.classList.contains('show') && p.dataset.atalho === '1' && p.querySelector('.rr-usar');
+        if (primeira) { primeira.click(); return; }
+        sendMessage();
+    }
 }
 
 function autoResize(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+    if (el.id === 'msgInput') {
+        atualizarBotaoEnviar();
+        avisarEscrever(el.value.trim() ? 'escrever' : 'parou');
+        rrAtalho(el.value);
+    }
 }
 
 // ─── FICHEIROS PRIVADOS DO CHAT ──────────────────────────
@@ -1174,22 +1439,35 @@ async function handleFile(e) {
         }
     } catch (err) { FCMedia.mostrarErro(err); return; }
     const size = file.size < 1024 * 1024 ? (file.size / 1024).toFixed(1) + ' KB' : (file.size / 1024 / 1024).toFixed(1) + ' MB';
-    showToast('A enviar ficheiro...');
-    try {
-        const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const caminho = `${ME.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error } = await supabaseClient.storage.from('chat-media').upload(caminho, file, { contentType: file.type || 'application/octet-stream' });
-        if (error) throw error;
-        const url = supabaseClient.storage.from('chat-media').getPublicUrl(caminho).data.publicUrl;
-        await sendMessage('', tipo, url, tipo === 'doc' ? file.name : null, tipo === 'doc' ? size : null);
-    } catch (err) {
-        FCMedia.mostrarErro(err);
+    const ext = ((file.name || '').split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+    // aparece logo na conversa (com relógio) enquanto carrega; sem rede, fica para enviar depois
+    enviarFicheiroChat(file, tipo, ext, { file_name: tipo === 'doc' ? file.name : null, file_size: tipo === 'doc' ? size : null });
+}
+
+// foto, vídeo, documento ou voz: mostra já, carrega o ficheiro e envia
+function enviarFicheiroChat(blob, tipo, ext, extra = {}, para = activeContactId) {
+    if (!para || !ME.id || bloqueei.has(para)) return;
+    const prov = Object.assign({
+        id: novoIdProvisorio(), created_at: new Date().toISOString(), _aEnviar: true,
+        sender_id: ME.id, receiver_id: para, content: '',
+        file_url: null, media_type: tipo, file_name: null, file_size: null,
+        reply_to: para === activeContactId && replyTarget && typeof replyTarget.msgId === 'number' ? replyTarget.msgId : null,
+        ref: para === activeContactId ? refPendente : null,
+        _blob: blob, _ext: ext,
+        _local: tipo === 'doc' ? null : URL.createObjectURL(blob)
+    }, extra);
+    if (para === activeContactId) {
+        mensagens.push(prov);
+        renderMessages();
+        cancelReply();
+        refPendente = null;
     }
+    return tentarEnviar(prov);
 }
 
 // ─── MENU (manter premido / botão direito) ───────────────
 function showCtxMenu(e, msg, bubble) {
-    if (msg._aEnviar) return;
+    if (msg._aEnviar || msg._falhou) return;
     ctxTarget = { msg, bubble };
     const menu = document.getElementById('ctxMenu');
     menu.classList.add('show');
@@ -1215,6 +1493,7 @@ function resumoMsg(m) {
     if (m.deleted) return FC.t('Mensagem apagada');
     if (m.media_type === 'image') return m.content ? '📷 ' + m.content : '📷 ' + FC.t('Foto');
     if (m.media_type === 'video') return '🎥 ' + FC.t('Vídeo');
+    if (m.media_type === 'audio') return '🎤 ' + FC.t('Mensagem de voz') + (m.file_size ? ' (' + m.file_size + ')' : '');
     if (m.media_type === 'doc') return '📎 ' + (m.file_name || FC.t('Ficheiro'));
     if (m.content) return m.content;
     if (m.ref) return (m.ref.tipo === 'video' ? '🎬 ' : '📷 ') + (m.ref.text || '');
@@ -1544,13 +1823,20 @@ function presencaConversa(outro) {
     if (!outro) return;
     const canal = supabaseClient.channel('conversa-' + [ME.id, outro].sort().join('-'), { config: { presence: { key: ME.id } } });
     canalPresenca = canal;
+    _ultimoAviso = { estado: 'parou', em: 0 };
     canal.on('presence', { event: 'sync' }, () => {
         if (canalPresenca !== canal) return;
         online = new Set(Object.keys(canal.presenceState()).filter(k => k !== ME.id));
+        if (!online.size && peerEscreve) { peerEscreve = null; clearTimeout(_tEscreve); }   // saiu da conversa
         renderContacts();
         atualizarEstadoPeer();
+    }).on('broadcast', { event: 'escrever' }, ({ payload }) => {
+        // "a escrever…" / "a gravar áudio…" da outra pessoa (não fica guardado em lado nenhum)
+        if (canalPresenca !== canal || !payload || payload.de === ME.id || payload.de !== outro) return;
+        mostrarEscrever(payload.estado);
     }).subscribe(status => {
-        if (status === 'SUBSCRIBED') canal.track({ em: new Date().toISOString() });
+        if (status === 'SUBSCRIBED') { canal._ligado = true; canal.track({ em: new Date().toISOString() }); }
+        else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') canal._ligado = false;
     });
 }
 
@@ -1575,6 +1861,454 @@ function showToast(msg) {
 
 // apagar dados antigos guardados no navegador (fotos em base64 tornavam a página lenta)
 try { localStorage.removeItem('ca_messages'); localStorage.removeItem('ca_contacts'); } catch (e) {}
+</script>
+<script>
+// ─────────────────────────────────────────────────────────
+//  MENSAGENS DE VOZ · "A ESCREVER…" · RESPOSTAS RÁPIDAS
+// ─────────────────────────────────────────────────────────
+
+// ─── BOTÃO DE ENVIAR / MICROFONE ─────────────────────────
+// Com a caixa vazia o botão grava uma mensagem de voz; com texto, envia.
+function botaoEnviar() {
+    if (grav) { pararGravacao(true); return; }
+    const t = document.getElementById('msgInput').value.trim();
+    if (t) { sendMessage(); return; }
+    comecarGravacao();
+}
+function atualizarBotaoEnviar() {
+    const b = document.getElementById('sendBtn');
+    if (!b) return;
+    const temTexto = !!document.getElementById('msgInput').value.trim();
+    const modo = grav || temTexto ? 'enviar' : 'gravar';
+    if (b.dataset.modo === modo) return;
+    b.dataset.modo = modo;
+    b.innerHTML = `<i class="fas fa-${modo === 'gravar' ? 'microphone' : 'paper-plane'}"></i>`;
+    const r = modo === 'gravar' ? FC.t('Gravar mensagem de voz') : FC.t('Enviar');
+    b.title = r; b.setAttribute('aria-label', r);
+}
+
+// ─── GRAVAR ──────────────────────────────────────────────
+const VOZ_MAX = 5 * 60;          // segundos (uma mensagem de voz até 5 minutos)
+let grav = null;                 // gravação em curso
+function mmss(seg) { seg = Math.max(0, Math.round(seg || 0)); return Math.floor(seg / 60) + ':' + String(seg % 60).padStart(2, '0'); }
+function segDe(t) { const m = /^(\d+):(\d{2})$/.exec(String(t || '').trim()); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; }
+
+// formato que toca em Android, iPhone e computador (m4a quando o navegador sabe gravar; senão webm/ogg)
+function tipoAudio() {
+    if (!window.MediaRecorder) return null;
+    const tipos = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+    for (const t of tipos) { try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (e) {} }
+    return '';
+}
+function extensaoAudio(tipo) {
+    return /mp4|m4a|aac/.test(tipo) ? 'm4a' : /ogg/.test(tipo) ? 'ogg' : /mpeg|mp3/.test(tipo) ? 'mp3' : 'webm';
+}
+
+async function comecarGravacao() {
+    if (grav || !activeContactId || bloqueei.has(activeContactId)) return;
+    const tipo = tipoAudio();
+    if (tipo === null || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('Este navegador não grava áudio. Experimente o Chrome.');
+        return;
+    }
+    const para = activeContactId;
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) {
+        showToast(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')
+            ? 'Permita o microfone para gravar mensagens de voz.'
+            : 'Não foi possível usar o microfone.');
+        return;
+    }
+    if (activeContactId !== para || grav) { stream.getTracks().forEach(t => t.stop()); return; }
+    let rec;
+    try { rec = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: 32000 }, tipo ? { mimeType: tipo } : {})); }
+    catch (e) {
+        try { rec = new MediaRecorder(stream); }
+        catch (e2) { stream.getTracks().forEach(t => t.stop()); showToast('Não foi possível gravar neste navegador.'); return; }
+    }
+    const g = { rec, stream, partes: [], inicio: Date.now(), para, enviar: false, fim: false };
+    grav = g;
+    rec.ondataavailable = ev => { if (ev.data && ev.data.size) g.partes.push(ev.data); };
+    rec.onstop = () => terminarGravacao(g);
+    rec.onerror = () => { g.enviar = false; terminarGravacao(g); showToast('A gravação falhou. Tente de novo.'); };
+    try { rec.start(1000); }
+    catch (e) { g.enviar = false; terminarGravacao(g); showToast('Não foi possível gravar neste navegador.'); return; }
+
+    fecharRespostas();
+    document.getElementById('chatFooter').classList.add('a-gravar');
+    document.getElementById('gravarTempo').textContent = '0:00';
+    atualizarBotaoEnviar();
+    avisarEscrever('gravar');
+    g.timer = setInterval(() => {
+        const seg = (Date.now() - g.inicio) / 1000;
+        document.getElementById('gravarTempo').textContent = mmss(Math.floor(seg));
+        avisarEscrever('gravar');
+        if (seg >= VOZ_MAX) { showToast('Chegou aos 5 minutos: a mensagem foi enviada.'); pararGravacao(true); }
+    }, 250);
+}
+
+function pararGravacao(enviar) {
+    const g = grav;
+    if (!g) return;
+    g.enviar = !!enviar;
+    g.duracao = (Date.now() - g.inicio) / 1000;
+    try {
+        if (g.rec.state !== 'inactive') { try { g.rec.requestData(); } catch (e) {} g.rec.stop(); }
+        else terminarGravacao(g);
+    } catch (e) { terminarGravacao(g); }
+    // o botão e a caixa voltam já (o ficheiro termina em segundo plano)
+    if (grav === g) grav = null;
+    document.getElementById('chatFooter').classList.remove('a-gravar');
+    atualizarBotaoEnviar();
+    avisarEscrever('parou');
+}
+
+function terminarGravacao(g) {
+    if (g.fim) return;
+    g.fim = true;
+    clearInterval(g.timer);
+    try { g.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    if (grav === g) {
+        grav = null;
+        document.getElementById('chatFooter').classList.remove('a-gravar');
+        atualizarBotaoEnviar();
+    }
+    if (!g.enviar) return;
+    const seg = g.duracao || (Date.now() - g.inicio) / 1000;
+    if (seg < 1 || !g.partes.length) { showToast('Mensagem de voz demasiado curta.'); return; }
+    const tipo = ((g.rec && g.rec.mimeType) || (g.partes[0] && g.partes[0].type) || 'audio/webm').split(';')[0] || 'audio/webm';
+    const blob = new Blob(g.partes, { type: tipo });
+    enviarFicheiroChat(blob, 'audio', extensaoAudio(tipo), { file_size: mmss(seg) }, g.para);
+}
+
+// sair da página a meio de uma gravação: desliga o microfone
+window.addEventListener('pagehide', () => { if (grav) pararGravacao(false); });
+
+// ─── OUVIR ───────────────────────────────────────────────
+// Um só leitor para a conversa: continua a tocar mesmo quando chegam mensagens novas.
+const vozPlayer = new Audio();
+vozPlayer.preload = 'auto';
+let vozAtual = null;             // id (texto) da mensagem a tocar
+let vozVel = 1;
+function msgDaVoz(id) { return mensagens.find(m => String(m.id) === String(id)); }
+function duracaoDe(m) {
+    const d = vozPlayer.duration;
+    if (m && vozAtual === String(m.id) && isFinite(d) && d > 0) return d;   // gravações webm não dizem a duração: usa a guardada
+    return segDe(m && m.file_size);
+}
+
+function htmlVoz(msg) {
+    const id = String(msg.id);
+    const atual = vozAtual === id;
+    const tocar = atual && !vozPlayer.paused;
+    const dur = duracaoDe(msg);
+    const pct = atual && dur ? Math.min(100, vozPlayer.currentTime / dur * 100) : 0;
+    const tempo = atual && vozPlayer.currentTime > 0 ? mmss(vozPlayer.currentTime) : (msg.file_size || '0:00');
+    const idJs = id.replace(/[^\w-]/g, '');
+    return `<div class="voz" data-voz="${escAttr(id)}">
+        <button type="button" class="voz-play" onclick="tocarVoz('${idJs}')" aria-label="${tocar ? 'Pausar' : 'Ouvir'}"><i class="fas fa-${tocar ? 'pause' : 'play'}"></i></button>
+        <div class="voz-corpo">
+            <input type="range" class="voz-barra" min="0" max="100" step="0.5" value="${pct.toFixed(1)}" aria-label="Posição da mensagem de voz" oninput="saltarVoz('${idJs}', this.value)">
+            <div class="voz-info"><span class="voz-tempo">${tempo}</span><button type="button" class="voz-vel" onclick="mudarVelocidade()" title="Velocidade" aria-label="Velocidade">${String(vozVel).replace('.', ',')}×</button></div>
+        </div>
+    </div>`;
+}
+
+async function urlDaVoz(m) {
+    if (m._local) return m._local;
+    const u = cmUrl(m.file_url);
+    if (u) return u;
+    const c = cmCaminho(m.file_url);
+    if (!c) return m.file_url;
+    const { data } = await supabaseClient.storage.from('chat-media').createSignedUrl(c, 3600);
+    if (data && data.signedUrl) { cmCache[c] = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 }; return data.signedUrl; }
+    return m.file_url;
+}
+
+async function tocarVoz(id) {
+    const m = msgDaVoz(id);
+    if (!m) return;
+    if (vozAtual === String(id) && vozPlayer.src) {
+        if (vozPlayer.paused) vozPlayer.play().catch(() => showToast('Não foi possível tocar esta mensagem de voz.'));
+        else vozPlayer.pause();
+        return;
+    }
+    vozPlayer.pause();
+    const antes = vozAtual;
+    vozAtual = String(id);
+    if (antes) atualizarVozUI(antes);
+    try {
+        vozPlayer.src = await urlDaVoz(m);
+        if (vozAtual !== String(id)) return;
+        vozPlayer.playbackRate = vozVel;
+        await vozPlayer.play();
+    } catch (e) {
+        showToast(navigator.onLine === false ? 'Sem rede para ouvir esta mensagem de voz.' : 'Não foi possível tocar esta mensagem de voz.');
+        vozAtual = null;
+        atualizarVozUI(id);
+    }
+}
+function saltarVoz(id, pct) {
+    if (vozAtual !== String(id)) return;
+    const dur = duracaoDe(msgDaVoz(id));
+    if (dur) { try { vozPlayer.currentTime = Math.min(dur, dur * Number(pct) / 100); } catch (e) {} }
+}
+function mudarVelocidade() {
+    vozVel = vozVel === 1 ? 1.5 : vozVel === 1.5 ? 2 : 1;
+    vozPlayer.playbackRate = vozVel;
+    document.querySelectorAll('.voz-vel').forEach(b => { b.textContent = String(vozVel).replace('.', ',') + '×'; });
+}
+function atualizarVozUI(id) {
+    const el = document.querySelector(`[data-voz="${CSS.escape(String(id))}"]`);
+    const m = msgDaVoz(id);
+    if (!el || !m) return;
+    const atual = vozAtual === String(id);
+    const tocar = atual && !vozPlayer.paused;
+    const dur = duracaoDe(m);
+    const btn = el.querySelector('.voz-play');
+    btn.innerHTML = `<i class="fas fa-${tocar ? 'pause' : 'play'}"></i>`;
+    btn.setAttribute('aria-label', tocar ? 'Pausar' : 'Ouvir');
+    const barra = el.querySelector('.voz-barra');
+    if (document.activeElement !== barra) barra.value = atual && dur ? Math.min(100, vozPlayer.currentTime / dur * 100) : 0;
+    el.querySelector('.voz-tempo').textContent = atual && vozPlayer.currentTime > 0 ? mmss(vozPlayer.currentTime) : (m.file_size || '0:00');
+}
+['play', 'pause', 'timeupdate'].forEach(ev => vozPlayer.addEventListener(ev, () => { if (vozAtual) atualizarVozUI(vozAtual); }));
+vozPlayer.addEventListener('ended', () => {
+    const id = vozAtual;
+    vozAtual = null;
+    try { vozPlayer.currentTime = 0; } catch (e) {}
+    if (id) atualizarVozUI(id);
+});
+
+// ─── "A ESCREVER…" ───────────────────────────────────────
+// Vai pelo canal da conversa aberta (o mesmo do "está na conversa"); nada fica guardado.
+let peerEscreve = null;          // 'escrever' | 'gravar' | null (a outra pessoa)
+let _tEscreve = null;
+let _ultimoAviso = { estado: 'parou', em: 0 };
+function avisarEscrever(estado) {
+    const canal = canalPresenca;
+    if (!canal || !canal._ligado || !activeContactId) return;
+    if (estado === 'escrever' && document.activeElement !== document.getElementById('msgInput')) return;
+    const agora = Date.now();
+    // no máximo um aviso a cada 3 segundos (e um só "parou")
+    if (estado === _ultimoAviso.estado && (estado === 'parou' || agora - _ultimoAviso.em < 3000)) return;
+    _ultimoAviso = { estado, em: agora };
+    try {
+        const r = canal.send({ type: 'broadcast', event: 'escrever', payload: { de: ME.id, estado } });
+        if (r && r.catch) r.catch(() => {});
+    } catch (e) {}
+}
+function mostrarEscrever(estado) {
+    clearTimeout(_tEscreve);
+    peerEscreve = estado === 'escrever' || estado === 'gravar' ? estado : null;
+    if (peerEscreve) _tEscreve = setTimeout(() => { peerEscreve = null; atualizarEstadoPeer(); }, 6000);
+    atualizarEstadoPeer();
+}
+// sair da caixa de texto sem enviar
+document.getElementById('msgInput').addEventListener('blur', () => avisarEscrever('parou'));
+
+// ─── RESPOSTAS RÁPIDAS ───────────────────────────────────
+// Frases prontas (preço, entrega, horário…). Tocar numa põe-na na caixa, para ajustar e enviar.
+// Ficam na conta (tabela respostas_rapidas); antes da migração 062, ficam neste aparelho.
+const RR_MAX = 30;
+let respostas = null;            // [{ id, texto }]
+let rrNaConta = false;
+let rrGerir = false;
+let rrEditar = null;             // id da resposta a editar
+let rrFiltro = '';
+function rrSugestoes() {
+    return ME.type === 'empresa' ? [
+        'Olá! Obrigado pela sua mensagem. Em que posso ajudar?',
+        'O preço é [valor] MT.',
+        'Sim, ainda temos disponível.',
+        'Fazemos entrega. Diga-nos o bairro, por favor.',
+        'Estamos abertos de segunda a sábado, das 8h às 18h.',
+        'Pode pagar por M-Pesa ou e-Mola no momento da entrega.'
+    ] : [
+        'Olá! Ainda tem disponível?',
+        'Qual é o preço?',
+        'Fazem entrega em [bairro]?',
+        'Obrigado!'
+    ];
+}
+function rrChaveLocal() { return 'fc_respostas_' + ME.id; }
+function rrLerLocal() {
+    try { const l = JSON.parse(localStorage.getItem(rrChaveLocal()) || '[]'); return Array.isArray(l) ? l.filter(r => r && r.texto) : []; } catch (e) { return []; }
+}
+function rrGuardarLocal() { try { localStorage.setItem(rrChaveLocal(), JSON.stringify(respostas)); } catch (e) {} }
+
+async function carregarRespostas() {
+    if (respostas) return respostas;
+    const { data, error } = await supabaseClient.from('respostas_rapidas').select('id, texto').order('ordem').order('id');
+    if (!error) { rrNaConta = true; respostas = data || []; }
+    else { rrNaConta = false; respostas = rrLerLocal(); }
+    return respostas;
+}
+
+async function abrirRespostas(ev) {
+    if (ev) ev.stopPropagation();
+    const painel = document.getElementById('rrPainel');
+    if (painel.classList.contains('show') && !rrFiltro) { fecharRespostas(); return; }
+    rrFiltro = '';
+    await mostrarPainelRespostas();
+}
+async function mostrarPainelRespostas() {
+    const painel = document.getElementById('rrPainel');
+    const ep = document.getElementById('emojiPicker');
+    if (ep) ep.classList.remove('show');
+    painel.classList.add('show');
+    document.getElementById('rrBtn').setAttribute('aria-expanded', 'true');
+    if (!respostas) document.getElementById('rrLista').innerHTML = '<div class="rr-vazio">A carregar…</div>';
+    await carregarRespostas();
+    rrDesenhar();
+}
+function fecharRespostas() {
+    const painel = document.getElementById('rrPainel');
+    if (!painel) return;
+    painel.classList.remove('show');
+    document.getElementById('rrBtn').setAttribute('aria-expanded', 'false');
+    painel.dataset.atalho = '';
+    rrGerir = false; rrFiltro = '';
+    rrFecharForm();
+}
+
+function rrDesenhar() {
+    const lista = document.getElementById('rrLista');
+    document.getElementById('rrGerir').textContent = rrGerir ? FC.t('Concluído') : FC.t('Gerir');
+    const f = rrFiltro.toLowerCase();
+    const minhas = (respostas || []).filter(r => !f || r.texto.toLowerCase().includes(f));
+    let html = '';
+    if (minhas.length) {
+        html += minhas.map(r => `<div class="rr-item">
+            <button type="button" class="rr-usar" data-no-i18n onclick="rrUsar(${JSON.stringify(String(r.id)).replace(/"/g, '&quot;')})">${escHtml(r.texto)}</button>
+            ${rrGerir ? `<button type="button" class="rr-acao" title="Editar" aria-label="Editar" onclick="rrAbrirForm(${JSON.stringify(String(r.id)).replace(/"/g, '&quot;')})"><i class="fas fa-pen"></i></button>
+            <button type="button" class="rr-acao apagar" title="Apagar" aria-label="Apagar" onclick="rrApagar(${JSON.stringify(String(r.id)).replace(/"/g, '&quot;')})"><i class="fas fa-trash"></i></button>` : ''}
+        </div>`).join('');
+    } else if (f) {
+        html += `<div class="rr-vazio">${FC.t('Nenhuma resposta rápida com')} "${escHtml(rrFiltro)}".</div>`;
+    } else {
+        html += `<div class="rr-vazio">${FC.t('Ainda não tem respostas rápidas. Guarde as frases que escreve muitas vezes e use-as com um toque. Para as procurar, escreva / na caixa de mensagem.')}</div>`;
+    }
+    // sugestões ainda não guardadas (só sem filtro)
+    if (!f) {
+        const ja = new Set((respostas || []).map(r => r.texto.trim()));
+        const sug = rrSugestoes().filter(t => !ja.has(t));
+        if (sug.length && (respostas || []).length < 6) {
+            html += `<div class="rr-sub">${FC.t('Sugestões')}</div>` + sug.map(t => `<div class="rr-item">
+                <button type="button" class="rr-usar" onclick="rrUsarTexto(this.textContent)">${escHtml(t)}</button>
+                <button type="button" class="rr-acao" title="Guardar" aria-label="Guardar esta sugestão" onclick="rrAdicionar(this.previousElementSibling.textContent)"><i class="fas fa-plus"></i></button>
+            </div>`).join('');
+        }
+        html += `<div class="rr-item"><button type="button" class="rr-usar" style="color:var(--green);font-weight:700" onclick="rrAbrirForm(null)"><i class="fas fa-plus"></i> ${FC.t('Nova resposta rápida')}</button></div>`;
+    }
+    lista.innerHTML = html;
+}
+
+function rrModoGerir() { rrGerir = !rrGerir; rrFecharForm(); rrDesenhar(); }
+
+function rrUsar(id) {
+    const r = (respostas || []).find(x => String(x.id) === String(id));
+    if (r) rrUsarTexto(r.texto);
+}
+function rrUsarTexto(texto) {
+    const el = document.getElementById('msgInput');
+    // escreveu "/preço" para procurar: o atalho é substituído pela resposta
+    el.value = rrFiltro || /^\/\S*$/.test(el.value.trim()) ? texto : (el.value.trim() ? el.value.replace(/\s*$/, ' ') + texto : texto);
+    fecharRespostas();
+    el.focus();
+    autoResize(el);
+    // pôr o cursor no primeiro [espaço a preencher], se houver
+    const i = el.value.indexOf('[');
+    const j = i >= 0 ? el.value.indexOf(']', i) : -1;
+    try { if (i >= 0 && j > i) el.setSelectionRange(i, j + 1); else el.setSelectionRange(el.value.length, el.value.length); } catch (e) {}
+}
+
+// "/" no início da caixa abre as respostas rápidas e filtra pelo que se escreve a seguir
+function rrAtalho(valor) {
+    const painel = document.getElementById('rrPainel');
+    if (!painel) return;
+    const m = /^\/(\S*)$/.exec(valor || '');
+    if (m) {
+        rrFiltro = m[1];
+        painel.dataset.atalho = '1';
+        if (!painel.classList.contains('show') || !respostas) mostrarPainelRespostas();
+        else rrDesenhar();
+    } else if (painel.dataset.atalho === '1') {
+        fecharRespostas();
+    }
+}
+
+function rrAbrirForm(id) {
+    rrEditar = id;
+    const r = id ? (respostas || []).find(x => String(x.id) === String(id)) : null;
+    document.getElementById('rrFormTitulo').textContent = r ? FC.t('Editar resposta rápida') : FC.t('Nova resposta rápida');
+    const t = document.getElementById('rrTexto');
+    t.value = r ? r.texto : '';
+    document.getElementById('rrForm').style.display = 'flex';
+    t.focus();
+}
+function rrFecharForm() {
+    rrEditar = null;
+    const f = document.getElementById('rrForm');
+    if (f) f.style.display = 'none';
+}
+async function rrGuardar(ev) {
+    ev.preventDefault();
+    const texto = document.getElementById('rrTexto').value.trim();
+    if (!texto) { showToast('Escreva a resposta.'); return; }
+    if (rrEditar) await rrMudar(rrEditar, texto); else await rrAdicionar(texto);
+    rrFecharForm();
+}
+async function rrAdicionar(texto) {
+    texto = String(texto || '').trim().slice(0, 1000);
+    if (!texto) return;
+    await carregarRespostas();
+    if (respostas.some(r => r.texto.trim() === texto)) { showToast('Essa resposta já está guardada.'); return; }
+    if (respostas.length >= RR_MAX) { showToast('Pode guardar no máximo 30 respostas rápidas.'); return; }
+    if (rrNaConta) {
+        const { data, error } = await supabaseClient.from('respostas_rapidas').insert({ texto, ordem: respostas.length }).select('id, texto').single();
+        if (error) { showToast(erroDeRede(error) ? 'Sem rede. Tente de novo.' : 'Não foi possível guardar: ' + FC.traduzirErro(error)); return; }
+        respostas.push(data);
+    } else {
+        respostas.push({ id: 'l' + Date.now(), texto });
+        rrGuardarLocal();
+    }
+    showToast('Resposta rápida guardada.');
+    rrDesenhar();
+}
+async function rrMudar(id, texto) {
+    const r = respostas.find(x => String(x.id) === String(id));
+    if (!r) return;
+    if (rrNaConta) {
+        const { error } = await supabaseClient.from('respostas_rapidas').update({ texto }).eq('id', r.id);
+        if (error) { showToast(erroDeRede(error) ? 'Sem rede. Tente de novo.' : 'Não foi possível guardar: ' + FC.traduzirErro(error)); return; }
+    }
+    r.texto = texto;
+    if (!rrNaConta) rrGuardarLocal();
+    showToast('Resposta rápida guardada.');
+    rrDesenhar();
+}
+async function rrApagar(id) {
+    const r = respostas.find(x => String(x.id) === String(id));
+    if (!r || !confirm(FC.t('Apagar esta resposta rápida?') + '\n\n' + r.texto)) return;
+    if (rrNaConta) {
+        const { error } = await supabaseClient.from('respostas_rapidas').delete().eq('id', r.id);
+        if (error) { showToast(erroDeRede(error) ? 'Sem rede. Tente de novo.' : 'Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
+    }
+    respostas = respostas.filter(x => x !== r);
+    if (!rrNaConta) rrGuardarLocal();
+    rrDesenhar();
+}
+
+// tocar fora do painel fecha-o
+document.addEventListener('click', e => {
+    const p = document.getElementById('rrPainel');
+    // (um botão do painel que já foi redesenhado deixa de estar na página: não conta como "fora")
+    if (p && p.classList.contains('show') && e.target.isConnected && !e.target.closest('#rrPainel, #rrBtn, #msgInput')) fecharRespostas();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharRespostas(); });
 </script>
 </body>
 </html>
