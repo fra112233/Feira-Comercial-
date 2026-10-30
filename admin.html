@@ -719,7 +719,7 @@ async function desenharConversaEquipa(silencioso) {
   const caixa = $('cxMsgs'), noFundo = caixa.scrollHeight - caixa.scrollTop - caixa.clientHeight < 80;
   caixa.innerHTML = msgs.length ? msgs.map(m => '<div class="cx-m ' + (m.de_mim ? 'eu' : 'ela') + '">' +
     (m.ref && m.ref.tipo ? '<div class="ref">' + (m.ref.tipo === 'video' ? '🎬 ' : m.ref.tipo === 'post' ? '📰 ' : '') + esc(m.ref.text || '') + '</div>' : '') +
-    (m.content ? esc(m.content) : '') + (m.media_type ? (m.content ? '\n' : '') + (m.media_type === 'image' ? '📷 Foto' : m.media_type === 'video' ? '🎥 Vídeo' : '📎 Ficheiro') : '') +
+    (m.content ? esc(m.content) : '') + (m.media_type ? (m.content ? '\n' : '') + (m.media_type === 'image' ? '📷 Foto' : m.media_type === 'video' ? '🎥 Vídeo' : m.media_type === 'audio' ? '🎤 Mensagem de voz' : '📎 Ficheiro') : '') +
     '<small>' + horaCurta(m.created_at) + (m.de_mim && m.autor ? ' · por ' + esc(m.autor) : '') + (m.de_mim ? (m.read_at ? ' · ✓✓ lida' : ' · ✓ enviada') : '') + '</small></div>').join('')
     : '<p class="vazio">Sem mensagens.</p>';
   if (!silencioso || noFundo) caixa.scrollTop = caixa.scrollHeight;
