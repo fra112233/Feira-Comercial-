@@ -381,6 +381,7 @@ FC._notifTextos = {
   numero_proibido: '🚫 enviou um número de uma conta suspensa',
   numero_denunciado: '🚩 número denunciado pela comunidade:',
   numero_no_perfil: '🚫 número da lista de burlas num perfil:',
+  mesmo_aparelho: '📱 usa o mesmo aparelho de uma conta suspensa:',
   cobranca: 'foi-lhe atribuída para cobrar a mensalidade 💰',
   gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
@@ -399,7 +400,7 @@ FC._notifIcones = {
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
   marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock',
-  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper', lojas_hoje: 'fa-store', travao: 'fa-shield-halved', numero_proibido: 'fa-phone-slash', numero_no_perfil: 'fa-phone-slash', numero_denunciado: 'fa-flag', cobranca: 'fa-calendar-check'
+  oferta_guardado: 'fa-bolt', oferta_loja: 'fa-bolt', resumo_semanal: 'fa-newspaper', lojas_hoje: 'fa-store', travao: 'fa-shield-halved', numero_proibido: 'fa-phone-slash', numero_no_perfil: 'fa-phone-slash', mesmo_aparelho: 'fa-mobile-screen', numero_denunciado: 'fa-flag', cobranca: 'fa-calendar-check'
 };
 FC.haQuanto = function (d) {
   const s = Math.max(0, (FC.agora() - new Date(d).getTime()) / 1000);
@@ -471,7 +472,7 @@ FC.linkNotificacao = function (n) {
   if (n.tipo === 'gratis_fim' || n.tipo === 'mensalidade_fim') return 'mensalidade.html';
   if (n.tipo === 'resumo_semanal' || n.tipo === 'lojas_hoje') return 'index.html';
   if (n.tipo === 'travao') return 'admin.html';
-  if (n.tipo === 'numero_proibido' || n.tipo === 'numero_denunciado' || n.tipo === 'numero_no_perfil') return 'admin.html#suspeitos';
+  if (n.tipo === 'numero_proibido' || n.tipo === 'numero_denunciado' || n.tipo === 'numero_no_perfil' || n.tipo === 'mesmo_aparelho') return 'admin.html#suspeitos';
   if (n.tipo === 'cobranca') return 'admin.html#mensalidades';
   if (n.tipo === 'gosto_story') return 'index.html';   // conta posta em revisão pelo travão automático
   if (n.post_id) return 'index.html?post=' + n.post_id;
@@ -1117,7 +1118,69 @@ FC.boot = async function (opts = {}) {
   // avisos push: renova o registo deste aparelho em silêncio, ou convida (uma vez) a ativar
   if (FC.pushSuportado() && Notification.permission === 'granted') FC.ativarPush(false); else FC.convitePush();
   if (me && me.type === 'empresa') FC.carregarConfig().then(() => FC.lembreteMensalidade(me));
+  // marca do aparelho (contra burlões que voltam com outra conta) — a conta vem da sessão
+  setTimeout(() => FC.registarAparelho((session.user && session.user.id) || (me && me.id)), 1500);
   return me;
+};
+
+/* ---------- Marca do aparelho (contra burlões que voltam com outra conta) ----------
+   Cada aparelho recebe um código ao acaso, guardado no navegador (e num cookie, para
+   sobreviver se um dos dois for apagado). Não guarda fotos, contactos, nem nada pessoal.
+   Junta-se um resumo das características do aparelho (modelo de ecrã, idioma, fuso…),
+   para reconhecer quem apagou os dados do navegador. A base de dados (migração 065)
+   compara com as contas suspensas. Envia no máximo 2 vezes por dia por conta. */
+FC._tokenAparelho = function () {
+  const ok = t => /^[A-Za-z0-9_-]{16,64}$/.test(t || '');
+  let t = null;
+  try { t = localStorage.getItem('fc_ap'); } catch (e) {}
+  if (!ok(t)) { const m = document.cookie.match(/(?:^|;\s*)fc_ap=([A-Za-z0-9_-]{16,64})/); t = m ? m[1] : null; }
+  if (!ok(t)) {
+    const b = new Uint8Array(18); crypto.getRandomValues(b);
+    t = btoa(String.fromCharCode.apply(null, b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  try { localStorage.setItem('fc_ap', t); } catch (e) {}
+  try { document.cookie = 'fc_ap=' + t + '; max-age=' + (60 * 60 * 24 * 400) + '; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+  return t;
+};
+FC._impressaoAparelho = async function () {
+  try {
+    const n = navigator, s = screen || {};
+    let gpu = '';
+    try {
+      const gl = document.createElement('canvas').getContext('webgl');
+      const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+      gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
+    } catch (e) {}
+    let desenho = '';
+    try {
+      const c = document.createElement('canvas'); c.width = 220; c.height = 40;
+      const x = c.getContext('2d');
+      x.textBaseline = 'top'; x.font = '16px Arial'; x.fillStyle = '#f3c64e'; x.fillRect(0, 0, 220, 40);
+      x.fillStyle = '#111'; x.fillText('Feira Comercial 🛍️ 84', 4, 10);
+      desenho = c.toDataURL().slice(-80);
+    } catch (e) {}
+    const partes = [
+      (n.userAgent || '').replace(/[\d.]+/g, ''),     // sem números de versão (as atualizações não mudam a marca)
+      n.platform, n.language, (n.languages || []).join(','), Intl.DateTimeFormat().resolvedOptions().timeZone,
+      s.width + 'x' + s.height + 'x' + s.colorDepth, window.devicePixelRatio, n.hardwareConcurrency, n.deviceMemory, n.maxTouchPoints,
+      gpu, desenho
+    ].join('|');
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(partes));
+    return [...new Uint8Array(h)].map(v => v.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  } catch (e) { return null; }
+};
+FC.registarAparelho = async function (uid) {
+  try {
+    if (!uid || !window.crypto || !crypto.getRandomValues) return;
+    const chave = 'fc_ap_quando_' + uid;
+    let ultimo = 0;
+    try { ultimo = Number(localStorage.getItem(chave) || 0); } catch (e) {}
+    const token = FC._tokenAparelho();
+    if (Date.now() - ultimo < 12 * 3600 * 1000) return;
+    const impressao = await FC._impressaoAparelho();
+    const { error } = await supabaseClient.rpc('registar_aparelho', { p_token: token, p_impressao: impressao });
+    if (!error) { try { localStorage.setItem(chave, String(Date.now())); } catch (e) {} }
+  } catch (e) {}
 };
 
 /* Partilhar: abre uma folha com WhatsApp, Facebook, Telegram, SMS, Copiar link e "Mais"
