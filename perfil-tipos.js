@@ -12,6 +12,37 @@ let localizacaoEditada;          // undefined = não mexer; null = remover; {lat
 
 const ehEmpresa = p => p && p.type === 'empresa';
 
+// ---------- números de burlões (migração 064) ----------
+// Se o telefone/WhatsApp de uma conta está na lista de burlas, quem visita vê um aviso vermelho
+// e os botões Ligar/WhatsApp não aparecem.
+const numeroBurla = new Map();   // id → true/false
+async function verNumeroBurla(id) {
+  if (!id || numeroBurla.has(id)) return;
+  numeroBurla.set(id, false);
+  try {
+    const { data, error } = await getSB().rpc('contas_numero_burla', { p_ids: [id] });
+    if (!error && Array.isArray(data) && data.some(r => r.id === id)) {
+      numeroBurla.set(id, true);
+      if (perfilAtual && perfilAtual.id === id) aplicarPerfil();
+    }
+  } catch (e) {}
+}
+const temNumeroBurla = p => !!(modoVisita && p && numeroBurla.get(p.id));
+// número de Moçambique → ligação "Verificar" (página anti-burla), só no perfil de outra pessoa
+function comVerificar(valor) {
+  const e = FCP.esc;
+  if (!valor) return '';
+  const m = String(valor).match(/(?:\+?258[\s.-]?)?(8[2-7](?:[\s.-]?\d){7})/);
+  if (!modoVisita || !m) return e(valor);
+  const n = m[1].replace(/\D/g, '');
+  return e(valor) + ` <a href="verificar-numero.html?n=${n}" target="_blank" rel="noopener" title="${e(FC.t('Ver se este número está na lista de burlas'))}" style="display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;text-decoration:none;background:rgba(243,198,78,.16);color:#b8860b;white-space:nowrap;"><i class="fas fa-shield-halved"></i> ${FC.t('Verificar')}</a>`;
+}
+function avisoNumeroBurla() {
+  return `<div role="alert" style="display:flex;gap:10px;align-items:flex-start;margin:10px 0 4px;padding:10px 12px;border-radius:var(--radius-md);background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);color:#ef4444;font-size:13px;line-height:1.45;">
+      <i class="fas fa-triangle-exclamation" style="margin-top:2px"></i>
+      <span><b>${FC.t('O número desta conta está na lista de burlas da Feira Comercial.')}</b> ${FC.t('Não envie dinheiro nem códigos. Escondemos os botões de ligar e WhatsApp.')}</span></div>`;
+}
+
 function linhaInfo(icone, rotulo, valorHtml) {
   if (!valorHtml) return '';
   return `<div class="info-item">
@@ -27,6 +58,7 @@ function moradaCompleta(p) {
 
 function botoesContacto(p) {
   const e = FCP.esc;
+  if (temNumeroBurla(p)) return avisoNumeroBurla();
   const wa = FCP.numeroWhatsApp(p.whatsapp || (ehEmpresa(p) ? '' : p.phone));
   const estilo = 'display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--radius-md);font-size:13px;font-weight:600;text-decoration:none;';
   return `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
@@ -46,8 +78,8 @@ function cartoesEmpresa(p, completo) {
   const contactos = `
     <div class="info-card">
       <div class="info-card-title"><i class="fas fa-address-book"></i> Contactos</div>
-      ${linhaInfo('fa-phone', 'Telefone', e(p.phone))}
-      ${linhaInfo('fa-comment', 'WhatsApp', e(p.whatsapp))}
+      ${linhaInfo('fa-phone', 'Telefone', comVerificar(p.phone))}
+      ${linhaInfo('fa-comment', 'WhatsApp', comVerificar(p.whatsapp))}
       ${linhaInfo('fa-envelope', 'E-mail', e(p.email))}
       ${linhaInfo('fa-globe', 'Website', site)}
       ${linhaInfo('fa-thumbs-up', 'Facebook', e(p.facebook))}
@@ -94,7 +126,7 @@ function cartoesPessoa(p) {
       <div class="info-card-title"><i class="fas fa-user"></i> Informações pessoais</div>
       ${linhaInfo('fa-user', 'Nome', '<span data-no-i18n>' + e(p.full_name) + '</span>')}
       ${linhaInfo('fa-venus-mars', 'Género', e(p.gender))}
-      ${linhaInfo('fa-mobile-alt', 'Celular', e(p.phone))}
+      ${linhaInfo('fa-mobile-alt', 'Celular', comVerificar(p.phone))}
       ${linhaInfo('fa-envelope', 'E-mail', e(p.email))}
       ${linhaInfo('fa-home', 'Morada', e(moradaCompleta(p)))}
       ${modoVisita ? '' : `<p style="font-size:12px;color:var(--text-secondary);margin-top:10px;"><i class="fas fa-lock"></i> O seu celular, e-mail e morada só são visíveis para si.</p>`}
@@ -110,6 +142,7 @@ function aplicarPerfil() {
   const e = FCP.esc;
 
   if (modoVisita) {
+    verNumeroBurla(p.id);
     // perfil de outra pessoa: não mexer no meu nome/foto guardados
     setTxt('userName', p.full_name || 'Utilizador');
     { const n = document.getElementById('userName'); if (n && p.id) n.setAttribute('data-selo', p.id); }
@@ -149,6 +182,7 @@ function aplicarPerfil() {
     const seloP = window.FC && FC._selos ? FC._selos.get(p.id) : null;
     const pilula = (cor, fundo, txt) => ` <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:${fundo};color:${cor};font-size:12px;font-weight:700;margin-top:6px;">${txt}</span>`;
     if (modoVisita && p.bloqueado) selo.innerHTML += pilula('#ef4444', 'rgba(239,68,68,.15)', '🚫 Conta suspensa pela Feira Comercial');
+    else if (temNumeroBurla(p)) selo.innerHTML += pilula('#ef4444', 'rgba(239,68,68,.15)', '🚫 ' + e(FC.t('Número na lista de burlas')));
     else if (modoVisita && !seloP && p.created_at && window.FCBurlas && FCBurlas.contaNova(p.created_at))
       selo.innerHTML += pilula('#d97706', 'rgba(245,158,11,.15)', '🆕 ' + e(FCBurlas.frase(p.created_at)));
   }
@@ -282,7 +316,15 @@ async function savePerfil() {
   const { error } = await getSB().from('perfis').update(upd).eq('id', meuId);
   const data = error ? null : (await FC.lerPerfil(meuId)).data;
   if (botao) { botao.disabled = false; botao.textContent = 'Guardar'; }
-  if (error) { alert('Não foi possível guardar: ' + FC.traduzirErro(error)); return; }
+  if (error) {
+    if (error.hint === 'numero_burla' || /lista de burlas/i.test(error.message || '')) {
+      // avisa a equipa (só conta se o número estiver mesmo na lista) e explica à pessoa
+      [upd.phone, upd.whatsapp].filter(Boolean).forEach(n => getSB().rpc('avisar_tentativa_numero', { p_numero: n }).then(() => {}, () => {}));
+      alert(FC.t('Este número está na lista de burlas da Feira Comercial. Use outro número. Se o número é seu e acha que é um engano, fale com a equipa: suporte@feira-comercial.com'));
+      return;
+    }
+    alert('Não foi possível guardar: ' + FC.traduzirErro(error)); return;
+  }
 
   perfilAtual = data || Object.assign({}, p, upd);
   guardarPerfilLocal();

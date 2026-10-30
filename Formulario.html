@@ -622,6 +622,18 @@
                 dados.gender = $('genero').value;
             }
 
+            // número de uma conta suspensa por burla? Não deixa criar a conta (a base de dados também recusa)
+            for (const num of [...new Set([dados.phone, dados.whatsapp].filter(Boolean))]) {
+                const v = await client.rpc('verificar_numero', { p_numero: num });
+                if (!v.error && v.data && v.data.estado === 'proibido') {
+                    client.rpc('avisar_tentativa_numero', { p_numero: num, p_criar_conta: true }).then(() => {}, () => {});
+                    setStatus('❌ ' + FC.t('O número') + ' ' + num.replace(/[<>&"]/g, '') + ' ' + FC.t('está na lista de burlas da Feira Comercial. Use outro número. Se o número é seu e acha que é um engano, fale com a equipa: suporte@feira-comercial.com'), 'error');
+                    celEl.focus();
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const { data: authData, error: authError } = await client.auth.signUp({
                 email,
                 password: pwEl.value,
@@ -672,6 +684,9 @@
                 setStatus('Este e-mail já tem conta. <a href="Portal.html" style="color:var(--primary)">Entrar</a>', 'error');
             } else if (/pwned|leaked|compromised|known to be|breach/i.test(msg)) {
                 setStatus('❌ Esta palavra-passe já apareceu em fugas de dados na internet e não é segura. Escolha outra, diferente das que usa noutros sites.', 'error');
+            } else if (/Database error saving new user/i.test(msg)) {
+                // a base de dados recusou o perfil (ex.: número da lista de burlas)
+                setStatus('❌ ' + FC.t('Não foi possível criar a conta com estes dados. Se usou um número de telefone que já foi de uma conta suspensa, use outro número.'), 'error');
             } else if (/weak|password|palavra-passe/i.test(msg)) {
                 setStatus('❌ Palavra-passe fraca. Use pelo menos 8 caracteres, com letras maiúsculas, minúsculas e números.', 'error');
             } else {
