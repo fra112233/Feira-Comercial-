@@ -114,6 +114,26 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .icon-btn{flex-shrink:0}
 .topbar .logo{white-space:nowrap}
 .bio:empty{display:none}
+.card-info{min-width:0}
+.card-top .un{font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-top .nseg{font-size:12px;color:var(--sub);margin-top:3px}
+.card-top .nseg b{color:var(--text)}
+.motivo{font-size:12px;color:#c7d2fe;background:rgba(37,99,235,.14);border:1px solid rgba(37,99,235,.3);border-radius:10px;padding:7px 10px;margin:-2px 0 12px;line-height:1.45}
+.motivo i{color:#93c5fd;margin-right:5px}
+.motivo b{color:var(--text)}
+.btn-full.volta{background:var(--ok);color:#052e16}
+.sec-titulo{font-size:15px;font-weight:800;color:var(--sub);margin:4px 2px 12px;letter-spacing:.2px}
+.ver-mais{display:block;margin:22px auto 0;padding:12px 30px;min-height:44px;border-radius:30px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-weight:800;font-size:14px;cursor:pointer}
+.ver-mais:hover{border-color:var(--brand)}
+.ver-mais:disabled{opacity:.7;cursor:default}
+.conf-fundo{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px}
+.conf{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;max-width:360px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.conf h3{font-size:17px;margin-bottom:8px;line-height:1.35}
+.conf p{font-size:13px;color:var(--sub);line-height:1.5;margin-bottom:18px}
+.conf-botoes{display:flex;gap:8px}
+.conf-botoes button{flex:1;min-height:44px;border-radius:10px;border:none;font-weight:800;font-size:13px;cursor:pointer}
+.conf-nao{background:var(--hover);color:var(--text)}
+.conf-sim{background:var(--danger);color:#fff}
 @media(max-width:760px){
   .topbar{gap:8px;padding:10px 14px}
   /* Início e Mensagens já estão na barra de baixo */
@@ -145,7 +165,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
   <div class="toolbar">
     <div class="search">
       <i class="fas fa-search"></i>
-      <input id="searchInput" placeholder="Pesquisar pessoas ou empresas..." oninput="agendarPesquisa()">
+      <input id="searchInput" type="search" placeholder="Nome, @utilizador, setor ou cidade…" aria-label="Pesquisar por nome, @utilizador, setor ou cidade" oninput="agendarPesquisa()">
     </div>
     <select id="filtroProvincia" class="filtro" onchange="carregarPerfis()"></select>
     <select id="filtroSetor" class="filtro" onchange="carregarPerfis()"></select>
@@ -163,9 +183,11 @@ html, body { max-width: 100%; overflow-x: hidden; }
     <div class="chip" onclick="setFilter('singular',this)">👤 Pessoas</div>
   </div>
 
+  <h2 class="sec-titulo" id="secTitulo">Sugestões para ti</h2>
   <div class="grid" id="grid">
     <div class="skel"></div><div class="skel"></div><div class="skel"></div>
   </div>
+  <button type="button" class="ver-mais" id="verMais" style="display:none" onclick="verMais()">Ver mais</button>
 </main>
 
 <nav class="bottom-nav">
@@ -182,14 +204,19 @@ html, body { max-width: 100%; overflow-x: hidden; }
 //  AMIGOS = SEGUIR PESSOAS E EMPRESAS (tabela followers)
 // ─────────────────────────────────────
 let me = null;
-let perfis = [];          // resultado de "Descobrir"
+let perfis = [];          // resultado de "Descobrir" (sugestões ou pesquisa)
 let seguindo = new Set(); // ids que eu sigo
 let seguidores = new Set(); // ids que me seguem
 let perfisSeguindo = [];
 let perfisSeguidores = [];
 let currentTab = 'sugestoes';
 let filter = '';
-
+const POR_PAGINA = 30;
+let temMais = false;      // há mais perfis para "Ver mais"
+let aCarregar = false;
+let pedidoAtual = 0;      // ignora respostas de pesquisas antigas
+let semMigracao = false;  // antes da migração 063: pesquisa simples
+const contagens = new Map();   // id → número de seguidores
 const CAMPOS = 'id, full_name, username, type, sector, bio, city, province, avatar_url, created_at';
 
 (async function init(){
@@ -213,6 +240,15 @@ function avatarOf(u){
     '&background=random&color=fff&size=128');
 }
 const esc = FCP.esc;
+// sem acentos e em minúsculas ("eletronica" encontra "Eletrónica")
+function semAcentos(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function nSeguidores(n){
+  if (n == null) return '';
+  const t = n >= 1000000 ? (n / 1000000).toFixed(1).replace('.0', '').replace('.', ',') + ' M'
+          : n >= 10000 ? Math.round(n / 1000) + ' mil'
+          : n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '').replace('.', ',') + ' mil' : String(n);
+  return t + ' ' + (n === 1 ? FC.t('seguidor') : FC.t('seguidores'));
+}
 
 // quem eu sigo e quem me segue
 async function carregarLigacoes(){
@@ -228,6 +264,12 @@ async function carregarLigacoes(){
   seguidores = new Set(perfisSeguidores.map(p => p.id));
   atualizarBadges();
   render();
+  // número de seguidores de quem aparece nas listas
+  const ids = [...new Set([...seguindo, ...seguidores])].filter(id => !contagens.has(id));
+  if (ids.length) {
+    const r = await supabaseClient.rpc('contar_seguidores', { p_ids: ids });
+    if (!r.error && Array.isArray(r.data)) { r.data.forEach(x => contagens.set(x.id, Number(x.seguidores) || 0)); render(); }
+  }
 }
 
 function atualizarBadges(){
@@ -239,22 +281,45 @@ function atualizarBadges(){
 let _tPesq;
 function agendarPesquisa(){ clearTimeout(_tPesq); _tPesq = setTimeout(() => { carregarPerfis(); render(); }, 300); }
 
-// "Descobrir": pesquisa na base de dados
-async function carregarPerfis(){
+function termoPesquisa(){ return document.getElementById('searchInput').value.replace(/[%,()]/g, ' ').trim(); }
+
+// "Descobrir": sem pesquisa são sugestões para ti; com pesquisa, procura em nome, @, setor e cidade
+async function carregarPerfis(mais = false){
   if (!me) return;
-  const termo = document.getElementById('searchInput').value.replace(/[%,()]/g, ' ').trim();
+  const termo = termoPesquisa();
   const prov = document.getElementById('filtroProvincia').value;
   const setor = document.getElementById('filtroSetor').value;
-  let q = supabaseClient.from('perfis').select(CAMPOS).neq('id', me.id).eq('visibility', 'publico');
-  if (termo) q = q.ilike('full_name', `%${termo}%`);
-  if (prov) q = q.eq('province', prov);
-  if (setor) q = q.eq('sector', setor);
-  if (filter) q = q.eq('type', filter);
-  const { data, error } = await q.order('created_at', { ascending: false }).limit(60);
-  if (error) { console.warn(error.message); toast('Erro ao carregar perfis'); return; }
-  perfis = data || [];
+  const desde = mais ? perfis.length : 0;
+  const pedido = ++pedidoAtual;
+  aCarregar = true;
+  if (mais) render();
+  let data = null, error = null;
+  if (!semMigracao) {
+    ({ data, error } = await supabaseClient.rpc('descobrir_perfis', {
+      p_termo: termo || null, p_provincia: prov || null, p_setor: setor || null, p_tipo: filter || null,
+      p_desde: desde, p_limite: POR_PAGINA }));
+    if (error && /descobrir_perfis|function|schema cache|PGRST202/i.test(error.message + ' ' + (error.code || ''))) { semMigracao = true; error = null; data = null; }
+  }
+  if (semMigracao) {
+    // antes da migração 063: a pesquisa de sempre, por nome ou @utilizador
+    const limpo = termo.replace(/^@/, '');
+    let q = supabaseClient.from('perfis').select(CAMPOS).neq('id', me.id).eq('visibility', 'publico');
+    if (limpo) q = q.or(`full_name.ilike.%${limpo}%,username.ilike.%${limpo}%`);
+    if (prov) q = q.eq('province', prov);
+    if (setor) q = q.eq('sector', setor);
+    if (filter) q = q.eq('type', filter);
+    ({ data, error } = await q.order('created_at', { ascending: false }).range(desde, desde + POR_PAGINA - 1));
+  }
+  if (pedido !== pedidoAtual) return;          // entretanto escreveu outra coisa
+  aCarregar = false;
+  if (error) { console.warn(error.message); toast('Erro ao carregar perfis'); render(); return; }
+  const novos = data || [];
+  novos.forEach(u => { if (u.seguidores != null) contagens.set(u.id, Number(u.seguidores) || 0); });
+  perfis = mais ? perfis.concat(novos.filter(n => !perfis.some(p => p.id === n.id))) : novos;
+  temMais = novos.length === POR_PAGINA;
   render();
 }
+function verMais(){ if (!aCarregar && temMais) carregarPerfis(true); }
 
 function setTab(tab, btn){
   currentTab = tab;
@@ -273,28 +338,53 @@ function setFilter(f, el){
 
 // filtros também se aplicam às listas "A seguir" e "Seguidores"
 function filtrarLocal(lista){
-  const termo = document.getElementById('searchInput').value.trim().toLowerCase();
+  const termo = semAcentos(termoPesquisa().replace(/^@/, ''));
   const prov = document.getElementById('filtroProvincia').value;
   const setor = document.getElementById('filtroSetor').value;
   return lista.filter(u =>
     (!filter || u.type === filter) &&
     (!prov || u.province === prov) &&
     (!setor || u.sector === setor) &&
-    (!termo || (u.full_name || '').toLowerCase().includes(termo)));
+    (!termo || [u.full_name, u.username, u.sector, u.city, u.province].some(c => semAcentos(c).includes(termo))));
 }
 
 function render(){
   const grid = document.getElementById('grid');
+  const titulo = document.getElementById('secTitulo');
+  const btnMais = document.getElementById('verMais');
   let lista, vazio;
   if (currentTab === 'seguindo') { lista = filtrarLocal(perfisSeguindo); vazio = 'Ainda não segues ninguém. Vai a "Descobrir".'; }
   else if (currentTab === 'seguidores') { lista = filtrarLocal(perfisSeguidores); vazio = 'Ainda ninguém te segue.'; }
-  else { lista = perfis; vazio = 'Nenhum perfil encontrado.'; }
+  else { lista = perfis; vazio = termoPesquisa() ? 'Nenhum perfil encontrado.' : 'Por agora não há sugestões. Experimente pesquisar um nome, setor ou cidade.'; }
+
+  // título por cima dos cartões (só no Descobrir)
+  if (currentTab === 'sugestoes') {
+    titulo.style.display = '';
+    titulo.textContent = termoPesquisa() ? FC.t('Resultados da pesquisa') : (semMigracao ? FC.t('Contas mais recentes') : FC.t('Sugestões para ti'));
+  } else titulo.style.display = 'none';
+  btnMais.style.display = currentTab === 'sugestoes' && temMais && lista.length ? '' : 'none';
+  btnMais.disabled = aCarregar;
+  btnMais.innerHTML = aCarregar ? '<i class="fas fa-spinner fa-spin"></i> ' + FC.t('A carregar…') : FC.t('Ver mais');
 
   if (!lista.length) {
     grid.innerHTML = `<div class="empty"><i class="fas fa-user-friends"></i>${vazio}</div>`;
     return;
   }
   grid.innerHTML = lista.map(cartao).join('');
+  if (FC.aplicarSelos) FC.aplicarSelos(grid);    // coroa 👑 das lojas verificadas
+}
+
+// porque é que aparece nas sugestões
+function motivo(u){
+  if (currentTab !== 'sugestoes' || termoPesquisa()) return '';
+  const n = Number(u.amigos_comum) || 0;
+  if (u.amigo_nome && n > 0) {
+    return `<i class="fas fa-user-group"></i> ${FC.t('Seguido por')} <b data-no-i18n>${esc(u.amigo_nome)}</b>` +
+      (n > 1 ? ` ${FC.t('e mais')} ${n - 1} ${FC.t('que segues')}` : '');
+  }
+  if (u.mesma_cidade) return `<i class="fas fa-location-dot"></i> ${FC.t('Na tua cidade')}`;
+  if (u.verificada) return `<i class="fas fa-crown"></i> ${FC.t('Loja verificada')}`;
+  return '';
 }
 
 function cartao(u){
@@ -303,41 +393,76 @@ function cartao(u){
   const segueMe = seguidores.has(u.id);
   const local = [u.city, u.province].filter(Boolean).join(', ');
   const sub = [empresa ? u.sector : null, local].filter(Boolean).join(' · ');
+  const nSeg = contagens.has(u.id) ? contagens.get(u.id) : (u.seguidores != null ? Number(u.seguidores) : null);
+  const porque = motivo(u);
+  const textoBotao = sigo ? '<i class="fas fa-check"></i> ' + FC.t('A seguir')
+    : segueMe ? '<i class="fas fa-user-plus"></i> ' + FC.t('Seguir de volta')
+    : '<i class="fas fa-plus"></i> ' + FC.t('Seguir');
   return `
   <div class="card">
     <a class="card-top" href="perfil.html?id=${u.id}">
       <img src="${esc(avatarOf(u))}" alt="" loading="lazy">
-      <div>
-        <div class="nm"><span data-no-i18n>${esc(u.full_name || FC.t('Utilizador'))}</span>
+      <div class="card-info">
+        <div class="nm"><span data-no-i18n data-selo="${esc(u.id)}">${esc(u.full_name || FC.t('Utilizador'))}</span>
           <span class="type-tag ${empresa ? 'type-empresa' : 'type-singular'}">${empresa ? '🏢 Empresa' : '👤 Pessoa'}</span></div>
-        <div class="cl">${esc(sub)}${segueMe ? ' · <b style="color:var(--ok)">segue-te</b>' : ''}</div>
+        ${u.username ? `<div class="un" data-no-i18n>@${esc(u.username)}</div>` : ''}
+        <div class="cl">${esc(sub)}${segueMe ? ' · <b style="color:var(--ok)">' + FC.t('segue-te') + '</b>' : ''}</div>
+        ${nSeg != null ? `<div class="nseg"><b>${esc(nSeguidores(nSeg).split(' ')[0])}</b> ${esc(nSeguidores(nSeg).split(' ').slice(1).join(' '))}</div>` : ''}
       </div>
     </a>
+    ${porque ? `<div class="motivo">${porque}</div>` : ''}
     <p class="bio" data-no-i18n>${esc((u.bio || '').slice(0, 120))}</p>
     <div class="btn-row">
-      <button class="btn-full ${sigo ? 'seguindo' : (empresa ? 'pro' : '')}" onclick="alternarSeguir('${u.id}', this)">
-        ${sigo ? '<i class="fas fa-check"></i> A seguir' : '<i class="fas fa-plus"></i> Seguir'}
-      </button>
+      <button class="btn-full ${sigo ? 'seguindo' : (segueMe ? 'volta' : (empresa ? 'pro' : ''))}" onclick="alternarSeguir('${u.id}', this)">${textoBotao}</button>
       <button class="btn-full decline" onclick="enviarMensagem('${u.id}')" title="Enviar mensagem"><i class="fas fa-comment-dots"></i> Mensagem</button>
     </div>
   </div>`;
 }
 
+// deixar de seguir pede confirmação (um toque sem querer não desfaz a ligação)
+function confirmarDeixar(nome){
+  return new Promise(resolve => {
+    const fundo = document.createElement('div');
+    fundo.className = 'conf-fundo';
+    fundo.innerHTML = `<div class="conf" role="dialog" aria-modal="true" aria-labelledby="confTit">
+      <h3 id="confTit">${FC.t('Deixar de seguir')} <span data-no-i18n>${esc(nome || '')}</span>?</h3>
+      <p>${FC.t('Deixa de ver as publicações desta conta no início. Pode voltar a seguir quando quiser.')}</p>
+      <div class="conf-botoes">
+        <button type="button" class="conf-nao">${FC.t('Cancelar')}</button>
+        <button type="button" class="conf-sim">${FC.t('Deixar de seguir')}</button>
+      </div></div>`;
+    const fim = v => { fundo.remove(); document.removeEventListener('keydown', tecla); resolve(v); };
+    const tecla = e => { if (e.key === 'Escape') fim(false); };
+    fundo.addEventListener('click', e => { if (e.target === fundo) fim(false); });
+    fundo.querySelector('.conf-nao').onclick = () => fim(false);
+    fundo.querySelector('.conf-sim').onclick = () => fim(true);
+    document.addEventListener('keydown', tecla);
+    document.body.appendChild(fundo);
+    fundo.querySelector('.conf-nao').focus();
+  });
+}
+
 async function alternarSeguir(id, btn){
-  btn.disabled = true;
   const u = [...perfis, ...perfisSeguidores, ...perfisSeguindo].find(x => x.id === id);
+  const nome = u ? u.full_name : '';
   if (seguindo.has(id)) {
+    if (!(await confirmarDeixar(nome))) return;
+    btn.disabled = true;
     const { error } = await supabaseClient.from('followers').delete().eq('follower_id', me.id).eq('following_id', id);
     if (error) { toast('Erro: ' + FC.traduzirErro(error)); btn.disabled = false; return; }
     seguindo.delete(id);
     perfisSeguindo = perfisSeguindo.filter(p => p.id !== id);
-    toast('Deixaste de seguir ' + (u ? u.full_name : ''));
+    if (contagens.has(id)) contagens.set(id, Math.max(0, contagens.get(id) - 1));
+    toast(FC.t('Deixaste de seguir') + ' ' + nome);
   } else {
+    btn.disabled = true;
+    const voltar = seguidores.has(id);
     const { error } = await supabaseClient.from('followers').insert({ follower_id: me.id, following_id: id, created_at: Date.now() });
     if (error && !String(error.message).includes('duplicate')) { toast('Erro: ' + FC.traduzirErro(error)); btn.disabled = false; return; }
     seguindo.add(id);
     if (u && !perfisSeguindo.some(p => p.id === id)) perfisSeguindo.unshift(u);
-    toast('Agora segues ' + (u ? u.full_name : ''));
+    if (!error && contagens.has(id)) contagens.set(id, contagens.get(id) + 1);
+    toast((voltar ? FC.t('Agora seguem-se um ao outro:') : FC.t('Agora segues')) + ' ' + nome);
   }
   atualizarBadges();
   render();
