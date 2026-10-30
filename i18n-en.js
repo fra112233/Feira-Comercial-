@@ -9,6 +9,22 @@
   api._en = true;
 
   var D = {
+"seguidor": "follower",
+"seguidores": "followers",
+"Resultados da pesquisa": "Search results",
+"Contas mais recentes": "Newest accounts",
+"Sugestões para ti": "Suggestions for you",
+"Seguido por": "Followed by",
+"que segues": "more you follow",
+"Na tua cidade": "In your city",
+"Seguir de volta": "Follow back",
+"segue-te": "follows you",
+"Deixar de seguir": "Unfollow",
+"Deixa de ver as publicações desta conta no início. Pode voltar a seguir quando quiser.": "You'll stop seeing this account's posts on your home feed. You can follow again anytime.",
+"Agora seguem-se um ao outro:": "You now follow each other:",
+"Nome, @utilizador, setor ou cidade…": "Name, @username, sector or city…",
+"Pesquisar por nome, @utilizador, setor ou cidade": "Search by name, @username, sector or city",
+"Por agora não há sugestões. Experimente pesquisar um nome, setor ou cidade.": "No suggestions for now. Try searching for a name, sector or city.",
 "Mensagem de voz": "Voice message",
 "Gravar mensagem de voz": "Record voice message",
 "A gravar…": "Recording…",
