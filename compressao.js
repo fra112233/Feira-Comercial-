@@ -61,7 +61,13 @@
       '#fcm-prog .l{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}' +
       '#fcm-prog .b{height:6px;border-radius:6px;background:#2c2c34;overflow:hidden}' +
       '#fcm-prog .b i{display:block;height:100%;width:0;background:#f3c64e;transition:width .2s}' +
-      '#fcm-prog small{display:block;color:#a1a1aa;margin-top:6px;font-size:12px}';
+      '#fcm-prog small{display:block;color:#a1a1aa;margin-top:6px;font-size:12px}' +
+      '#fcm-dica{position:fixed;left:50%;top:calc(72px + env(safe-area-inset-top));transform:translateX(-50%);z-index:9001;width:min(380px,calc(100vw - 24px));' +
+      'background:#18181b;color:#f4f4f5;border:1px solid rgba(243,198,78,.45);border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.4);' +
+      'font:500 13.5px/1.45 Inter,system-ui,sans-serif;display:flex;gap:10px;align-items:flex-start;animation:fcmDica .25s ease-out}' +
+      '#fcm-dica .ic{color:#f3c64e;font-size:18px;line-height:1.2}#fcm-dica b{display:block;font-size:14px;margin-bottom:2px}' +
+      '#fcm-dica span{color:#d4d4d8}#fcm-dica button{flex:none;border:none;background:#f3c64e;color:#18181b;border-radius:9px;padding:6px 10px;font-weight:700;font-size:12.5px;font-family:inherit;cursor:pointer}' +
+      '@keyframes fcmDica{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}';
     document.head.appendChild(css);
   }
 
@@ -102,6 +108,26 @@
     };
     api.atualizar(null, texto);
     return api;
+  }
+
+  // Dica curta (não bloqueia) quando o vídeo foi gravado em 4K ou a 60 fps: no máximo 1 vez a cada 3 dias
+  function dicaCamera(quatroK, fps60) {
+    try {
+      var ult = +localStorage.getItem('fcm_dica_camera') || 0;
+      if (Date.now() - ult < 3 * 864e5) return;
+      localStorage.setItem('fcm_dica_camera', String(Date.now()));
+    } catch (e) {}
+    estilos();
+    var velho = document.getElementById('fcm-dica'); if (velho) velho.remove();
+    var el = document.createElement('div');
+    el.id = 'fcm-dica'; el.setAttribute('role', 'status');
+    var oque = quatroK && fps60 ? 'Este vídeo foi gravado em 4K a 60 fps.' : quatroK ? 'Este vídeo foi gravado em 4K.' : 'Este vídeo foi gravado a 60 fps.';
+    el.innerHTML = '<i class="fas fa-lightbulb ic"></i><div><b>Dica: vídeos prontos mais depressa</b>' +
+      '<span>' + oque + '</span> <span>Na câmara do telemóvel escolha 1080p (ou 720p) e 30 fps: fica igual na Feira e fica pronto várias vezes mais depressa.</span></div>' +
+      '<button type="button">Entendi</button>';
+    document.body.appendChild(el);
+    var t = setTimeout(function () { el.remove(); }, 12000);
+    el.querySelector('button').onclick = function () { clearTimeout(t); el.remove(); };
   }
 
   var DICAS_VIDEO = [
@@ -241,6 +267,7 @@
       var fps = null;
       try { fps = (await vt.computeFrameRateMetrics({ targetPacketCount: 90 })).bestGuessFrameRate; } catch (e) {}
       var frameRate = fps && fps > 31 ? 30 : undefined;      // 60 fps → 30 fps (metade do trabalho)
+      if (Math.max(dw, dh) > 2000 || (fps && fps > 31)) dicaCamera(Math.max(dw, dh) > 2000, !!(fps && fps > 31));
 
       if (!(await M.canEncodeVideo(CODEC, { width: w, height: h, bitrate: bitrate })))
         throw new Error('este navegador não codifica H.264');
