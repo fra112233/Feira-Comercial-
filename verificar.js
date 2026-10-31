@@ -179,7 +179,7 @@
     };
     const aEspera = (cx, t) => { $(cx).classList.remove('tem'); $(cx).querySelector('span').textContent = t; };
 
-    $('vrDocCx').onclick = () => $('vrDoc').click();
+    $('vrDocCx').onclick = e => { if (e.target !== $('vrDoc')) $('vrDoc').click(); };
     $('vrDoc').onchange = async () => {
       const f = $('vrDoc').files[0]; if (!f) return;
       erro(''); delete fich.vrDoc; aEspera('vrDocCx', T('A preparar…'));
@@ -189,7 +189,10 @@
     };
 
     // loja: a localização começa a ser pedida no toque (o telemóvel mostra logo o pedido de permissão)
-    $('vrFotoCx').onclick = () => { pedidoLoc = localizacao(); pedidoLoc.catch(() => {}); $('vrFoto').click(); };
+    $('vrFotoCx').onclick = e => {
+      if (e.target === $('vrFoto')) return;   // o clique do próprio campo sobe até aqui: não pedir a localização duas vezes
+      pedidoLoc = localizacao(); pedidoLoc.catch(() => {}); $('vrFoto').click();
+    };
     $('vrFoto').onchange = async () => {
       const f = $('vrFoto').files[0]; if (!f) return;
       erro(''); delete fich.vrFoto; loc = null;

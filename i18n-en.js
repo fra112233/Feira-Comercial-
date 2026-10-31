@@ -1567,6 +1567,7 @@
 "termina em": "ends in",
 "termina hoje": "ends today",
 "terminou": "ended",
+"verificação da loja (coroa dourada), só se a empresa a pedir: foto do documento (com a marca \"só para verificação\"), foto da loja tirada na hora com a data, a hora e a localização (coordenadas GPS e morada aproximada) e um telefone de contacto. Servem só para a Equipa confirmar que a loja existe; ficam privados e nunca aparecem no perfil;": "shop verification (golden crown), only if the business requests it: a photo of the document (marked \"for verification only\"), a photo of the shop taken on the spot with the date, time and location (GPS coordinates and approximate address) and a contact phone number. They are used only for the Team to confirm the shop exists; they are private and never appear on the profile;",
 "visualização": "view",
 "visualizações": "views",
 "© 2026 Feira Comercial · Moçambique": "© 2026 Feira Comercial · Mozambique",
