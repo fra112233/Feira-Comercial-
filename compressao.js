@@ -3,8 +3,8 @@
    Otimiza fotos e vídeos NO TELEMÓVEL antes de enviar, para poupar
    dados e espaço sem perder qualidade visível.
 
-   • Fotos: até 100 MB à entrada → JPG de boa qualidade (lado maior 1920 px — nítido no telemóvel e mais rápido a enviar).
-   • Vídeos: até 3 minutos → MP4 (H.264) 720p, 30 fps, com o som original;
+   • Fotos: até 100 MB à entrada → JPG de boa qualidade (lado maior 1600 px — nítido no telemóvel e rápido a enviar).
+   • Vídeos: até 3 minutos → MP4 (H.264) 720p, 30 fps, 1 Mbps, com o som original;
      o resultado fica sempre abaixo do limite de envio. Vídeos que já são
      leves vão como estão. A otimização começa logo ao escolher o vídeo
      (FCMedia.iniciar) e usa o codificador de hardware do telemóvel.
@@ -162,14 +162,14 @@
     }
     try {
       var bmp = await createImageBitmap(file);
-      var lado = 1920, k = Math.min(1, lado / Math.max(bmp.width, bmp.height));
+      var lado = 1600, k = Math.min(1, lado / Math.max(bmp.width, bmp.height));   // era 1920: ~30% mais leve, igual no ecrã do telemóvel
       var c = document.createElement('canvas');
       c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
       var ctx = c.getContext('2d');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);   // PNG transparente → fundo branco
       ctx.drawImage(bmp, 0, 0, c.width, c.height);
       if (bmp.close) bmp.close();
-      var blob = await new Promise(function (r) { c.toBlob(r, 'image/jpeg', 0.85); });
+      var blob = await new Promise(function (r) { c.toBlob(r, 'image/jpeg', 0.82); });
       if (blob && blob.size < file.size) {
         var nome = (file.name || 'foto').replace(/\.\w+$/, '') + '.jpg';
         return new File([blob], nome, { type: 'image/jpeg' });
@@ -208,7 +208,7 @@
     await validar(file);
     if (file.size <= LIMITES.videoLeve) {                // já é leve (e com bitrate baixo): vai já, sem esperar
       var dLeve = await duracao(file);
-      if (!dLeve || file.size * 8 / dLeve <= 1.9e6) return file;
+      if (!dLeve || file.size * 8 / dLeve <= 1.4e6) return file;
     }
 
     var aoProgresso = opcoes.aoProgresso || function () {};
@@ -230,7 +230,9 @@
       var w = Math.max(2, Math.round(dw * k / 2) * 2), h = Math.max(2, Math.round(dh * k / 2) * 2);
 
       var orcamento = (LIMITES.alvo * 8) / Math.max(dur, 1) - 192e3;   // cabe sempre no limite
-      var bitrate = Math.max(6e5, Math.min(1.5e6, orcamento));   // 720p a 1,5 Mbps: nítido no telemóvel e leve para quem vê
+      // 720p a 1 Mbps: nítido no ecrã do telemóvel, envio ~1/3 mais rápido e menos dados para quem vê
+      // (era 1,5 Mbps: um vídeo de 1 min 40 s ficava com 21 MB; agora fica com ~14 MB)
+      var bitrate = Math.max(6e5, Math.min(1.0e6, orcamento));
 
       // não vale a pena: já é 720p (ou menos) e leve — vai como está, sem esperar
       var bitrateOriginal = file.size * 8 / Math.max(dur, 1);
