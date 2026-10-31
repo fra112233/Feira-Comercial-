@@ -1518,6 +1518,7 @@
 "podem publicar anúncios. Podes ver todos os anúncios e contactar as empresas.": "can publish ads. You can see all ads and contact the businesses.",
 "por transferência bancária para a sua empresa": "by bank transfer so your business",
 "produtos": "products",
+"pronto a publicar": "ready to publish",
 "proteção contra burlas: um código ao acaso guardado no seu navegador, um resumo das características do aparelho (tipo de ecrã, idioma, fuso horário) e um resumo cifrado da rede (nunca o endereço em si). Servem só para proteger a feira contra burlas e contas falsas. Não incluem fotos, contactos, localização nem outros dados do aparelho, só a administração os usa e são apagados ao fim de 1 ano sem uso;": "scam protection: a random code stored in your browser, a summary of the device's characteristics (screen type, language, time zone) and an encrypted summary of the network (never the address itself). They are used only to protect the marketplace against fraud and fake accounts. They do not include photos, contacts, location or any other device data, only the administration uses them, and they are deleted after 1 year without use;",
 "publicou hoje 🛍️": "posted today 🛍️",
 "publicou um vídeo novo": "posted a new video",
