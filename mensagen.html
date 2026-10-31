@@ -1270,7 +1270,7 @@ function lerFila() {
     try {
         const lista = JSON.parse(localStorage.getItem(chaveFila()) || '[]');
         (Array.isArray(lista) ? lista : []).forEach(p => {
-            if (p && p.id && p.receiver_id && !pendentes.has(p.id)) pendentes.set(p.id, Object.assign(p, { _falhou: true, _aEnviar: false }));
+            if (p && p.id && p.receiver_id && !pendentes.has(p.id)) pendentes.set(p.id, Object.assign(p, { _falhou: true, _aEnviar: false, _jaFalhou: true }));   // ao reenviar, confirma primeiro se já tinha chegado (não envia a dobrar)
         });
     } catch (e) {}
 }
