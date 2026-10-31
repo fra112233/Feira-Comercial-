@@ -2120,22 +2120,27 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
         if (!item || !item.postId || modoVisita) return;
         const ehVideo = item.type === 'video';
         if (!confirm(ehVideo ? 'Apagar este vídeo? Não pode ser recuperado.' : 'Apagar esta foto? Não pode ser recuperada.')) return;
-        const post = (historicoMedia || []).find(p => p.id === item.postId) || meusPosts.find(p => p.id === item.postId);
-        if (!post) return;
-        const restantes = (post.rawMedia || post.media.map(m => ({ url: m.url, type: m.type }))).filter(m => m && m.url !== item.url);
-        const texto = post.content !== undefined ? post.content : (post.text || '');
+        // a mesma foto pode estar em várias publicações (republicada): tira-a de todas, senão voltava a aparecer
+        const minhas = [...(historicoMedia || []), ...meusPosts.filter(m => !(historicoMedia || []).some(h => h.id === m.id))];
+        const alvos = minhas.filter(p => p.id === item.postId || (p.media || []).some(m => (m.data || m.url) === item.url));
+        if (!alvos.length) return;
         let error;
-        if (!restantes.length && !texto.trim()) {
-            ({ error } = await getSB().from('posts').delete().eq('id', item.postId));
-        } else {
-            const novo = { media: restantes };
-            if (post.image_url === item.url || !post.rawMedia) novo.image_url = restantes.find(m => m.type !== 'video')?.url || null;
-            ({ error } = await getSB().from('posts').update(novo).eq('id', item.postId));
+        for (const post of alvos) {
+            const restantes = (post.rawMedia || post.media.map(m => ({ url: m.url || m.data, type: m.type }))).filter(m => m && m.url !== item.url);
+            const texto = post.content !== undefined ? post.content : (post.text || '');
+            if (!restantes.length && !texto.trim()) {
+                ({ error } = await getSB().from('posts').delete().eq('id', post.id));
+            } else {
+                const novo = { media: restantes };
+                if (post.image_url === item.url || !post.rawMedia) novo.image_url = restantes.find(m => m.type !== 'video')?.url || null;
+                ({ error } = await getSB().from('posts').update(novo).eq('id', post.id));
+            }
+            if (error) break;
         }
         if (error) { alert('Não foi possível apagar: ' + FC.traduzirErro(error)); return; }
         closeLightbox();
         showToast(ehVideo ? 'Vídeo apagado.' : 'Foto apagada.');
-        await carregarMeusPosts();
+        await Promise.all([carregarMeusPosts(), carregarHistoricoMedia()]);
     }
 
     function openLightbox(element) {
