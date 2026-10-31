@@ -982,7 +982,9 @@ function desenharContas() {
         (emp ? '<div><span>Mensalidade até</span><b>' + (c.assinatura_ate ? new Date(c.assinatura_ate).toLocaleDateString('pt-PT') : '—') + '</b></div>' +
                '<div><span>Pagamentos</span><b>✔ ' + c.pagamentos_confirmados + ' · ✖ ' + c.pagamentos_recusados + '</b></div>' : '') +
       '</div>' +
-      (c.bloqueado && c.bloqueio_motivo ? '<div class="nota"><i class="fas fa-ban"></i> Motivo da suspensão: ' + esc(c.bloqueio_motivo) + '</div>' : '') +
+      (c.bloqueado && c.bloqueio_motivo ? '<div class="nota"><i class="fas fa-ban"></i> Motivo da suspensão: ' + esc(c.bloqueio_motivo) +
+        // revisão automática pelo aparelho: o dono da conta só vê a frase neutra; a equipa vê o motivo verdadeiro
+        (/^Em revisão de segurança\./.test(c.bloqueio_motivo) ? '<br><b>Motivo real:</b> aberta num aparelho já usado por uma conta suspensa (o dono da conta não vê isto).' : '') + '</div>' : '') +
       '<div class="conta-acoes">' +
         '<a class="btn btn-sec" href="mensagen.html?para=' + esc(c.id) + '"><i class="fas fa-comment"></i> Mensagem</a>' +
         '<button type="button" class="btn btn-sec" onclick="verAcessos(\'' + c.id + '\')"><i class="fas fa-location-dot"></i> Acessos</button>' +
