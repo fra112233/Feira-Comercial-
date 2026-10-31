@@ -622,27 +622,6 @@ html, body { max-width: 100%; overflow-x: hidden; }
         /* ⚡ pôr uma publicação já feita em oferta (quem a guardou recebe aviso) */
         .por-oferta { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 10px; padding: 7px 12px; border-radius: 20px; cursor: pointer;
             border: 1px dashed rgba(243,198,78,.7); background: rgba(243,198,78,.08); color: #d9a52e; font: 700 13px inherit; font-family: inherit; }
-        /* ↻ Republicar (só o dono vê, por cima das suas fotos/vídeos) */
-        .btn-republicar { position: absolute; left: 10px; top: 10px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px;
-            border: 0; border-radius: 999px; background: rgba(0,0,0,.62); color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
-            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-        .btn-republicar i { color: #f3c64e; }
-        .btn-republicar:active { transform: scale(.96); }
-        #modal-republicar { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.55); display: none; align-items: flex-end; justify-content: center; }
-        #modal-republicar.aberto { display: flex; }
-        #modal-republicar .cx { width: 100%; max-width: 460px; background: var(--bg-card); color: var(--text-main); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
-        @media (min-width: 600px) { #modal-republicar { align-items: center; } #modal-republicar .cx { border-radius: 18px; } }
-        #modal-republicar h3 { margin: 0 0 4px; font-size: 18px; }
-        #modal-republicar p { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
-        #modal-republicar .mr-midia { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 10px; }
-        #modal-republicar .mr-midia img, #modal-republicar .mr-midia video { width: 76px; height: 76px; object-fit: cover; border-radius: 10px; flex: none; background: #000; }
-        #modal-republicar label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 6px 0 4px; }
-        #modal-republicar textarea { width: 100%; box-sizing: border-box; min-height: 90px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-body, transparent); color: var(--text-main); font: inherit; font-size: 15px; resize: vertical; }
-        #modal-republicar .bts { display: flex; gap: 8px; margin-top: 14px; }
-        #modal-republicar .bts button { flex: 1; padding: 12px; border-radius: 12px; border: 0; font: inherit; font-weight: 700; cursor: pointer; }
-        #modal-republicar .bts .nao { background: var(--hover-bg, rgba(0,0,0,.06)); color: var(--text-main); }
-        #modal-republicar .bts .ok { background: var(--primary); color: #fff; }
-        #modal-republicar .bts .ok:disabled { opacity: .6; }
         #modal-oferta { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.55); display: none; align-items: flex-end; justify-content: center; }
         #modal-oferta.aberto { display: flex; }
         #modal-oferta .cx { width: 100%; max-width: 460px; background: var(--bg-card); color: var(--text-main); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
@@ -829,16 +808,6 @@ try { if (localStorage.getItem('lightMode') === 'true') {
         <div id="perto-ofertas" role="button" tabindex="0" onclick="verOfertasPerto()"><span>📍</span><span id="perto-ofertas-txt"></span><span class="ir">Ver ⚡</span></div>
         <div id="feed"></div>
     </section>
-    <div id="modal-republicar" onclick="if(event.target===this)fecharRepublicar()">
-        <div class="cx" role="dialog" aria-modal="true">
-            <h3>↻ Republicar</h3>
-            <p>Volta ao topo do feed com as mesmas fotos e vídeos. Já estão guardados, por isso publica na hora.</p>
-            <div class="mr-midia" id="mr-midia"></div>
-            <label for="mr-texto">Texto (pode mudar, por exemplo o preço)</label>
-            <textarea id="mr-texto" maxlength="5000" data-no-i18n></textarea>
-            <div class="bts"><button type="button" class="nao" onclick="fecharRepublicar()">Cancelar</button><button type="button" class="ok" id="mr-ok" onclick="confirmarRepublicar()">Republicar</button></div>
-        </div>
-    </div>
     <div id="modal-oferta" onclick="if(event.target===this)fecharModalOferta()">
         <div class="cx">
             <h3>⚡ Pôr em oferta</h3>
@@ -1226,46 +1195,6 @@ async function guardarOfertaPost() {
     const p = posts.find(x => x.id === id);
     if (p) { p.ofertaPreco = preco; p.ofertaAntes = antes; p.ofertaAte = dados.oferta_ate; const el = document.getElementById('post-' + id); if (el) el.outerHTML = renderPostCard(p, true); }
     FCMedia.aviso('Oferta ativa ⚡', 'Quem guardou esta publicação já foi avisado.', { icone: 'fa-bolt' });
-}
-
-// ↻ Republicar: a mesma publicação volta ao topo, com as fotos/vídeos já guardados (não envia nada).
-// O servidor só deixa uma vez a cada 7 dias por publicação e não deixa trocar as fotos/vídeos.
-let republicarId = null;
-function abrirRepublicar(id) {
-    const p = posts.find(x => x.id === id); if (!p) return;
-    const dias = (FC.agora() - p.timestamp) / 864e5;
-    if (dias < 7) {
-        const quando = new Date(p.timestamp + 7 * 864e5).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
-        FCMedia.aviso(FC.t('Ainda é recente'), FC.t('Esta publicação ainda está fresca no feed. Pode voltar a pô-la no topo a partir de') + ' ' + quando + '.', { icone: 'fa-rotate-right' });
-        return;
-    }
-    republicarId = id;
-    document.getElementById('mr-midia').innerHTML = p.media.slice(0, 6).map(m => m.type === 'video'
-        ? `<video src="${FC.u(m.url)}#t=0.5" muted playsinline preload="metadata"></video>` : `<img src="${FC.u(m.url)}" alt="">`).join('');
-    document.getElementById('mr-texto').value = p.text || '';
-    document.getElementById('modal-republicar').classList.add('aberto');
-}
-function fecharRepublicar() { document.getElementById('modal-republicar').classList.remove('aberto'); republicarId = null; }
-async function confirmarRepublicar() {
-    const id = republicarId; if (!id) return;
-    const b = document.getElementById('mr-ok'); b.disabled = true;
-    const p = posts.find(x => x.id === id);
-    const texto = document.getElementById('mr-texto').value.trim();
-    const primeiraFoto = p && p.media.find(m => m.type === 'image');
-    const { error } = await supabaseClient.from('posts').insert({
-        user_id: currentUser.id, content: texto || null, republicado_de: id,
-        media: p ? p.media : [], image_url: primeiraFoto ? primeiraFoto.url : null });   // o servidor confirma e usa as originais
-    b.disabled = false;
-    if (error) {
-        const m = (error.message || '').replace(/^.*?: /, '');
-        FCMedia.aviso(FC.t('Não foi possível republicar'), /row-level security/i.test(error.message || '')
-            ? FC.t('Mensalidade em atraso: só empresas com a mensalidade em dia podem publicar.') : (m || FC.t('Tente outra vez.')), { erro: true });
-        return;
-    }
-    fecharRepublicar();
-    await carregarPosts();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (FC.toast) FC.toast('✅ ' + FC.t('Publicação de volta ao topo'));
 }
 
 // 📍 "3 ofertas perto de si agora" no topo de "Para si"
@@ -2348,7 +2277,6 @@ function renderPostCard(p, isMe) {
     const gridClass = ['','single','double','triple','quad'][Math.min(p.media.length, 4)] || 'single';
     const mediaHtml = p.media.length > 0 ? `
         <div class="gallery-preview">
-            ${isMe ? `<button type="button" class="btn-republicar" onclick="event.stopPropagation();abrirRepublicar(${p.id})" title="${FC.t('Voltar a pôr esta publicação no topo, com as mesmas fotos e vídeos')}"><i class="fas fa-rotate-right"></i> ${FC.t('Republicar')}</button>` : ''}
             <div class="gallery-grid ${gridClass}">
                 ${p.media.slice(0, 4).map(m => m.type === 'video'
                     ? `<div class="video-wrapper" data-postid="${p.id}">

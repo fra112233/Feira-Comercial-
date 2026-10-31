@@ -17,6 +17,7 @@
 <script src="supabase-config.js"></script>
 <script src="burlas.js"></script>
 <script src="compressao.js"></script>
+<script src="republicar.js"></script>
 <script src="atualizacao.js"></script>
 <script src="perfil-campos.js"></script>
 <script src="perfil-tipos.js"></script>
@@ -1965,6 +1966,12 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
             </div>`;
     }
 
+    // ↻ Republicar (republicar.js): na galeria "Mídia", fotos/vídeos que já saíram do feed voltam ao topo num toque
+    if (window.FCRepublicar) FCRepublicar.ligar(
+        id => { const p = (historicoMedia || obterPostsFeed()).find(x => x.id === id);
+                return p && { id: p.id, text: p.content != null ? p.content : p.text, timestamp: p.timestamp, media: (p.media || []).map(x => ({ url: x.data, type: x.type })) }; },
+        async () => { await Promise.all([carregarMeusPosts(), carregarHistoricoMedia()]); });
+
     async function deletePostFeed(refId) {
         if (!confirm('Apagar esta publicação?')) return;
         const { error } = await getSB().from('posts').delete().eq('id', refId);
@@ -2058,8 +2065,9 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
     // lightboxImages: lista de { url, type } (fotos e vídeos)
     function todasAsMedias() {
         const lista = [];
+        const vistos = new Set();   // a mais recente primeiro: uma foto republicada não aparece duas vezes
         (historicoMedia || obterPostsFeed()).forEach(p => (p.media || []).forEach(m => {
-            if (m && m.data) lista.push({ url: m.data, type: m.type === 'video' ? 'video' : 'image', postId: p.id });
+            if (m && m.data && !vistos.has(m.data)) { vistos.add(m.data); lista.push({ url: m.data, type: m.type === 'video' ? 'video' : 'image', postId: p.id, quando: p.timestamp }); }
         }));
         return lista;
     }
@@ -2535,14 +2543,16 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
             return;
         }
 
+        const podeRepub = item => !modoVisita && window.FCRepublicar && item.quando && FC.agora() - item.quando >= FCRepublicar.DIAS * 864e5;
         gallery.innerHTML = mediaItems.map((item, i) => {
+            const repub = podeRepub(item) ? FCRepublicar.botao(item.postId, true) : '';   // ↻ só o dono, e só o que já saiu do feed
             if (item.type === 'video') {
                 return `
                     <div class="media-item" onclick="abrirGaleria(${i})" role="button" aria-label="Ver vídeo">
                         <video src="${FC.u(item.url)}#t=0.5" preload="metadata" muted playsinline></video>
                         <div class="media-item-overlay" style="opacity:1;background:rgba(0,0,0,0.25)">
                             <div class="media-item-icon"><i class="fas fa-play"></i></div>
-                        </div>
+                        </div>${repub}
                     </div>
                 `;
             } else {
@@ -2551,7 +2561,7 @@ try { if (localStorage.getItem('lightMode') === 'true') document.body.classList.
                         <img src="${FC.u(item.url)}" alt="Foto" loading="lazy">
                         <div class="media-item-overlay">
                             <div class="media-item-icon"><i class="fas fa-search-plus"></i></div>
-                        </div>
+                        </div>${repub}
                     </div>
                 `;
             }
