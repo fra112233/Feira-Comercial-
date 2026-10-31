@@ -377,7 +377,7 @@ FC.badgeMensagens = async function () {
 FC._notifNaoLidas = 0;
 FC._fimAvisado = new Set();
 FC._notifTextos = {
-  travao: '🛑 Travão automático: conta posta em revisão por denúncias',
+  travao: '🛑 Travão automático: conta posta em revisão',
   numero_proibido: '🚫 enviou um número de uma conta suspensa',
   numero_denunciado: '🚩 número denunciado pela comunidade:',
   numero_no_perfil: '🚫 número da lista de burlas num perfil:',
@@ -1178,8 +1178,13 @@ FC.registarAparelho = async function (uid) {
     const token = FC._tokenAparelho();
     if (Date.now() - ultimo < 12 * 3600 * 1000) return;
     const impressao = await FC._impressaoAparelho();
-    const { error } = await supabaseClient.rpc('registar_aparelho', { p_token: token, p_impressao: impressao });
+    const { data, error } = await supabaseClient.rpc('registar_aparelho', { p_token: token, p_impressao: impressao });
     if (!error) { try { localStorage.setItem(chave, String(Date.now())); } catch (e) {} }
+    // a conta acabou de ficar em revisão: mostra já a faixa (sem esperar pela página seguinte)
+    if (data === true) {
+      const r = await supabaseClient.from('perfis').select('bloqueado, bloqueio_motivo').eq('id', uid).maybeSingle();
+      if (r.data && r.data.bloqueado) FC.avisoSuspensa(r.data);
+    }
   } catch (e) {}
 };
 
