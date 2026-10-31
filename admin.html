@@ -867,6 +867,10 @@ async function carregarVerif(silencioso) {
         '<div><span>Na Feira desde</span><b>' + quando(v.criado_conta) + '</b></div>' +
         '<div><span>Publicações</span><b>' + v.n_pubs + '</b></div>' +
       '</div>' +
+      (v.lat != null ? '<div class="nota" style="margin-top:10px">📍 <b>Onde a foto da loja foi tirada:</b> ' + esc(v.endereco || 'sem morada') +
+        ' <small style="color:var(--sub)">(±' + esc(v.precisao) + ' m)</small> — <a href="https://www.google.com/maps?q=' + encodeURIComponent(v.lat + ',' + v.lng) + '" target="_blank" rel="noopener">Ver no mapa</a>' +
+        (v.precisao > 500 ? '<br>⚠️ GPS pouco preciso: confirme a morada na chamada.' : '') + '</div>'
+        : (pend ? '<div class="nota" style="margin-top:10px">📍 Pedido antigo, sem localização.</div>' : '')) +
       (pend ? '<div style="display:flex;gap:12px;margin-top:12px">' + mini(v.documento, 'Documento') + mini(v.foto, 'Loja') + '</div>' : '') +
       par +
       (v.estado === 'recusada' && v.motivo ? '<div class="nota">Motivo: ' + esc(v.motivo) + '</div>' : '') +

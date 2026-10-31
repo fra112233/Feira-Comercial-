@@ -1,7 +1,8 @@
 /* ============================================================
    Feira Comercial — verificar.js
    No MEU perfil de empresa: pedir a coroa dourada 👑 (loja verificada).
-   Envia documento + foto da loja + telefone. Os ficheiros ficam privados
+   Envia documento (com marca de água) + foto da loja tirada na hora, com carimbo de data, hora e
+   localização (estilo Timestamp) + telefone. Os ficheiros ficam privados
    (só a Equipa vê). Mostra o estado: em análise, recusado (com motivo) ou verificada.
    ============================================================ */
 (function () {
@@ -32,7 +33,8 @@
     '.vr-priv{margin-top:14px;font-size:12.5px;color:var(--text-tertiary,#94a3b8);display:flex;gap:8px;line-height:1.4}' +
     '.vr-acoes{display:flex;gap:10px;margin-top:16px}.vr-acoes button{flex:1;padding:13px;border-radius:12px;border:0;font:700 15px inherit;font-family:inherit;cursor:pointer}' +
     '.vr-acoes .sim{background:#f3c64e;color:#111}.vr-acoes .nao{background:transparent;color:inherit;border:1px solid var(--border-color,#334155)}' +
-    '.vr-erro{color:#fca5a5;font-size:13px;margin-top:10px;display:none}';
+    '.vr-erro{color:#fca5a5;font-size:13px;margin-top:10px;display:none}' +
+    '.vr-nota{display:block;margin-top:6px;font-size:12px;color:var(--text-tertiary,#94a3b8);line-height:1.4}';
   document.head.appendChild(css);
 
   function lugar() {
@@ -66,16 +68,85 @@
     const b = el.querySelector('[data-vr]'); if (b) b.onclick = abrir;
   }
 
-  async function reduzir(f) {
-    if (!f || !/^image\//.test(f.type) || f.size < 1.2 * 1024 * 1024) return f;
+  /* ---------- carimbo (estilo Timestamp): hora, data e localização gravadas na foto ---------- */
+  const agora = () => new Date((window.FC && FC.agora) ? FC.agora() : Date.now());   // relógio do servidor, não o do telemóvel
+  const fmt = (d, o) => d.toLocaleString('pt-PT', Object.assign({ timeZone: 'Africa/Maputo' }, o));
+
+  function localizacao() {
+    return new Promise((ok, falha) => {
+      if (!navigator.geolocation) return falha(new Error('sem GPS'));
+      navigator.geolocation.getCurrentPosition(
+        p => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precisao: Math.round(p.coords.accuracy || 0) }),
+        e => falha(e), { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 });
+    });
+  }
+  async function endereco(lat, lng) {   // rua / bairro / cidade (OpenStreetMap); se falhar, ficam só as coordenadas
     try {
-      const img = await createImageBitmap(f);
-      const k = Math.min(1, 1800 / Math.max(img.width, img.height));
-      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
-      return blob && blob.size < f.size ? new File([blob], 'foto.jpg', { type: 'image/jpeg' }) : f;
-    } catch (e) { return f; }
+      const c = new AbortController(); const t = setTimeout(() => c.abort(), 6000);
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=pt&lat=' + lat + '&lon=' + lng, { signal: c.signal });
+      clearTimeout(t);
+      const a = (await r.json()).address || {};
+      return [[a.road, a.house_number].filter(Boolean).join(' '), a.neighbourhood || a.suburb || a.quarter || a.village,
+              a.city || a.town || a.county, a.state].filter(Boolean).filter((x, i, l) => l.indexOf(x) === i).join(', ').slice(0, 160);
+    } catch (e) { return ''; }
+  }
+  async function imagem(f) {
+    const bmp = await createImageBitmap(f, { imageOrientation: 'from-image' });
+    const k = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    const g = c.getContext('2d'); g.drawImage(bmp, 0, 0, c.width, c.height);
+    return { c, g };
+  }
+  function partir(g, texto, largura) {   // divide o texto em linhas que cabem na largura
+    const ps = String(texto).split(' '), out = []; let l = '';
+    ps.forEach(p => { const t = l ? l + ' ' + p : p; if (g.measureText(t).width > largura && l) { out.push(l); l = p; } else l = t; });
+    if (l) out.push(l); return out;
+  }
+  const paraFicheiro = (c, nome) => new Promise(ok => c.toBlob(b => ok(new File([b], nome, { type: 'image/jpeg' })), 'image/jpeg', 0.85));
+
+  // foto da loja: faixa em baixo com hora grande, data, morada, coordenadas e o nome da loja
+  async function carimbarLoja(f, loc, morada) {
+    const { c, g } = await imagem(f);
+    const W = c.width, H = c.height, u = Math.max(14, Math.round(Math.min(W, H) * 0.034)), m = Math.round(u * 0.9);
+    const d = agora(), fonte = 'Inter, Roboto, "Segoe UI", system-ui, sans-serif';
+    g.font = '600 ' + u + 'px ' + fonte;
+    const lMorada = partir(g, '📍 ' + (morada || 'Localização GPS'), W - 2 * m).slice(0, 2);
+    const linhas = 1 + lMorada.length + 2, alt = Math.round(u * 2.6 + (linhas - 1) * u * 1.4 + m * 1.6);
+    const grad = g.createLinearGradient(0, H - alt - u * 2, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.35, 'rgba(0,0,0,.55)'); grad.addColorStop(1, 'rgba(0,0,0,.78)');
+    g.fillStyle = grad; g.fillRect(0, H - alt - u * 2, W, alt + u * 2);
+    g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = u * 0.25;
+    let y = H - alt + u * 1.9;
+    g.fillStyle = '#ffffff'; g.font = '800 ' + Math.round(u * 2.3) + 'px ' + fonte;
+    const hora = fmt(d, { hour: '2-digit', minute: '2-digit' }); g.fillText(hora, m, y);
+    const xh = m + g.measureText(hora).width + u * 0.7;
+    g.fillStyle = '#f3c64e'; g.fillRect(xh - u * 0.35, y - u * 1.75, Math.max(2, u * 0.16), u * 1.9);
+    g.fillStyle = '#ffffff'; g.font = '700 ' + u + 'px ' + fonte;
+    g.fillText(fmt(d, { day: '2-digit', month: '2-digit', year: 'numeric' }), xh, y - u * 0.95);
+    g.font = '500 ' + u + 'px ' + fonte; g.fillText(fmt(d, { weekday: 'long' }), xh, y);
+    g.font = '600 ' + u + 'px ' + fonte;
+    lMorada.forEach(l => { y += u * 1.4; g.fillText(l, m, y); });
+    y += u * 1.4; g.font = '500 ' + Math.round(u * 0.85) + 'px ' + fonte; g.fillStyle = 'rgba(255,255,255,.9)';
+    g.fillText(loc.lat.toFixed(5) + ', ' + loc.lng.toFixed(5) + '  ·  ±' + loc.precisao + ' m', m, y);
+    y += u * 1.4; g.fillStyle = '#f3c64e'; g.font = '700 ' + Math.round(u * 0.85) + 'px ' + fonte;
+    g.fillText(('Feira Comercial · Verificação · ' + (perfil.full_name || '')).slice(0, 80), m, y);
+    return paraFicheiro(c, 'loja.jpg');
+  }
+
+  // documento: marca de água em diagonal — se a foto sair daqui, não serve para mais nada
+  async function carimbarDocumento(f) {
+    const { c, g } = await imagem(f);
+    const W = c.width, H = c.height, u = Math.max(14, Math.round(Math.min(W, H) * 0.04));
+    const txt = 'SÓ PARA VERIFICAÇÃO NA FEIRA COMERCIAL · ' + fmt(agora(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+    g.save(); g.translate(W / 2, H / 2); g.rotate(-Math.PI / 7);
+    g.font = '800 ' + u + 'px Inter, Roboto, system-ui, sans-serif'; g.textAlign = 'center';
+    g.fillStyle = 'rgba(220,38,38,.30)'; g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = Math.max(1, u * 0.05);
+    const passo = u * 4.2, R = Math.hypot(W, H), larg = g.measureText(txt).width + u * 2;
+    let n = 0;
+    for (let yy = -R / 2; yy <= R / 2; yy += passo, n++)
+      for (let xx = -R / 2 - (n % 2) * larg / 2; xx <= R / 2 + larg; xx += larg) { g.fillText(txt, xx, yy); g.strokeText(txt, xx, yy); }
+    g.restore();
+    return paraFicheiro(c, 'documento.jpg');
   }
 
   function abrir() {
@@ -87,7 +158,8 @@
       '<select id="vrTipo"><option value="alvara">' + T('Alvará') + '</option><option value="certidao">' + T('Certidão comercial') + '</option><option value="nuit">NUIT</option><option value="bi">' + T('BI do responsável (vendedor sem alvará)') + '</option><option value="outro">' + T('Outro documento') + '</option></select>' +
       '<div class="vr-fich" id="vrDocCx" style="margin-top:8px"><i class="fas fa-file-image"></i><img alt=""><span>' + T('Tirar foto do documento') + '</span><input type="file" id="vrDoc" accept="image/*,application/pdf" hidden></div>' +
       '<label>2. ' + T('Foto da loja ou da banca') + '</label>' +
-      '<div class="vr-fich" id="vrFotoCx"><i class="fas fa-store"></i><img alt=""><span>' + T('Com o nome visível, se possível') + '</span><input type="file" id="vrFoto" accept="image/*" hidden></div>' +
+      '<div class="vr-fich" id="vrFotoCx"><i class="fas fa-store"></i><img alt=""><span>' + T('Tirar foto agora, com o nome visível') + '</span><input type="file" id="vrFoto" accept="image/*" capture="environment" hidden></div>' +
+      '<small class="vr-nota">📍 ' + T('A foto leva a data, a hora e a localização, para a Equipa confirmar que a loja existe. Permita o acesso à localização.') + '</small>' +
       '<label>3. ' + T('Telefone para a Equipa ligar') + '</label>' +
       '<input type="tel" id="vrTel" inputmode="tel" placeholder="84 123 4567" maxlength="20">' +
       '<div class="vr-priv"><i class="fas fa-lock" style="margin-top:2px"></i><span>' + T('Os documentos são privados: só a Equipa Feira Comercial os vê. Nunca aparecem no seu perfil.') + '</span></div>' +
@@ -97,31 +169,57 @@
     document.body.appendChild(m);
     const $ = id => m.querySelector('#' + id);
     try { if (perfil.phone || perfil.whatsapp) $('vrTel').value = perfil.whatsapp || perfil.phone; } catch (e) {}
-    const fich = {};
-    [['vrDocCx', 'vrDoc'], ['vrFotoCx', 'vrFoto']].forEach(([cx, inp]) => {
-      $(cx).onclick = () => $(inp).click();
-      $(inp).onchange = () => {
-        const f = $(inp).files[0]; if (!f) return;
-        fich[inp] = f; $(cx).classList.add('tem');
-        $(cx).querySelector('span').textContent = '✓ ' + (f.name || T('Ficheiro escolhido')).slice(0, 40);
-        const img = $(cx).querySelector('img');
-        if (/^image\//.test(f.type)) img.src = URL.createObjectURL(f); else img.removeAttribute('src');
-      };
-    });
+    const fich = {}; let loc = null, pedidoLoc = null;
+    const erro = t => { $('vrErro').textContent = t; $('vrErro').style.display = t ? 'block' : 'none'; };
+    const SEM_GPS = T('Sem localização não é possível verificar a loja. Ligue a localização (GPS) do telemóvel, permita o acesso quando o navegador pedir e tire a foto outra vez.');
+    const pronto = (cx, f, rotulo) => {
+      $(cx).classList.add('tem'); $(cx).querySelector('span').textContent = '✓ ' + rotulo;
+      const img = $(cx).querySelector('img');
+      if (/^image\//.test(f.type)) img.src = URL.createObjectURL(f); else img.removeAttribute('src');
+    };
+    const aEspera = (cx, t) => { $(cx).classList.remove('tem'); $(cx).querySelector('span').textContent = t; };
+
+    $('vrDocCx').onclick = () => $('vrDoc').click();
+    $('vrDoc').onchange = async () => {
+      const f = $('vrDoc').files[0]; if (!f) return;
+      erro(''); delete fich.vrDoc; aEspera('vrDocCx', T('A preparar…'));
+      try { fich.vrDoc = /^image\//.test(f.type) ? await carimbarDocumento(f) : f; }
+      catch (e) { fich.vrDoc = f; }
+      pronto('vrDocCx', fich.vrDoc, /^image\//.test(f.type) ? T('Documento marcado: só para verificação') : (f.name || T('Ficheiro escolhido')).slice(0, 40));
+    };
+
+    // loja: a localização começa a ser pedida no toque (o telemóvel mostra logo o pedido de permissão)
+    $('vrFotoCx').onclick = () => { pedidoLoc = localizacao(); pedidoLoc.catch(() => {}); $('vrFoto').click(); };
+    $('vrFoto').onchange = async () => {
+      const f = $('vrFoto').files[0]; if (!f) return;
+      erro(''); delete fich.vrFoto; loc = null;
+      // foto antiga (da galeria)? tem de ser tirada agora
+      if (f.lastModified && Date.now() - f.lastModified > 10 * 60 * 1000) {
+        aEspera('vrFotoCx', T('Tirar foto agora, com o nome visível'));
+        return erro(T('Esta foto não é de agora. Toque outra vez na foto da loja e fotografe-a agora, com a câmara.'));
+      }
+      aEspera('vrFotoCx', '📍 ' + T('A obter a localização…'));
+      try { loc = await (pedidoLoc || localizacao()); }
+      catch (e) { aEspera('vrFotoCx', T('Tirar foto agora, com o nome visível')); return erro(SEM_GPS); }
+      aEspera('vrFotoCx', T('A carimbar a foto…'));
+      loc.endereco = await endereco(loc.lat, loc.lng);
+      try { fich.vrFoto = await carimbarLoja(f, loc, loc.endereco); }
+      catch (e) { aEspera('vrFotoCx', T('Tirar foto agora, com o nome visível')); return erro(T('Não foi possível preparar a foto. Tente outra vez.')); }
+      pronto('vrFotoCx', fich.vrFoto, (loc.endereco || T('Localização registada')).slice(0, 48));
+    };
     const fechar = () => m.remove();
     $('vrFechar').onclick = fechar;
     m.addEventListener('click', e => { if (e.target === m) fechar(); });
     $('vrEnviar').onclick = async () => {
-      const erro = t => { $('vrErro').textContent = t; $('vrErro').style.display = 'block'; };
       const tel = $('vrTel').value.trim();
       if (!fich.vrDoc) return erro(T('Tire uma foto do documento.'));
       if (!fich.vrFoto) return erro(T('Tire uma foto da loja ou da banca.'));
+      if (!loc) return erro(SEM_GPS);
       if (tel.replace(/\D/g, '').length < 9) return erro(T('Escreva um telefone com 9 dígitos.'));
       const b = $('vrEnviar'); b.disabled = true; b.textContent = T('A enviar…');
       const enviados = [];
       try {
         const subir = async (f, nome) => {
-          f = await reduzir(f);
           if (f.size > 6 * 1024 * 1024) throw new Error(T('Ficheiro grande demais (máximo 6 MB).'));
           const ext = f.type === 'application/pdf' ? 'pdf' : (f.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
           const cam = perfil.id + '/' + Date.now() + '-' + nome + '.' + ext;
@@ -131,7 +229,8 @@
         };
         const doc = await subir(fich.vrDoc, 'documento');
         const foto = await subir(fich.vrFoto, 'loja');
-        const { error } = await supabaseClient.rpc('pedir_verificacao', { p_tipo: $('vrTipo').value, p_documento: doc, p_foto: foto, p_telefone: tel });
+        const { error } = await supabaseClient.rpc('pedir_verificacao', { p_tipo: $('vrTipo').value, p_documento: doc, p_foto: foto, p_telefone: tel,
+          p_lat: loc.lat, p_lng: loc.lng, p_precisao: loc.precisao, p_endereco: loc.endereco || null });
         if (error) throw error;
         fechar();
         mostrarEstado();
