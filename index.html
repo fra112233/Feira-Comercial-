@@ -627,6 +627,26 @@ html, body { max-width: 100%; overflow-x: hidden; }
         #perto-ofertas { display: none; align-items: center; gap: 10px; margin: 0 0 12px; padding: 11px 14px; border-radius: 14px; cursor: pointer;
             background: linear-gradient(135deg, rgba(243,198,78,.2), rgba(239,68,68,.12)); border: 1px solid rgba(243,198,78,.5); font-weight: 700; font-size: 14px; color: var(--text-main); }
         #perto-ofertas.ver { display: flex; } #perto-ofertas .ir { margin-left: auto; color: #ef4444; white-space: nowrap; }
+/* publicar em segundo plano */
+#fila-publicar{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:3000;width:min(340px,calc(100vw - 32px));background:var(--bg-card);color:var(--text-main);border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:10px 12px;font-size:13px}
+#fila-publicar .fp-cab{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:2px 0;min-height:36px}
+#fila-publicar .fp-cab span{flex:1;min-width:0}
+#fila-publicar .fp-cab b{display:block;font-size:13.5px}
+#fila-publicar .fp-cab small{display:block;color:var(--text-secondary);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fila-publicar .fp-cab>i{color:var(--text-secondary)}
+#fila-publicar.aberto .fp-cab{margin-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:8px}
+#fila-publicar.aberto{max-height:60vh;overflow-y:auto}
+#fila-publicar .fp-linha{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--border)}
+#fila-publicar .fp-linha:first-of-type{border-top:none}
+#fila-publicar .fp-linha>i{margin-top:3px;width:16px;text-align:center;flex-shrink:0;color:var(--primary)}
+#fila-publicar .fp-txt{flex:1;min-width:0}
+#fila-publicar .fp-txt b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fila-publicar .fp-txt small{display:block;color:var(--text-secondary);font-size:12px;margin-top:1px}
+#fila-publicar .fp-barra{display:block;height:4px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:5px}
+#fila-publicar .fp-barra i{display:block;height:100%;background:var(--primary);transition:width .3s}
+#fila-publicar .fp-acoes{display:flex;gap:8px;margin-top:6px}
+#fila-publicar .fp-acoes button{border:1px solid var(--border);background:transparent;color:var(--text-main);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;min-height:32px}
+#fila-publicar .fp-nota{color:var(--text-secondary);font-size:11.5px;margin-top:6px;line-height:1.4}
 </style>
 
 <base target="_self">
@@ -1448,7 +1468,6 @@ let _tarefasMedia = [];
 function estadoMedia() {
     const area = document.getElementById('post-preview-area');
     if (!tempMedia.length) { area.innerHTML = ''; return; }
-    if (document.getElementById('publish-btn').dataset.aPublicar && area.querySelector('.fa-spinner')) return; // a publicar (não depende do idioma)
     const videos = tempMedia.map((f, i) => ({ f, t: _tarefasMedia[i] })).filter(x => x.f.type.startsWith('video/'));
     const aPreparar = videos.filter(x => x.t && !x.t.pronto);
     let extra = '';
@@ -1919,7 +1938,6 @@ function closeStory() {
 // ─────────────────────────────────────
 async function publishPost() {
     const ta = document.getElementById('post-text');
-    const btn = document.getElementById('publish-btn');
     const text = ta.value.trim();
     if ((!text && tempMedia.length === 0) || !currentUser.id) return;
     if (!currentUser.empresa && !currentUser.equipa) { alert('Só as contas de empresa podem fazer publicações no feed. Partilhe nos Stories!'); return; }
@@ -1936,40 +1954,128 @@ async function publishPost() {
         oferta = { oferta_preco: preco, oferta_preco_antigo: antes, oferta_ate: new Date(FC.agora() + horas * 3600000).toISOString() };
     }
 
-    btn.disabled = true;
-    const original = btn.textContent;
-    btn.textContent = 'A publicar...';
-    btn.dataset.aPublicar = '1';
-    try {
-        // todos os ficheiros ao mesmo tempo (a otimização já começou ao escolher)
-        let feitos = 0;
-        const mostrar = () => { document.getElementById('post-preview-area').innerHTML =
-            `<p style="padding:8px 0 0;font-size:13px;color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> A enviar ${feitos} de ${tempMedia.length}...</p>`; };
-        mostrar();
-        const media = await Promise.all(tempMedia.map(f => enviarFicheiro(f).then(m => { feitos++; mostrar(); return m; })));
-        const primeiraFoto = media.find(m => m.type === 'image');
-        const novo = { user_id: currentUser.id, content: text || null, media, image_url: primeiraFoto ? primeiraFoto.url : null };
-        if (oferta) Object.assign(novo, oferta);
-        const { error } = await supabaseClient.from('posts').insert(novo);
-        if (error) throw error;
-        if (oferta) { document.getElementById('oferta-campos').classList.remove('aberto'); document.getElementById('btn-oferta').classList.remove('ativo');
-            ['oferta-preco', 'oferta-antes'].forEach(i => document.getElementById(i).value = ''); }
+    // publica em segundo plano: o formulário fica logo livre para a próxima publicação
+    filaPublicar.push({ id: ++_seqPub, texto: text, media: tempMedia.slice(), oferta, estado: 'espera', feitos: 0, erro: null });
+    ta.value = '';
+    tempMedia = [];
+    _tarefasMedia = [];
+    document.getElementById('post-media-input').value = '';
+    document.getElementById('post-preview-area').innerHTML = '';
+    if (oferta) { document.getElementById('oferta-campos').classList.remove('aberto'); document.getElementById('btn-oferta').classList.remove('ativo');
+        ['oferta-preco', 'oferta-antes'].forEach(i => document.getElementById(i).value = ''); }
+    document.getElementById('publish-btn').disabled = true;
+    desenharFila();
+    correrFila();
+}
 
-        ta.value = '';
-        tempMedia = [];
-        document.getElementById('post-media-input').value = '';
-        document.getElementById('post-preview-area').innerHTML = '';
-        await carregarPosts();
+// ─────────────────────────────────────
+//  PUBLICAR EM SEGUNDO PLANO
+//  Cada publicação entra numa fila. Os vídeos já começaram a ser otimizados ao
+//  escolher (um de cada vez); o envio de uma publicação acontece enquanto o vídeo
+//  da seguinte ainda se prepara. As publicações aparecem no feed pela ordem em que
+//  foram feitas. Basta manter a Feira aberta.
+// ─────────────────────────────────────
+const filaPublicar = [];
+let _seqPub = 0;
+let _ultimaInsercao = Promise.resolve();
+function trabalhoPendente() { return filaPublicar.some(j => j.estado !== 'feito' && j.estado !== 'erro'); }
+
+function correrFila() {
+    filaPublicar.filter(j => j.estado === 'espera').forEach(j => { j.estado = 'a_trabalhar'; publicarJob(j); });
+}
+
+async function publicarJob(job) {
+    try {
+        // progresso da otimização dos vídeos desta publicação
+        job.tarefas = job.media.map(f => FCMedia.iniciar(f));
+        job.tarefas.forEach(t => t && t.ouvir(() => desenharFila()));
+        const media = await Promise.all(job.media.map(f =>
+            FCMedia.enviarMedia(supabaseClient, currentUser.id, f, { semBarra: true })
+                .then(m => { job.feitos++; desenharFila(); return { url: m.url, type: m.type }; })));
+        // inserir pela ordem em que foram publicadas
+        const antes = _ultimaInsercao;
+        let soltar; _ultimaInsercao = new Promise(r => { soltar = r; });
+        try {
+            await antes;
+            const primeiraFoto = media.find(m => m.type === 'image');
+            const novo = { user_id: currentUser.id, content: job.texto || null, media, image_url: primeiraFoto ? primeiraFoto.url : null };
+            if (job.oferta) Object.assign(novo, job.oferta);
+            const { error } = await supabaseClient.from('posts').insert(novo);
+            if (error) throw error;
+        } finally { soltar(); }
+        job.estado = 'feito';
+        desenharFila();
+        carregarPosts();
+        setTimeout(() => { const i = filaPublicar.indexOf(job); if (i >= 0 && job.estado === 'feito') { filaPublicar.splice(i, 1); desenharFila(); } }, 4000);
     } catch (err) {
-        document.getElementById('post-preview-area').innerHTML = '';
-        if (/row-level security/i.test(err.message || '')) FCMedia.aviso('Mensalidade em atraso', 'Só empresas com a mensalidade em dia podem publicar no feed. Veja em Menu → Mensalidade.', { erro: true });
-        else FCMedia.mostrarErro(err);
-        btn.disabled = false;
-    } finally {
-        delete btn.dataset.aPublicar; btn.textContent = original;
-        btn.disabled = ta.value.trim() === '' && tempMedia.length === 0;
+        job.estado = 'erro';
+        job.erro = /row-level security/i.test(err.message || '')
+            ? 'Mensalidade em atraso: só empresas com a mensalidade em dia podem publicar.'
+            : (/Failed to fetch|NetworkError|network/i.test(err.message || '') ? 'Sem rede.' : (err.titulo || FC.traduzirErro(err)));
+        desenharFila();
     }
 }
+
+function tentarPublicacao(id) {
+    const job = filaPublicar.find(j => j.id === id); if (!job) return;
+    job.estado = 'espera'; job.erro = null; job.feitos = 0;
+    desenharFila(); correrFila();
+}
+function descartarPublicacao(id) {
+    const i = filaPublicar.findIndex(j => j.id === id); if (i < 0) return;
+    const job = filaPublicar[i];
+    // devolve o texto ao formulário, se estiver vazio, para não se perder
+    const ta = document.getElementById('post-text');
+    if (job.texto && !ta.value.trim()) ta.value = job.texto;
+    filaPublicar.splice(i, 1); desenharFila();
+}
+
+function desenharFila() {
+    let el = document.getElementById('fila-publicar');
+    if (!filaPublicar.length) { if (el) el.remove(); return; }
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'fila-publicar';
+        el.setAttribute('role', 'status');
+        document.body.appendChild(el);
+    }
+    const total = filaPublicar.length;
+    const linhas = filaPublicar.map((j, k) => {
+        const videos = (j.tarefas || []).filter((t, i) => t && j.media[i].type.startsWith('video/'));
+        const aPreparar = videos.filter(t => !t.pronto);
+        let estado, pct = null, icone = '<i class="fas fa-spinner fa-spin"></i>';
+        if (j.estado === 'feito') { estado = FC.t('Publicado'); icone = '<i class="fas fa-circle-check" style="color:#22c55e"></i>'; pct = 100; }
+        else if (j.estado === 'erro') { estado = FC.t('Não foi publicado') + ': ' + escHtml(j.erro || ''); icone = '<i class="fas fa-triangle-exclamation" style="color:#ef4444"></i>'; }
+        else if (j.estado === 'espera' || !j.tarefas) estado = FC.t('Na fila…');
+        else if (aPreparar.length) {
+            pct = Math.round(100 * aPreparar.reduce((s, t) => s + (t.progresso || 0), 0) / aPreparar.length);
+            estado = pct > 0 ? FC.t('A preparar o vídeo…') + ' ' + pct + '%' : FC.t('Na fila…');   // os vídeos preparam-se um de cada vez
+            if (!pct) pct = null;
+        } else estado = j.media.length ? FC.t('A enviar…') + ' ' + j.feitos + '/' + j.media.length : FC.t('A publicar…');
+        const nome = j.texto ? escHtml(j.texto.slice(0, 40)) + (j.texto.length > 40 ? '…' : '') : (j.media.length + ' ' + (j.media.length === 1 ? FC.t('ficheiro') : FC.t('ficheiros')));
+        return `<div class="fp-linha">${icone}<div class="fp-txt"><b data-no-i18n>${nome}</b><small>${estado}</small>
+            ${pct !== null && j.estado !== 'feito' ? `<span class="fp-barra"><i style="width:${pct}%"></i></span>` : ''}
+            ${j.estado === 'erro' ? `<span class="fp-acoes"><button type="button" onclick="tentarPublicacao(${j.id})">${FC.t('Tentar de novo')}</button><button type="button" onclick="descartarPublicacao(${j.id})">${FC.t('Descartar')}</button></span>` : ''}
+            </div></div>`;
+    }).join('');
+    const pendentes = filaPublicar.filter(j => j.estado !== 'feito' && j.estado !== 'erro').length;
+    const comErro = filaPublicar.some(j => j.estado === 'erro');
+    const aberto = _filaAberta || comErro;
+    // resumo numa linha (fechado): a publicação que está a andar e a sua barra
+    const atual = filaPublicar.find(j => j.estado === 'a_trabalhar') || filaPublicar[0];
+    const tAtual = atual && (atual.tarefas || []).filter((t, i) => t && atual.media[i].type.startsWith('video/') && !t.pronto);
+    const pAtual = tAtual && tAtual.length ? Math.round(100 * tAtual.reduce((s, t) => s + (t.progresso || 0), 0) / tAtual.length) : null;
+    const resumo = !pendentes ? (comErro ? FC.t('Uma publicação não foi publicada') : FC.t('Publicado') + ' ✓')
+        : (pAtual ? FC.t('A preparar o vídeo…') + ' ' + pAtual + '%' : FC.t('A enviar…'));
+    const titulo = pendentes ? FC.t('A publicar') + ' ' + Math.min(total, total - pendentes + 1) + ' ' + FC.t('de') + ' ' + total : FC.t('Publicações');
+    el.className = aberto ? 'aberto' : '';
+    el.innerHTML = `<button type="button" class="fp-cab" onclick="_filaAberta=!_filaAberta;desenharFila()" aria-expanded="${aberto}">
+            <span><b>${titulo}</b><small>${resumo}</small></span><i class="fas fa-chevron-${aberto ? 'down' : 'up'}"></i></button>
+        ${!aberto && pendentes && pAtual ? `<span class="fp-barra"><i style="width:${pAtual}%"></i></span>` : ''}
+        ${aberto ? linhas + (pendentes ? `<div class="fp-nota">${FC.t('Pode continuar a usar a Feira e fazer outra publicação. Mantenha a página aberta até terminar.')}</div>` : '') : ''}`;
+}
+let _filaAberta = false;
+window.addEventListener('beforeunload', e => { if (trabalhoPendente()) { e.preventDefault(); e.returnValue = ''; } });
 
 // ─────────────────────────────────────
 //  RENDER POSTS
