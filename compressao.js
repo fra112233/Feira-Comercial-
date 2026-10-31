@@ -4,7 +4,7 @@
    dados e espaço sem perder qualidade visível.
 
    • Fotos: até 100 MB à entrada → JPG de boa qualidade (lado maior 1600 px — nítido no telemóvel e rápido a enviar).
-   • Vídeos: até 3 minutos → MP4 (H.264) 720p, 30 fps, 1 Mbps, com o som original;
+   • Vídeos: até 3 minutos → MP4 (H.264) 540p, 30 fps, 0,8 Mbps, com o som original;
      o resultado fica sempre abaixo do limite de envio. Vídeos que já são
      leves vão como estão. A otimização começa logo ao escolher o vídeo
      (FCMedia.iniciar) e usa o codificador de hardware do telemóvel.
@@ -224,17 +224,17 @@
       if (dur > LIMITES.videoSegundos + 0.5)
         throw Object.assign(Erro('Vídeo demasiado longo', 'Este vídeo tem ' + tempo(dur) + '. O máximo é 3 minutos.'), { dicas: ['Corte o vídeo na galeria do telemóvel e volte a escolhê-lo.'] });
 
-      // 720p: qualidade ideal para ecrãs de telemóvel e muito mais rápido de processar
+      // 540p (960 px no lado maior): no feed o vídeo ocupa ~720 px de largura no telemóvel, por isso
+      // fica igual ao 720p no ecrã, mas tem quase metade dos pontos — prepara ~40% mais depressa
       var dw = await vt.getDisplayWidth(), dh = await vt.getDisplayHeight();
-      var k = Math.min(1, 1280 / Math.max(dw, dh));
+      var k = Math.min(1, 960 / Math.max(dw, dh));
       var w = Math.max(2, Math.round(dw * k / 2) * 2), h = Math.max(2, Math.round(dh * k / 2) * 2);
 
       var orcamento = (LIMITES.alvo * 8) / Math.max(dur, 1) - 192e3;   // cabe sempre no limite
-      // 720p a 1 Mbps: nítido no ecrã do telemóvel, envio ~1/3 mais rápido e menos dados para quem vê
-      // (era 1,5 Mbps: um vídeo de 1 min 40 s ficava com 21 MB; agora fica com ~14 MB)
-      var bitrate = Math.max(6e5, Math.min(1.0e6, orcamento));
+      // 540p a 0,8 Mbps: nítido no telemóvel; 1 min de vídeo ≈ 7 MB (envio rápido e poucos dados para quem vê)
+      var bitrate = Math.max(5e5, Math.min(8e5, orcamento));
 
-      // não vale a pena: já é 720p (ou menos) e leve — vai como está, sem esperar
+      // não vale a pena: já é 540p (ou menos) e leve — vai como está, sem esperar
       var bitrateOriginal = file.size * 8 / Math.max(dur, 1);
       if (k === 1 && bitrateOriginal <= bitrate * 1.35 && file.size <= LIMITES.envio) return file;
 
