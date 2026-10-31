@@ -602,6 +602,19 @@ html, body { max-width: 100%; overflow-x: hidden; }
         #oferta-campos.aberto { display: block; }
         #oferta-campos .linha { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
         @media (max-width: 520px) { #oferta-campos .linha { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } #oferta-campos .linha .dur { grid-column: 1 / -1; } }
+        /* telemóvel: feed de ponta a ponta (fotos maiores, sem caixas dentro de caixas) */
+        @media (max-width: 600px) {
+            .col-center { padding: 0 0 12px; }
+            .stories-section, .post-compose { border-radius: 0; box-shadow: none; margin-bottom: 8px; }
+            #pp-card.pp { border-radius: 0; border-left: 0; border-right: 0; margin-bottom: 8px; }
+            .feed-filtros { padding: 4px 12px 10px; }
+            .user-feed-section { margin-bottom: 8px; }
+            .user-feed-header { border-radius: 0; box-shadow: none; padding: 12px 14px; }
+            .post-card, .post-card:last-child, .user-feed-section .post-card:only-child { border-radius: 0; box-shadow: none; padding: 12px 14px; }
+            .post-card .gallery-preview { margin-left: -14px; margin-right: -14px; border-radius: 0; }
+        }
+        /* o texto não passa por baixo do botão de denunciar/apagar */
+        .post-card > .btn-delete + .post-text { margin-right: 40px; }
         #oferta-campos label { display: block; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; }
         #oferta-campos input, #oferta-campos select { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border);
             background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 14px; }
