@@ -1504,6 +1504,7 @@
 "foi bloqueado.": "was blocked.",
 "foi desbloqueado.": "was unblocked.",
 "gostou da sua publicação": "liked your post",
+"retirou a reação da sua publicação": "removed their reaction from your post",
 "gostou do seu story ❤️": "liked your story ❤️",
 "gostou do seu vídeo": "liked your video",
 "hoje às": "today at",
