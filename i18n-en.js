@@ -1112,6 +1112,7 @@
 "Publicar": "Publish",
 "Publicar agora": "Publish now",
 "Publicar anúncio": "Publish ad",
+"Publique o primeiro no botão «Publicar anúncio», lá em cima.": "Post the first one with the «Publish ad» button above.",
 "Publicar avaliação": "Publish review",
 "Publicar stories e vídeos": "Post stories and videos",
 "Publicar vídeo": "Publish video",
