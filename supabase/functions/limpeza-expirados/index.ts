@@ -12,6 +12,9 @@
 //     fotos do chat que ainda aparecem em mensagens guardadas;
 //   • vídeos da página Vídeos com mais de 60 h que nenhum vídeo publicado usa
 //     (vídeos apagados e envios falhados).
+//   • candidaturas a vagas e os seus CVs, 3 meses (90 dias) depois de a vaga terminar
+//     (ou da candidatura, se a vaga não tiver data de fim), e CVs que já nenhuma
+//     candidatura usa (candidatura retirada ou vaga apagada) com mais de 1 dia.
 // Não toca em comprovativos de pagamento nem em ficheiros de contas existentes.
 //
 // ?simular=1 → mostra o que seria apagado, sem apagar nada.
@@ -19,6 +22,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const HORAS_STORY = 60;      // stories: visíveis 48 h → apagados às 60 h
+const DIAS_CV = 90;          // candidaturas e CVs: 3 meses depois de a vaga terminar
 const BALDE = "media";
 
 const json = (dados: unknown, estado = 200) =>
@@ -134,6 +138,43 @@ Deno.serve(async (req: Request) => {
       }
     }
   }
+  // 2c) candidaturas expiradas e CVs que já ninguém usa (espaço privado "cvs")
+  const { data: expiradas, error: e6 } = await sb.rpc("candidaturas_expiradas", { p_dias: DIAS_CV });
+  if (e6) return json({ ok: false, erro: "candidaturas: " + e6.message }, 500);
+  const candApagar: number[] = (expiradas ?? []).map((c: { id: number }) => c.id);
+  const cvsEmUso = new Set<string>();
+  {
+    // aos bocados de 1000 (o servidor nunca devolve mais de 1000 linhas de uma vez):
+    // se faltasse uma linha, um CV ainda em uso podia ser apagado
+    const sair = new Set(candApagar);
+    for (let de = 0; ; de += 1000) {
+      const { data, error } = await sb.from("candidaturas").select("id, cv").not("cv", "is", null)
+        .order("id").range(de, de + 999);
+      if (error) return json({ ok: false, erro: error.message }, 500);
+      for (const c of data ?? []) if (!sair.has(c.id)) cvsEmUso.add(c.cv);
+      if (!data || data.length < 1000) break;
+    }
+  }
+  const cvs: string[] = [];
+  {
+    const umDia = Date.now() - 24 * 3600 * 1000;
+    const { data: ps } = await sb.storage.from("cvs").list("", { limit: 1000 });
+    for (const pasta of ps ?? []) {
+      if (pasta.id) continue;
+      for (let offset = 0; ; offset += 1000) {
+        const { data: fich, error } = await sb.storage.from("cvs").list(pasta.name, { limit: 1000, offset });
+        if (error) break;
+        for (const f of fich ?? []) {
+          if (!f.id) continue;
+          const caminho = `${pasta.name}/${f.name}`;
+          const criado = f.created_at ? Date.parse(f.created_at) : Date.now();
+          if (criado < umDia && !cvsEmUso.has(caminho)) { cvs.push(caminho); bytes += Number(f.metadata?.size ?? 0); }
+        }
+        if (!fich || fich.length < 1000) break;
+      }
+    }
+  }
+  if (cvs.length) outros["cvs"] = cvs;
   const nOutros = Object.values(outros).reduce((n, l) => n + l.length, 0);
 
   // 3) stories antigos
@@ -142,7 +183,7 @@ Deno.serve(async (req: Request) => {
   const resumo = {
     ok: true, simulacao: simular, limiteStories: limiteStory,
     ficheiros: apagar.length + nOutros, porEspaco: Object.fromEntries(Object.entries(outros).map(([k, v]) => [k, v.length])), mb: Math.round(bytes / 1048576 * 10) / 10,
-    publicacoes: 0, stories: nStories ?? 0,
+    publicacoes: 0, stories: nStories ?? 0, candidaturas: candApagar.length,
   };
   if (simular) return json({ ...resumo, exemplos: apagar.slice(0, 10), outros: Object.fromEntries(Object.entries(outros).map(([k, v]) => [k, v.slice(0, 10)])) });
 
@@ -156,6 +197,10 @@ Deno.serve(async (req: Request) => {
       const { error } = await sb.storage.from(balde).remove(lista.slice(i, i + 100));
       if (error) return json({ ...resumo, ok: false, erro: balde + ": " + error.message }, 500);
     }
+  }
+  for (let i = 0; i < candApagar.length; i += 200) {
+    const { error } = await sb.from("candidaturas").delete().in("id", candApagar.slice(i, i + 200));
+    if (error) return json({ ...resumo, ok: false, erro: "candidaturas: " + error.message }, 500);
   }
   const { error: e5 } = await sb.from("stories").delete().lt("created_at", limiteStory);
   if (e5) return json({ ...resumo, ok: false, erro: e5.message }, 500);
