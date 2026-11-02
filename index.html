@@ -320,7 +320,9 @@
         .reacoes-resumo + .post-actions { margin-top: 6px; }
         .ver-reacoes { background: none; border: none; padding: 2px 0; font: inherit; font-size: 13.5px; color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
         .ver-reacoes:hover { color: var(--primary); text-decoration: underline; }
-        .ver-emoji { font-size: 15px; }
+        .ver-emojis { display: inline-flex; }
+        .ver-emoji { font-size: 15px; line-height: 1; }
+        .ver-emoji + .ver-emoji { margin-left: -3px; }
         .btn-action {
             flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
             cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 8px; color: var(--text-secondary);
@@ -1004,7 +1006,7 @@ function abrirDoLink() {
 // vai buscá-la sozinha e põe-na no topo
 async function abrirPublicacaoFora(pid) {
     const { data } = await supabaseClient.from('posts')
-        .select(`id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
+        .select(`id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temReacoesTop ? ', reacoes_top' : ''}${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
                  autor:perfis!posts_user_id_fkey(id, full_name, avatar_url, type, city, province), meu:likes(reaction)`)
         .eq('id', pid).eq('meu.user_id', currentUser.id).maybeSingle();
     if (!data || new Date(data.created_at).getTime() < FC.agora() - TEMPO_VIDA_POST) {
@@ -1053,6 +1055,7 @@ function agoraServidor() { return Date.now() + desvioRelogio; }
 // ── Filtros do feed: Para si · Perto de mim · Ofertas · Guardados ──
 let filtroFeed = 'todos';
 let temOfertas = true;          // falso se a base de dados ainda não tem as colunas das ofertas (migração 024)
+let temReacoesTop = true;       // falso se a base de dados ainda não tem posts.reacoes_top (migração 071)
 let temGuardados = true;
 let guardados = new Set();      // publicações que guardei
 
@@ -1070,7 +1073,7 @@ async function carregarPosts() {
     if (filtro === 'guardados' && !guardados.size) { posts = []; renderPosts(); return; }
     // leve: só os números de gostos/comentários e a MINHA reação (antes vinham todos os gostos e
     // todos os comentários de 60 publicações — ~280 kB por carga; agora ~25 kB)
-    const campos = `id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
+    const campos = `id, content, media, image_url, created_at, user_id, curtidas_count, comentarios_count${temReacoesTop ? ', reacoes_top' : ''}${temOfertas ? ', oferta_preco, oferta_preco_antigo, oferta_ate' : ''},
                  autor:perfis!posts_user_id_fkey${perto ? '!inner' : ''}(id, full_name, avatar_url, type, city, province),
                  meu:likes(reaction)`;
     let q = supabaseClient.from('posts').select(campos).gte('created_at', desde()).eq('meu.user_id', currentUser.id);
@@ -1080,6 +1083,7 @@ async function carregarPosts() {
     const { data, error } = await q.order(filtro === 'ofertas' ? 'oferta_ate' : 'created_at', { ascending: filtro === 'ofertas' }).limit(60);
     if (filtro !== filtroFeed) return;            // mudou de filtro entretanto
     if (error) {
+        if (temReacoesTop && /reacoes_top/.test(error.message || '')) { temReacoesTop = false; return carregarPosts(); }
         if (temOfertas && /oferta_/.test(error.message || '')) {
             temOfertas = false;
             const b = document.querySelector('#feed-filtros [data-f="ofertas"]'); if (b) b.remove();
@@ -1243,6 +1247,7 @@ function mapearPost(r) {
         reactCount: r.curtidas_count != null ? Number(r.curtidas_count) : likes.length,
         reactType: meu ? meu.reaction : 'Curtir',
         myReaction: meu ? meu.reaction : null,
+        reacoesTop: Array.isArray(r.reacoes_top) ? r.reacoes_top.filter(x => ['Curtir','Amei','Haha','Triste','Uau'].includes(x)) : null,   // 3 mais escolhidas (servidor)
         guardado: guardados.has(r.id),
         cidade: ((r.autor && r.autor.city) || '').toLowerCase(),
         provincia: ((r.autor && r.autor.province) || '').toLowerCase(),
@@ -2369,8 +2374,11 @@ function htmlResumo(p) {
     const txt = p.myReaction
         ? (n === 1 ? 'Você' : 'Você e mais ' + FC.plural(n - 1, 'pessoa', 'pessoas'))
         : FC.plural(n, 'pessoa reagiu', 'pessoas reagiram');
+    // as reações que as pessoas escolheram (até 3, a mais escolhida primeiro) — antes só a minha
+    const top = (p.reacoesTop && p.reacoesTop.length) ? p.reacoesTop : [p.myReaction || 'Curtir'];
+    const emojis = top.slice(0, 3).map(r => `<span class="ver-emoji" title="${r}">${emojiMap[r] || '👍'}</span>`).join('');
     return `<button type="button" class="ver-reacoes" onclick="FCReacoes.abrir(${p.id}, { autorId: '${p.userId}' })" title="Ver quem reagiu">`
-         + `<span class="ver-emoji">${emojiMap[p.myReaction] || '👍'}</span> ${txt}</button>`;
+         + `<span class="ver-emojis">${emojis}</span> ${txt}</button>`;
 }
 
 // um gosto por pessoa: clicar na mesma reação tira-a, outra reação troca-a
@@ -2448,6 +2456,17 @@ function atualizarAcoesPost(p) {
     if (el) atualizarPartesPost(el, p);
 }
 
+// estimativa das 3 reações mais escolhidas logo depois de eu reagir (sem esperar pelo servidor)
+function estimarTop(p, minhaAntes) {
+    let top = (p.reacoesTop || []).slice();
+    if (p.reactCount <= 0) return [];
+    if (p.reactCount === 1 && p.myReaction) return [p.myReaction];
+    // se eu era o único com a reação antiga, ela sai do resumo
+    if (minhaAntes && minhaAntes !== p.myReaction && p.reactCount <= top.length) top = top.filter(r => r !== minhaAntes);
+    if (p.myReaction && !top.includes(p.myReaction) && top.length < 3) top.push(p.myReaction);
+    return top;
+}
+
 // escolher = muda para essa reação (ou tira, se já era a mesma)
 async function setReact(id, type) {
     const p = posts.find(x => x.id === id);
@@ -2456,6 +2475,8 @@ async function setReact(id, type) {
 
     if (p.myReaction === type) { p.myReaction = null; p.reactCount--; }
     else { if (!p.myReaction) p.reactCount++; p.myReaction = type; }
+    antes.reacoesTop = p.reacoesTop;
+    p.reacoesTop = estimarTop(p, antes.myReaction);
     atualizarAcoesPost(p);                    // só o botão desta publicação — nada pisca
 
     const pedido = p.myReaction
