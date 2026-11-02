@@ -171,7 +171,7 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : "/perfil.html?id=" + n.autor_id;
   let extra = (n.texto || "").trim();
   const oferta = n.tipo === "publicacao" && extra.startsWith("⚡");
-  if (en) extra = extra.replace(/^(\d+) candidaturas? novas? · Vaga /, (_m, k) => k + (k === "1" ? " new application" : " new applications") + " · Job ").replace(/^Anúncio «/, "Ad «").replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video").replace(/ \(antes (.+?) MT\)/, " (was $1 MT)");
+  if (en) extra = extra.replace(/^(\d+) candidaturas? novas? · Vaga /, (_m: string, k: string) => k + (k === "1" ? " new application" : " new applications") + " · Job ").replace(/^Anúncio «/, "Ad «").replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video").replace(/ \(antes (.+?) MT\)/, " (was $1 MT)");
   const acao = oferta ? (en ? "posted a flash offer ⚡" : "publicou uma oferta relâmpago ⚡")
     : n.tipo === "publicacao" && !extra ? (en ? "made a new post" : "fez uma publicação nova")
     : ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || "");
