@@ -20,7 +20,10 @@
     premio:      { icone: '🎁', texto: 'Prémios que pedem pagamento, códigos ou dados pessoais são burla.' },
     link:        { icone: '🔗', texto: 'Cuidado com links: a Feira nunca pede para entrar na sua conta noutro site.' },
     pagarNova:   { icone: '⚠️', texto: 'Conta nova a pedir pagamento. Confirme bem quem é antes de enviar dinheiro.' },
-    sair:        { icone: '💬', texto: 'Prefira continuar aqui: se algo correr mal, a equipa pode ver a conversa e ajudar.' }
+    sair:        { icone: '💬', texto: 'Prefira continuar aqui: se algo correr mal, a equipa pode ver a conversa e ajudar.' },
+    encurtador:  { icone: '🔗', texto: 'Link encurtado: não mostra para onde leva. Não abra se não conhece bem a pessoa.' },
+    documento:   { icone: '🪪', texto: 'Nunca envie foto do BI ou selfie com o documento: podem abrir contas M-Pesa ou e-Mola em seu nome.' },
+    engano:      { icone: '↩️', texto: '"Transferência por engano" é uma burla comum. Confirme no extrato oficial antes de devolver qualquer valor.' }
   };
 
   var R = {
@@ -33,7 +36,10 @@
     linkIsco: /\b(entr\w*|login|verific\w*|confirm\w*|atualiz\w*|desbloque\w*|premio|ganh\w*|bonus|gratis|oferta especial)\b/,
     pagamento: /\b(m-?pesa|e-?mola|mkesh|ponto ?24|conta bancaria|nib|iban|transferencia|transfira|deposit\w*)\b/,
     numero: /(\+?258[\s-]?)?8[2-7][\s-]?\d{3}[\s-]?\d{3,4}|\d{7,}/,
-    sair: /\b(whats\s?app|wa\.me|zap|telegram|t\.me|signal|liga[- ]?me|ligue[- ]?me|chama[- ]?me)\b/
+    sair: /\b(whats\s?app|wa\.me|zap|telegram|t\.me|signal|liga[- ]?me|ligue[- ]?me|chama[- ]?me)\b/,
+    encurtador: /\b(bit\.ly|tinyurl\.com|t\.co|cutt\.ly|is\.gd|rb\.gy|shorturl\.at|goo\.gl|ow\.ly|tiny\.cc|s\.id|rebrand\.ly|short\.io|v\.gd)\/\S+/,
+    documento: /\b(foto\w*|fotografi\w*|imagem|copia|scan\w*|selfie|digitaliz\w*)\b.{0,30}\b(bi|bilhete|documento|passaporte|cartao de eleitor|dire|carta de conducao)\b|\bselfie\b.{0,25}\b(com|segurando|a segurar)\b.{0,20}\b(bi|documento|bilhete)\b/,
+    engano: /\b(engano|enganei|sem querer|numero errado|errei)\b.{0,40}\b(transf\w*|envi\w*|mand\w*|deposit\w*|m-?pesa|e-?mola|mkesh|dinheiro|valor|devolv\w*)\b|\b(transf\w*|envi\w*|mand\w*|deposit\w*|devolv\w*)\b.{0,40}\b(por engano|numero errado|sem querer)\b/
   };
 
   function linkExterno(t) {
@@ -51,6 +57,9 @@
     if (R.falsaEquipa.test(t)) tipo = 'falsaEquipa';
     else if (R.codigoPalavra.test(t) && R.codigoPedido.test(t)) tipo = 'codigo';
     else if (R.adiantado.test(t)) tipo = 'adiantado';
+    else if (R.documento.test(t)) tipo = 'documento';
+    else if (R.engano.test(t)) tipo = 'engano';
+    else if (R.encurtador.test(t)) tipo = 'encurtador';
     else if (R.premio.test(t) && (R.pagamento.test(t) || R.codigoPalavra.test(t) || linkExterno(t) || /\b(pag|envi|mand|taxa|levant|reclam)/.test(t))) tipo = 'premio';
     else if (linkExterno(t) && (nova || R.linkIsco.test(t))) tipo = 'link';
     else if (nova && R.pagamento.test(t) && R.numero.test(t)) tipo = 'pagarNova';

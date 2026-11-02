@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<script src="i18n.js"></script>
+<link rel="canonical" href="https://www.feira-comercial.com/seguranca.html">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro de Segurança | Feira Comercial</title>
+<meta name="description" content="Como reconhecer as burlas mais comuns em Moçambique, como a Feira Comercial o protege e o que fazer se foi burlado.">
+<meta property="og:title" content="Centro de Segurança — Feira Comercial">
+<meta property="og:description" content="Burlas mais comuns, como se proteger e o que fazer se foi burlado.">
+<meta property="og:image" content="https://www.feira-comercial.com/images/icone-512.png">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="images/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="ajuda.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="atualizacao.js"></script>
+<script src="menu.js"></script>
+<style>
+.verificar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 26px;
+  border-color: rgba(243,198,78,.45); background: linear-gradient(135deg, rgba(243,198,78,.10), rgba(243,198,78,.02)); }
+.verificar h2 { font-size: 19px; display: flex; align-items: center; gap: 10px; }
+.verificar h2 i { color: var(--ouro); }
+.verificar p { color: var(--sub); font-size: 14.5px; margin-top: 4px; max-width: 560px; }
+.item .sinal { display: block; margin-top: 10px; font-size: 13px; color: var(--texto); }
+.item .sinal b { color: #fca5a5; }
+.passos { list-style: none; counter-reset: p; display: grid; gap: 12px; }
+.passos li { counter-increment: p; display: flex; gap: 14px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 16px; padding: 16px 18px; font-size: 14.5px; color: var(--sub); }
+.passos li::before { content: counter(p); width: 32px; height: 32px; flex-shrink: 0; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(243,198,78,.12); color: var(--ouro); font-weight: 800; }
+.passos li b { display: block; color: var(--texto); font-size: 15px; margin-bottom: 2px; }
+.nota-final { margin-top: 18px; font-size: 13.5px; color: var(--sub); display: flex; gap: 10px; }
+.nota-final i { color: var(--ouro); margin-top: 3px; }
+</style>
+</head>
+<body>
+<header class="topo" data-atual="seguranca"></header>
+
+<main class="pagina">
+  <span class="etiqueta"><i class="fas fa-shield-halved"></i> Centro de Segurança</span>
+  <h1 class="titulo">Compre e venda <em>sem cair em burlas</em></h1>
+  <p class="intro">As burlas mais comuns em Moçambique, como a Feira Comercial o protege e o que fazer se alguém o tentou enganar.</p>
+
+  <section class="cartao verificar">
+    <div>
+      <h2><i class="fas fa-magnifying-glass"></i> Vai pagar a alguém?</h2>
+      <p>Antes de enviar dinheiro por M-Pesa, e-Mola ou mKesh, confirme se o número já foi denunciado por outras pessoas. É grátis.</p>
+    </div>
+    <a class="btn" href="verificar-numero.html"><i class="fas fa-shield-halved"></i> Verificar número</a>
+  </section>
+
+  <section class="secao">
+    <h2>As burlas mais comuns</h2>
+    <div class="grelha">
+      <div class="item"><i class="fas fa-money-bill-transfer ic"></i><h3>Pagamento adiantado</h3>
+        <p>Pedem para pagar antes de ver o produto, "para reservar" ou "para o transporte", e depois desaparecem.</p>
+        <span class="sinal"><b>Sinal:</b> pressa e preço muito abaixo do normal.</span></div>
+      <div class="item"><i class="fas fa-key ic"></i><h3>Pedido de código ou PIN</h3>
+        <p>Dizem que enviaram um código por engano ou que é "para confirmar a compra". Com esse código entram na sua conta.</p>
+        <span class="sinal"><b>Sinal:</b> qualquer pedido de código SMS, PIN ou palavra-passe.</span></div>
+      <div class="item"><i class="fas fa-rotate-left ic"></i><h3>"Transferência por engano"</h3>
+        <p>Recebe uma mensagem a dizer que lhe enviaram dinheiro por engano e pedem para devolver. Muitas vezes a mensagem é falsa.</p>
+        <span class="sinal"><b>Sinal:</b> a mensagem não veio da operadora. Confirme o saldo no extrato oficial.</span></div>
+      <div class="item"><i class="fas fa-gift ic"></i><h3>Prémio ou sorteio falso</h3>
+        <p>"Ganhou um prémio" mas tem de pagar uma taxa para o receber.</p>
+        <span class="sinal"><b>Sinal:</b> nenhum prémio verdadeiro pede dinheiro.</span></div>
+      <div class="item"><i class="fas fa-briefcase ic"></i><h3>Emprego falso</h3>
+        <p>Oferecem um emprego fácil e bem pago, mas pedem dinheiro para a "inscrição", a "formação" ou o "uniforme".</p>
+        <span class="sinal"><b>Sinal:</b> pagar para se candidatar. Na Feira, candidatar-se é sempre grátis.</span></div>
+      <div class="item"><i class="fas fa-id-card ic"></i><h3>Pedido do BI ou de selfie</h3>
+        <p>Pedem foto do BI ou uma selfie com o documento. Com isso podem abrir contas de dinheiro móvel em seu nome.</p>
+        <span class="sinal"><b>Sinal:</b> um vendedor ou comprador não precisa do seu documento.</span></div>
+      <div class="item"><i class="fas fa-user-secret ic"></i><h3>Falsa Equipa da Feira</h3>
+        <p>Alguém finge ser da Feira Comercial e pede dados, códigos ou pagamentos por WhatsApp ou SMS.</p>
+        <span class="sinal"><b>Sinal:</b> a Equipa nunca pede códigos, PIN nem pagamentos fora da plataforma.</span></div>
+      <div class="item"><i class="fas fa-link ic"></i><h3>Links enganadores</h3>
+        <p>Links encurtados ou parecidos com sites conhecidos que levam a páginas que roubam a palavra-passe.</p>
+        <span class="sinal"><b>Sinal:</b> não abra links de quem não conhece e nunca escreva a palavra-passe depois de abrir um.</span></div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <h2>Como a Feira Comercial o protege</h2>
+    <div class="grelha">
+      <div class="item"><i class="fas fa-comment-dots ic"></i><h3>Avisos no chat</h3>
+        <p>Quando uma conversa tem sinais de burla (pagamento adiantado, códigos, prémios, BI, links encurtados), aparece um aviso a explicar o risco.</p></div>
+      <div class="item"><i class="fas fa-phone-slash ic"></i><h3>Números denunciados</h3>
+        <p>Os números denunciados por várias pessoas ficam marcados e, depois de confirmados pela Equipa, não podem ser usados na plataforma.</p></div>
+      <div class="item"><i class="fas fa-crown ic"></i><h3>Lojas com coroa</h3>
+        <p>A coroa dourada mostra que a Equipa confirmou que a loja existe. Prefira estas lojas para compras grandes.</p></div>
+      <div class="item"><i class="fas fa-flag ic"></i><h3>Denunciar e bloquear</h3>
+        <p>Pode denunciar perfis, publicações e anúncios, e bloquear quem o incomoda. A Equipa analisa cada denúncia.</p></div>
+      <div class="item"><i class="fas fa-file-shield ic"></i><h3>Candidaturas privadas</h3>
+        <p>Os CVs ficam guardados em privado e só a empresa da vaga os vê. São apagados 3 meses depois de a vaga terminar.</p></div>
+      <div class="item"><i class="fas fa-user-check ic"></i><h3>Contas novas em revisão</h3>
+        <p>Contas com sinais de risco ficam em revisão até a Equipa as analisar, para travar contas falsas.</p></div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <h2>Foi burlado? Faça isto</h2>
+    <ol class="passos">
+      <li><div><b>Pare de pagar</b>Não envie mais dinheiro, mesmo que prometam devolver o que já pagou.</div></li>
+      <li><div><b>Fale logo com a sua operadora</b>Contacte o apoio oficial do M-Pesa, e-Mola ou mKesh o mais depressa possível e peça para travar a transação. Use só os contactos oficiais da operadora (no site oficial ou numa loja), nunca números que lhe enviaram por mensagem.</div></li>
+      <li><div><b>Guarde as provas</b>Faça capturas de ecrã da conversa, do perfil, do número e do comprovativo do pagamento. Não apague a conversa.</div></li>
+      <li><div><b>Denuncie o número aqui</b>Em <a href="verificar-numero.html#secDenunciar">Verificar número</a> pode denunciá-lo e proteger outras pessoas.</div></li>
+      <li><div><b>Avise a Equipa da Feira</b>Use o <a href="reclamacao.html?tipo=denuncia">livro de reclamações</a> ou o botão de denúncia no perfil ou no anúncio. A Equipa pode suspender a conta e guardar as provas.</div></li>
+      <li><div><b>Apresente queixa</b>Leve as provas à esquadra da PRM mais próxima ou ao SERNIC (Serviço Nacional de Investigação Criminal). Também pode apresentar queixa no Ministério Público (Procuradoria).</div></li>
+    </ol>
+    <p class="nota-final"><i class="fas fa-circle-info"></i>
+      Se a sua conta da Feira foi usada por outra pessoa, mude já a palavra-passe em Menu ☰ → "Alterar palavra-passe" e avise a Equipa.</p>
+  </section>
+</main>
+
+<footer class="rodape"></footer>
+<script src="ajuda.js"></script>
+</body>
+</html>
