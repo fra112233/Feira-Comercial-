@@ -88,6 +88,8 @@ const TEXTOS: Record<string, string> = {
   numero_denunciado: "🚩 número denunciado pela comunidade:",
   numero_no_perfil: "🚫 número da lista de burlas num perfil:",
   mesmo_aparelho: "📱 usa o mesmo aparelho de uma conta suspensa:",
+  candidatura: "candidatou-se à sua vaga 📥",
+  anuncio_revisao: "— o seu anúncio foi escondido para revisão 🔍",
 };
 const TEXTOS_EN: Record<string, string> = {
   gosto: "liked your post",
@@ -116,6 +118,8 @@ const TEXTOS_EN: Record<string, string> = {
   numero_denunciado: "🚩 number reported by the community:",
   numero_no_perfil: "🚫 scam-list number on a profile:",
   mesmo_aparelho: "📱 uses the same device as a suspended account:",
+  candidatura: "applied to your job 📥",
+  anuncio_revisao: "— your ad was hidden for review 🔍",
 };
 
 type Sub = { id: number; endpoint: string; p256dh: string; auth: string };
@@ -160,13 +164,14 @@ async function avisoAtividade(cfg: Cfg, id: number) {
     : n.tipo === "resumo_semanal" ? "/index.html"
     : n.tipo === "travao" ? "/admin.html"
     : n.tipo.startsWith("numero_") || n.tipo === "mesmo_aparelho" ? "/admin.html#suspeitos"
+    : n.tipo === "candidatura" || n.tipo === "anuncio_revisao" ? "/anuncio.html?meus=1"
     : n.post_id ? "/index.html?post=" + n.post_id
     : n.video_id ? "/videos.html?v=" + n.video_id
     : n.live_id ? "/live.html?id=" + n.live_id
     : "/perfil.html?id=" + n.autor_id;
   let extra = (n.texto || "").trim();
   const oferta = n.tipo === "publicacao" && extra.startsWith("⚡");
-  if (en) extra = extra.replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video").replace(/ \(antes (.+?) MT\)/, " (was $1 MT)");
+  if (en) extra = extra.replace(/^(\d+) candidaturas? novas? · Vaga /, (_m: string, k: string) => k + (k === "1" ? " new application" : " new applications") + " · Job ").replace(/^Anúncio «/, "Ad «").replace(/^Pague (\d+) MT para continuar a mostrar a sua loja\.$/, "Pay $1 MT to keep showing your shop.").replace(/^⚡ Oferta:/, "⚡ Offer:").replace(/^📷 Foto$/, "📷 Photo").replace(/^🎥 Vídeo$/, "🎥 Video").replace(/ \(antes (.+?) MT\)/, " (was $1 MT)");
   const acao = oferta ? (en ? "posted a flash offer ⚡" : "publicou uma oferta relâmpago ⚡")
     : n.tipo === "publicacao" && !extra ? (en ? "made a new post" : "fez uma publicação nova")
     : ((en ? TEXTOS_EN : TEXTOS)[n.tipo] || "");
