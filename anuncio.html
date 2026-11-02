@@ -82,6 +82,29 @@ a { color:inherit; text-decoration:none; }
 .btn-view { background:linear-gradient(135deg,var(--primary),var(--primary-esc)); color:#111; }
 .btn-view:hover { filter:brightness(1.07); }
 .btn-publicar { margin:0 0 16px; padding:12px 20px; font-size:.95rem; }
+.badge-revisao { background:rgba(239,68,68,.16); color:#fca5a5; margin-left:6px; }
+.nota-vaga { margin-top:12px; font-size:.84rem; color:var(--text-muted); line-height:1.45; }
+.btn-denunciar { background:none; border:none; color:var(--text-muted); font-size:.82rem; font-weight:600; cursor:pointer; margin-top:14px; padding:6px 0; display:inline-flex; align-items:center; gap:6px; min-height:36px; }
+.btn-denunciar:hover { color:var(--accent); }
+.motivos { display:flex; flex-direction:column; gap:8px; }
+.motivos label { display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--border); border-radius:12px; background:var(--campo); cursor:pointer; font-weight:600; font-size:.92rem; color:var(--text-main); }
+.motivos input { width:auto; accent-color:var(--primary); }
+.cand-estado { display:inline-block; padding:3px 10px; border-radius:999px; font-size:.75rem; font-weight:700; background:var(--campo); color:var(--text-muted); border:1px solid var(--border); }
+.cand-estado.nova { background:rgba(243,198,78,.16); color:#fcd34d; border-color:transparent; }
+.cand-estado.selecionada { background:rgba(74,222,128,.14); color:#86efac; border-color:transparent; }
+.cand-estado.rejeitada { background:rgba(248,113,113,.12); color:#fca5a5; border-color:transparent; }
+.minha-cand { margin-top:14px; padding:12px 14px; border-radius:14px; background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.3); font-size:.9rem; line-height:1.5; }
+.cands { margin-top:18px; border-top:1px solid var(--border); padding-top:14px; }
+.cands h3 { font-size:1rem; margin:0 0 10px; }
+.cand { padding:12px; border:1px solid var(--border); border-radius:14px; background:var(--campo); margin-bottom:10px; }
+.cand-topo { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.cand-topo b { font-size:.95rem; }
+.cand small { color:var(--text-muted); font-size:.78rem; }
+.cand p { margin:8px 0 0; font-size:.88rem; color:var(--text-muted); white-space:pre-line; overflow-wrap:anywhere; }
+.cand-acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.cand-acoes .btn { min-height:36px; padding:7px 12px; font-size:.8rem; }
+.chip-cand { display:inline-block; margin-top:8px; padding:3px 10px; border-radius:999px; background:rgba(96,165,250,.16); color:#93c5fd; font-size:.75rem; font-weight:700; }
+.equipa-box { margin-top:14px; padding:12px; border-radius:14px; border:1px dashed rgba(243,198,78,.5); font-size:.85rem; }
 .btn-claro { background:var(--campo); color:var(--text-main); border:1px solid var(--border); }
 .btn-whats { background:#25d366; color:#052e16; }
 .btn-del { background:rgba(248,113,113,.12); color:var(--accent); border:1px solid rgba(248,113,113,.35); }
@@ -217,6 +240,42 @@ html, body { max-width: 100%; overflow-x: hidden; }
   </div>
 </div>
 
+<!-- CANDIDATURA (vagas) -->
+<div class="modal" id="candModal" onclick="if(event.target===this) fecharModal('candModal')">
+  <div class="modal-content">
+    <div class="close-btn" onclick="fecharModal('candModal')">&times;</div>
+    <h3 style="font-size:1.3rem;">Candidatar-me</h3>
+    <p class="nota-vaga" id="candVaga" data-no-i18n></p>
+    <form id="candForm" style="margin-top:14px;" onsubmit="enviarCandidatura(event)">
+      <div class="form-group"><label for="candNome">Nome completo</label><input type="text" id="candNome" maxlength="120" required autocomplete="name"></div>
+      <div class="form-group"><label for="candTel">Telefone / WhatsApp</label><input type="tel" id="candTel" maxlength="30" required placeholder="Ex: 84 123 4567" autocomplete="tel"></div>
+      <div class="form-group"><label for="candMsg">Mensagem curta (opcional)</label><textarea id="candMsg" rows="3" maxlength="1000" placeholder="Experiência, quando pode começar…"></textarea></div>
+      <div class="form-group"><label for="candCv">CV (PDF, Word ou foto, até 5 MB)</label><input type="file" id="candCv" accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp">
+        <div class="ajuda">O seu CV só é visto por esta empresa e pela Equipa da Feira Comercial.</div></div>
+      <div class="alerta-burla vaga" style="margin:6px 0 12px;"><span class="ic">⚠️</span><span><b>Nunca pague para conseguir um emprego.</b> Se lhe pedirem dinheiro para inscrição, formação ou uniforme, denuncie o anúncio.</span></div>
+      <button type="submit" class="btn btn-view" id="btnCand" style="width:100%; padding:15px; font-size:1rem;">Enviar candidatura</button>
+    </form>
+  </div>
+</div>
+<!-- DENÚNCIA -->
+<div class="modal" id="denModal" onclick="if(event.target===this) fecharModal('denModal')">
+  <div class="modal-content">
+    <div class="close-btn" onclick="fecharModal('denModal')">&times;</div>
+    <h3 style="font-size:1.3rem;">Denunciar anúncio</h3>
+    <p class="nota-vaga">A empresa não fica a saber quem denunciou. Com várias denúncias, o anúncio fica escondido até a Equipa analisar.</p>
+    <form id="denForm" style="margin-top:14px;" onsubmit="enviarDenuncia(event)">
+      <div class="motivos">
+        <label><input type="radio" name="motivo" value="pede_dinheiro" required> 💸 Pede dinheiro adiantado</label>
+        <label><input type="radio" name="motivo" value="burla"> 🚩 Parece burla</label>
+        <label><input type="radio" name="motivo" value="falso"> ❓ Informação falsa ou enganosa</label>
+        <label><input type="radio" name="motivo" value="ofensivo"> 🚫 Conteúdo ofensivo</label>
+        <label><input type="radio" name="motivo" value="outro"> ✏️ Outro motivo</label>
+      </div>
+      <div class="form-group" style="margin-top:12px;"><label for="denDetalhe">O que aconteceu? (opcional)</label><textarea id="denDetalhe" rows="3" maxlength="500" placeholder="Ex: pediram 500 MT para a inscrição"></textarea></div>
+      <button type="submit" class="btn btn-del" id="btnDen" style="width:100%; padding:14px; font-size:1rem;">Enviar denúncia</button>
+    </form>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -228,6 +287,8 @@ let tipoAtual = 'todos';
 let fotoFicheiro = null;
 let emEdicao = null;      // anúncio a ser editado
 const vistos = new Set();
+let emAberto = null;       // anúncio aberto nos detalhes
+let contagemCand = {};     // as minhas vagas: { anuncio_id: { total, novas } }
 
 const TIPOS = { promo: ['Promoção', 'badge-promo', 'fa-tag'], vaga: ['Vaga', 'badge-vaga', 'fa-briefcase'], servico: ['Serviço', 'badge-servico', 'fa-screwdriver-wrench'] };
 const esc = FCP.esc;
@@ -246,8 +307,10 @@ function fecharModal(id) { document.getElementById(id).classList.remove('aberto'
   document.getElementById('btnAnunciar').style.display = souEmpresa ? '' : 'none';
   document.getElementById('tabMeus').style.display = souEmpresa ? '' : 'none';
   document.getElementById('avisoPessoa').style.display = souEmpresa ? 'none' : 'block';
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('meus') && souEmpresa) { tipoAtual = 'meus'; document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.id === 'tabMeus')); }
   await carregar();
-  const a = new URLSearchParams(location.search).get('a');
+  const a = qs.get('a');
   if (a) mostrarDetalhes(a);
 })();
 
@@ -287,7 +350,20 @@ async function carregar() {
     (tipoAtual === 'meus' || !a.validade || a.validade >= hoje) &&     // esconde os que já expiraram
     (!prov || (a.empresa && a.empresa.province === prov)));
   await juntarContactos(anuncios);
+  await contarCandidaturas();
   render();
+}
+
+// quantas candidaturas tem cada uma das minhas vagas (só a empresa as consegue ler)
+async function contarCandidaturas() {
+  contagemCand = {};
+  if (!souEmpresa || !anuncios.some(a => a.empresa_id === me.id && a.tipo === 'vaga')) return;
+  const { data, error } = await supabaseClient.from('candidaturas').select('anuncio_id, estado').eq('empresa_id', me.id);
+  if (error) return;
+  (data || []).forEach(c => {
+    const k = contagemCand[c.anuncio_id] || (contagemCand[c.anuncio_id] = { total: 0, novas: 0 });
+    k.total++; if (c.estado === 'nova') k.novas++;
+  });
 }
 
 // telefone e WhatsApp das empresas (vêm por uma função segura, não da tabela de perfis)
@@ -320,11 +396,12 @@ function render() {
     <article class="card" onclick="mostrarDetalhes('${a.id}')">
       ${a.foto_url ? `<img src="${esc(a.foto_url)}" class="card-img" loading="lazy" alt="">` : ''}
       <div class="card-body">
-        <div><span class="badge ${classe}"><i class="fas ${icone}"></i>${nomeTipo}</span>${!a.ativo ? '<span class="badge badge-inativo">Pausado</span>' : ''}${expirado ? '<span class="badge badge-inativo">Expirado</span>' : ''}</div>
+        <div><span class="badge ${classe}"><i class="fas ${icone}"></i>${nomeTipo}</span>${!a.ativo ? '<span class="badge badge-inativo">Pausado</span>' : ''}${expirado ? '<span class="badge badge-inativo">Expirado</span>' : ''}${a.em_revisao ? '<span class="badge badge-revisao">Em revisão</span>' : ''}</div>
         <div class="card-title" data-no-i18n>${esc(a.titulo)}</div>
         ${a.preco ? `<div class="preco">${esc(a.preco)}</div>` : ''}
         <p class="card-desc" data-no-i18n>${esc(a.descricao)}</p>
         ${a.localizacao ? `<div style="font-size:.78rem;color:var(--primary);font-weight:700;"><i class="fa-solid fa-location-dot"></i> ${esc(a.localizacao)}</div>` : ''}
+        ${contagemCand[a.id] ? `<span class="chip-cand">📥 ${FC.plural(contagemCand[a.id].total, 'candidatura', 'candidaturas')}${contagemCand[a.id].novas ? ' · ' + contagemCand[a.id].novas + ' novas' : ''}</span>` : ''}
         <div class="card-rodape">
           <img src="${esc(logo(a.empresa))}" alt=""><b data-no-i18n data-selo="${esc(a.empresa_id || '')}">${esc(a.empresa ? a.empresa.full_name : FC.t('Empresa'))}</b>
           <span>${new Date(a.data_publicacao).toLocaleDateString('pt-PT')}</span>
@@ -349,6 +426,9 @@ async function mostrarDetalhes(id) {
   const e = a.empresa || {};
   const [nomeTipo, classe] = TIPOS[a.tipo] || TIPOS.promo;
   const meu = a.empresa_id === me.id;
+  const vaga = a.tipo === 'vaga';
+  const equipa = FC.contaEquipa(me) || me.role === 'ajudante';
+  emAberto = a;
   const contacto = a.contacto || e.whatsapp || e.phone || '';
   const wa = FCP.numeroWhatsApp(contacto);
   const msgWa = encodeURIComponent(`Olá! Vi o vosso anúncio "${a.titulo}" na Feira Comercial.`);
@@ -361,11 +441,13 @@ async function mostrarDetalhes(id) {
     <div class="info-card">
       ${a.localizacao ? `<div class="info-row"><i class="fa-solid fa-location-dot"></i><span><b>Local:</b> ${esc(a.localizacao)}</span></div>` : ''}
       ${a.validade ? `<div class="info-row"><i class="fa-solid fa-calendar-check"></i><span><b>Válido até:</b> ${new Date(a.validade + 'T12:00').toLocaleDateString('pt-PT')}</span></div>` : ''}
-      ${contacto ? `<div class="info-row"><i class="fa-solid fa-phone"></i><span><b>Contacto:</b> ${esc(contacto)}</span></div>` : ''}
+      ${contacto && (!vaga || meu) ? `<div class="info-row"><i class="fa-solid fa-phone"></i><span><b>Contacto:</b> ${esc(contacto)}</span></div>` : ''}
       ${a.link ? `<div class="info-row"><i class="fa-solid fa-link"></i><a href="${esc(FCP.linkSite(a.link))}" target="_blank" rel="noopener" style="color:var(--primary);">${esc(a.link)}</a></div>` : ''}
       ${meu ? `<div class="info-row"><i class="fa-solid fa-eye"></i><span><b>Visto</b> ${FC.plural(a.views || 0, 'vez', 'vezes')}</span></div>` : ''}
     </div>
     ${meu ? '' : avisoBurla(a, contacto)}
+    ${meu && a.em_revisao ? `<div class="alerta-burla vaga"><span class="ic">🔍</span><span><b>${FC.t('Este anúncio está escondido em revisão pela Equipa.')}</b> ${FC.t('Foi denunciado por várias pessoas ou tem um número da lista de burlas. A Equipa vai decidir e avisá-lo.')}</span></div>` : ''}
+    ${vaga && !meu ? '<div id="candBox"></div>' : ''}
     <a class="empresa-box" href="perfil.html?id=${e.id}">
       <img src="${esc(logo(e))}" alt="">
       <div><b data-no-i18n data-selo="${esc(e.id || '')}">${esc(e.full_name || FC.t('Empresa'))}</b><div style="font-size:.8rem;color:var(--text-muted);">${esc([e.sector, e.city, e.province].filter(Boolean).join(' · '))}</div></div>
@@ -376,13 +458,164 @@ async function mostrarDetalhes(id) {
         <button class="btn btn-claro" onclick="editarAnuncio('${a.id}')"><i class="fas fa-pen"></i> Editar</button>
         <button class="btn btn-claro" onclick="alternarAtivo('${a.id}', ${!a.ativo})"><i class="fas ${a.ativo ? 'fa-pause' : 'fa-play'}"></i> ${a.ativo ? 'Pausar' : 'Reativar'}</button>
         <button class="btn btn-del" onclick="apagarAnuncio('${a.id}')"><i class="fas fa-trash-alt"></i> Apagar</button>`
+      : vaga ? `
+        <button class="btn btn-view" id="btnCandidatar" onclick="abrirCandidatura()"><i class="fas fa-file-arrow-up"></i> ${FC.t('Candidatar-me')}</button>`
       : `
         ${wa ? `<a class="btn btn-whats" href="https://wa.me/${wa}?text=${msgWa}" target="_blank" rel="noopener" data-fc-evento="whatsapp" data-empresa="${esc(e.id)}" data-alvo="${esc(a.id)}"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
         <a class="btn btn-view" href="mensagen.html?para=${e.id}"><i class="fas fa-comment-dots"></i> Mensagem</a>
         ${contacto ? `<a class="btn btn-claro" href="tel:${esc(contacto.replace(/\s/g, ''))}" data-fc-evento="ligar" data-empresa="${esc(e.id)}" data-alvo="${esc(a.id)}"><i class="fas fa-phone"></i> Ligar</a>` : ''}`}
       <button class="btn btn-claro" onclick="partilharAnuncio('${a.id}')"><i class="fas fa-share"></i> Partilhar</button>
-    </div>`;
+    </div>
+    ${vaga && !meu ? `<p class="nota-vaga"><i class="fas fa-circle-info"></i> ${FC.t('As candidaturas chegam organizadas à empresa, dentro da Feira Comercial. Não envie o CV por WhatsApp nem pague nada para se candidatar.')}</p>` : ''}
+    ${meu && vaga ? '<div class="cands" id="listaCand"><p class="nota-vaga">A carregar candidaturas…</p></div>' : ''}
+    ${meu ? '' : `<button type="button" class="btn-denunciar" onclick="abrirDenuncia()"><i class="fas fa-flag"></i> ${FC.t('Denunciar este anúncio')}</button>`}
+    ${equipa ? `<div class="equipa-box"><b>Equipa:</b> ${a.em_revisao ? 'escondido em revisão.' : 'visível para todos.'}
+      <div class="cand-acoes">${a.em_revisao
+        ? `<button class="btn btn-view" onclick="reverAnuncio('${a.id}', true)"><i class="fas fa-eye"></i> Mostrar outra vez</button>`
+        : `<button class="btn btn-del" onclick="reverAnuncio('${a.id}', false)"><i class="fas fa-eye-slash"></i> Esconder (revisão)</button>`}</div></div>` : ''}`;
   abrirModal('detailModal');
+  if (vaga && !meu) carregarMinhaCandidatura(a);
+  if (vaga && meu) carregarCandidaturas(a);
+}
+
+// ─── CANDIDATURAS ───
+const ESTADOS_CAND = { nova: 'Nova', vista: 'Vista', selecionada: 'Selecionada', rejeitada: 'Não selecionada' };
+const dataCurta = d => new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+
+async function carregarMinhaCandidatura(a) {
+  const box = document.getElementById('candBox');
+  const { data } = await supabaseClient.from('candidaturas').select('id, estado, criado, cv').eq('anuncio_id', a.id).eq('candidato', me.id).maybeSingle();
+  if (!box || emAberto !== a) return;
+  const btn = document.getElementById('btnCandidatar');
+  if (!data) {
+    const fim = a.validade && a.validade < FC.hojeISO();
+    if (fim && btn) { btn.disabled = true; btn.textContent = FC.t('Candidaturas terminadas'); }
+    box.innerHTML = '';
+    return;
+  }
+  if (btn) btn.style.display = 'none';
+  box.innerHTML = `<div class="minha-cand">✅ <b>${FC.t('Candidatou-se a esta vaga')}</b> ${FC.t('em')} ${dataCurta(data.criado)}.
+    ${FC.t('Estado')}: <span class="cand-estado ${data.estado}">${FC.t(ESTADOS_CAND[data.estado])}</span>
+    <div class="cand-acoes"><button class="btn btn-claro" onclick="retirarCandidatura(${data.id}, '${esc(data.cv || '')}')"><i class="fas fa-rotate-left"></i> ${FC.t('Retirar candidatura')}</button></div></div>`;
+}
+
+function abrirCandidatura() {
+  const a = emAberto; if (!a) return;
+  document.getElementById('candForm').reset();
+  document.getElementById('candVaga').textContent = (FC.t('Vaga') + ': ' + a.titulo + ' — ' + ((a.empresa && a.empresa.full_name) || '')).trim();
+  document.getElementById('candNome').value = me.full_name || '';
+  document.getElementById('candTel').value = me.whatsapp || me.phone || '';
+  abrirModal('candModal');
+}
+
+async function enviarCandidatura(ev) {
+  ev.preventDefault();
+  const a = emAberto; if (!a) return;
+  const btn = document.getElementById('btnCand'), txt = btn.textContent;
+  const f = document.getElementById('candCv').files[0];
+  if (f && f.size > 5 * 1024 * 1024) { toast(FC.t('O CV tem mais de 5 MB. Envie um ficheiro mais pequeno.')); return; }
+  btn.disabled = true; btn.textContent = FC.t('A enviar...');
+  let caminho = null;
+  try {
+    if (f) {
+      const ext = (f.name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'pdf';
+      caminho = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const up = await supabaseClient.storage.from('cvs').upload(caminho, f, { contentType: f.type || 'application/octet-stream' });
+      if (up.error) { caminho = null; throw up.error; }
+    }
+    const { error } = await supabaseClient.rpc('candidatar', {
+      p_anuncio: a.id, p_nome: document.getElementById('candNome').value.trim(),
+      p_telefone: document.getElementById('candTel').value.trim(),
+      p_mensagem: document.getElementById('candMsg').value.trim() || null, p_cv: caminho });
+    if (error) throw error;
+    fecharModal('candModal');
+    toast(FC.t('Candidatura enviada! A empresa vai vê-la na lista da vaga.'));
+    carregarMinhaCandidatura(a);
+  } catch (err) {
+    if (caminho) supabaseClient.storage.from('cvs').remove([caminho]);
+    toast(FC.traduzirErro(err));
+  } finally { btn.disabled = false; btn.textContent = txt; }
+}
+
+async function retirarCandidatura(id, cv) {
+  const { error } = await supabaseClient.from('candidaturas').delete().eq('id', id).eq('candidato', me.id);
+  if (error) { toast('Erro: ' + FC.traduzirErro(error)); return; }
+  if (cv) supabaseClient.storage.from('cvs').remove([cv]);
+  toast(FC.t('Candidatura retirada.'));
+  const b = document.getElementById('btnCandidatar'); if (b) b.style.display = '';
+  carregarMinhaCandidatura(emAberto);
+}
+
+// a empresa: lista organizada das candidaturas de uma vaga
+async function carregarCandidaturas(a) {
+  const el = document.getElementById('listaCand');
+  const { data, error } = await supabaseClient.from('candidaturas')
+    .select('id, nome, telefone, mensagem, cv, estado, criado').eq('anuncio_id', a.id).order('criado', { ascending: false });
+  if (!el || emAberto !== a) return;
+  if (error) { el.innerHTML = '<p class="nota-vaga">Não foi possível carregar as candidaturas.</p>'; return; }
+  const lista = data || [];
+  const ordem = { selecionada: 0, nova: 1, vista: 2, rejeitada: 3 };
+  lista.sort((x, y) => ordem[x.estado] - ordem[y.estado]);
+  el.innerHTML = `<h3>📥 ${FC.plural(lista.length, 'candidatura', 'candidaturas')}</h3>` + (lista.length ? lista.map(c => {
+    const wa = FCP.numeroWhatsApp(c.telefone);
+    return `<div class="cand" id="cand-${c.id}">
+      <div class="cand-topo"><div><b data-no-i18n>${esc(c.nome)}</b><br><small>${esc(c.telefone)} · ${dataCurta(c.criado)}</small></div>
+        <span class="cand-estado ${c.estado}">${FC.t(ESTADOS_CAND[c.estado])}</span></div>
+      ${c.mensagem ? `<p data-no-i18n>${esc(c.mensagem)}</p>` : ''}
+      <div class="cand-acoes">
+        ${c.cv ? `<button class="btn btn-claro" onclick="verCV('${esc(c.cv)}')"><i class="fas fa-file-lines"></i> ${FC.t('Ver CV')}</button>` : `<small style="align-self:center">${FC.t('Sem CV')}</small>`}
+        ${wa ? `<a class="btn btn-whats" href="https://wa.me/${wa}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : ''}
+        ${c.estado !== 'selecionada' ? `<button class="btn btn-view" onclick="mudarEstadoCand(${c.id}, 'selecionada')"><i class="fas fa-check"></i> ${FC.t('Selecionar')}</button>` : ''}
+        ${c.estado !== 'rejeitada' ? `<button class="btn btn-del" onclick="mudarEstadoCand(${c.id}, 'rejeitada')"><i class="fas fa-xmark"></i> ${FC.t('Não selecionar')}</button>` : ''}
+      </div></div>`;
+  }).join('') : `<p class="nota-vaga">${FC.t('Ainda ninguém se candidatou. As candidaturas aparecem aqui, organizadas, e recebe um aviso no sino.')}</p>`);
+  if (lista.some(c => c.estado === 'nova')) supabaseClient.rpc('candidaturas_vistas', { p_anuncio: a.id }).then(() => {}, () => {});
+}
+
+async function verCV(caminho) {
+  const janela = window.open('', '_blank');
+  const { data, error } = await supabaseClient.storage.from('cvs').createSignedUrl(caminho, 300);
+  if (error || !data) { if (janela) janela.close(); toast(FC.t('Não foi possível abrir o CV.')); return; }
+  if (janela) janela.location = data.signedUrl; else location.href = data.signedUrl;
+}
+
+async function mudarEstadoCand(id, estado) {
+  const { error } = await supabaseClient.rpc('candidatura_estado', { p_id: id, p_estado: estado });
+  if (error) { toast(FC.traduzirErro(error)); return; }
+  if (emAberto) carregarCandidaturas(emAberto);
+  contarCandidaturas().then(render);
+}
+
+// ─── DENÚNCIAS ───
+function abrirDenuncia() {
+  if (!emAberto) return;
+  document.getElementById('denForm').reset();
+  abrirModal('denModal');
+}
+
+async function enviarDenuncia(ev) {
+  ev.preventDefault();
+  const a = emAberto; if (!a) return;
+  const motivo = (document.querySelector('#denForm input[name="motivo"]:checked') || {}).value;
+  if (!motivo) { toast(FC.t('Escolha o motivo da denúncia.')); return; }
+  const btn = document.getElementById('btnDen'), txt = btn.textContent;
+  btn.disabled = true; btn.textContent = FC.t('A enviar...');
+  const { data, error } = await supabaseClient.rpc('denunciar_anuncio', {
+    p_anuncio: a.id, p_motivo: motivo, p_detalhe: document.getElementById('denDetalhe').value.trim() || null });
+  btn.disabled = false; btn.textContent = txt;
+  if (error) { toast(FC.traduzirErro(error)); return; }
+  fecharModal('denModal');
+  toast(FC.t('Obrigado. A Equipa vai analisar este anúncio.'));
+  if (data && data.em_revisao) { fecharModal('detailModal'); carregar(); }
+}
+
+// ─── EQUIPA: mostrar ou esconder um anúncio denunciado ───
+async function reverAnuncio(id, mostrar) {
+  const { error } = await supabaseClient.rpc('suporte_rever_anuncio', { p_anuncio: id, p_mostrar: mostrar });
+  if (error) { toast(FC.traduzirErro(error)); return; }
+  toast(mostrar ? 'Anúncio visível outra vez.' : 'Anúncio escondido para revisão.');
+  fecharModal('detailModal');
+  carregar();
 }
 
 // aviso contra burlas no detalhe de um anúncio de outra empresa
@@ -515,7 +748,7 @@ async function apagarAnuncio(id) {
   carregar();
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharModal('formModal'); fecharModal('detailModal'); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { ['candModal', 'denModal', 'formModal', 'detailModal'].forEach(fecharModal); } });
 </script>
 </body>
 </html>
