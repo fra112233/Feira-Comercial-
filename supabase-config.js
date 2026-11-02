@@ -383,7 +383,7 @@ FC._notifTextos = {
   numero_no_perfil: '🚫 número da lista de burlas num perfil:',
   mesmo_aparelho: '📱 usa o mesmo aparelho de uma conta suspensa:',
   cobranca: 'foi-lhe atribuída para cobrar a mensalidade 💰',
-  gosto: 'gostou da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
+  gosto: 'gostou da sua publicação', gosto_retirado: 'retirou a reação da sua publicação', comentario: 'comentou a sua publicação', resposta: 'respondeu ao seu comentário',
   seguir: 'começou a segui-lo', publicacao: 'fez uma publicação nova', video: 'publicou um vídeo novo',
   gosto_video: 'gostou do seu vídeo', gosto_story: 'gostou do seu story ❤️', comentario_video: 'comentou o seu vídeo', live: 'está em direto agora 🔴',
   avaliacao: 'avaliou a sua empresa', resposta_avaliacao: 'respondeu à sua avaliação',
@@ -396,7 +396,7 @@ FC._notifTextos = {
   resumo_semanal: '— o seu resumo da semana 📰', lojas_hoje: 'publicou hoje 🛍️'
 };
 FC._notifIcones = {
-  gosto: 'fa-heart', gosto_video: 'fa-heart', gosto_story: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
+  gosto: 'fa-heart', gosto_retirado: 'fa-heart-crack', gosto_video: 'fa-heart', gosto_story: 'fa-heart', comentario: 'fa-comment', comentario_video: 'fa-comment', resposta: 'fa-reply',
   seguir: 'fa-user-plus', publicacao: 'fa-newspaper', video: 'fa-play', live: 'fa-tower-broadcast',
   avaliacao: 'fa-star', resposta_avaliacao: 'fa-star', convite_aceite: 'fa-gift', convite_premio: 'fa-gift',
   marco_publicacao: 'fa-trophy', marco_seguidor: 'fa-trophy', marco_mensagem: 'fa-comment-dots', gratis_fim: 'fa-clock', mensalidade_fim: 'fa-clock',
