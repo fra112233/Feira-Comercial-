@@ -81,6 +81,7 @@ a { color:inherit; text-decoration:none; }
 .btn { padding:10px 16px; min-height:42px; border-radius:10px; font-weight:700; cursor:pointer; border:none; font-size:.88rem; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
 .btn-view { background:linear-gradient(135deg,var(--primary),var(--primary-esc)); color:#111; }
 .btn-view:hover { filter:brightness(1.07); }
+.btn-publicar { margin:0 0 16px; padding:12px 20px; font-size:.95rem; }
 .btn-claro { background:var(--campo); color:var(--text-main); border:1px solid var(--border); }
 .btn-whats { background:#25d366; color:#052e16; }
 .btn-del { background:rgba(248,113,113,.12); color:var(--accent); border:1px solid rgba(248,113,113,.35); }
@@ -128,8 +129,9 @@ a { color:inherit; text-decoration:none; }
   .top-nav { padding:.55rem .8rem; }
   .fc-marca { gap:7px; } .fc-marca img { width:36px; height:36px; border-radius:9px; }
   .fc-marca-txt b { font-size:15px; letter-spacing:-.3px; } .fc-marca-txt small { font-size:9.5px; letter-spacing:.1px; }
-  .btn-home span, #btnAnunciar span { display:none; }      /* no telemóvel: só os ícones */
-  .btn-home, #btnAnunciar { padding:9px 12px; }
+  .btn-home span { display:none; }      /* no telemóvel: só os ícones */
+  .btn-home { padding:9px 12px; }
+  .btn-publicar { width:100%; }
 }
 @media (max-width:370px) { .fc-marca-txt small { display:none; } }
 /* nada empurra a página para os lados no telemóvel */
@@ -144,7 +146,6 @@ html, body { max-width: 100%; overflow-x: hidden; }
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
     <a href="index.html" class="btn-home" aria-label="Início"><i class="fa-solid fa-house"></i> <span>Início</span></a>
-    <button class="btn btn-view" id="btnAnunciar" style="display:none" onclick="abrirFormulario()" aria-label="Anunciar"><i class="fa-solid fa-plus-circle"></i> <span>Anunciar</span></button>
     <button class="btn btn-claro" onclick="FCMenu.abrir()" title="Menu" aria-label="Menu" style="padding:10px 13px;"><i class="fas fa-bars"></i></button>
   </div>
 </nav>
@@ -153,6 +154,9 @@ html, body { max-width: 100%; overflow-x: hidden; }
   <span class="etiqueta"><i class="fas fa-bullhorn"></i> Anúncios</span>
   <h1 class="titulo-pag">Promoções, vagas e <em>serviços</em></h1>
   <p class="intro">Anúncios das empresas da Feira Comercial. Fale diretamente com quem anuncia.</p>
+
+  <!-- só para empresas: o único sítio para criar um anúncio (antes estava no topo, ao lado do sino) -->
+  <button class="btn btn-view btn-publicar" id="btnAnunciar" style="display:none" onclick="abrirFormulario()"><i class="fas fa-plus"></i> Publicar anúncio</button>
 
   <div class="aviso-pessoa" id="avisoPessoa">
     <i class="fas fa-info-circle"></i> Só <b>contas de empresa</b> podem publicar anúncios. Podes ver todos os anúncios e contactar as empresas.
@@ -305,7 +309,7 @@ function render() {
   if (!anuncios.length) {
     feed.innerHTML = `<div class="vazio"><i class="fas fa-bullhorn"></i>
       ${tipoAtual === 'meus' ? 'Ainda não publicaste anúncios.' : 'Ainda não há anúncios aqui.'}
-      ${souEmpresa ? '<br><br><button class="btn btn-view" onclick="abrirFormulario()"><i class="fas fa-plus"></i> Publicar o primeiro</button>' : ''}</div>`;
+      ${souEmpresa ? '<br><small>Publique o primeiro no botão «Publicar anúncio», lá em cima.</small>' : ''}</div>`;
     return;
   }
   const hoje = FC.hojeISO();
