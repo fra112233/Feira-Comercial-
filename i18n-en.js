@@ -580,6 +580,7 @@
 "Este nome é reservado à Feira Comercial. Escolha outro nome.": "This name is reserved for Feira Comercial. Choose another name.",
 "Este número de operação já foi enviado. Verifique o número no comprovativo.": "This operation number has already been sent. Check the number on the receipt.",
 "Este número está na lista de burlas da Feira Comercial (conta suspensa ou várias denúncias). Não envie dinheiro.": "This number is on Feira Comercial's scam list (suspended account or several reports). Do not send money.",
+"A Google marcou um link desta mensagem como perigoso (burla ou vírus). Não o abra nem escreva lá a sua palavra-passe.": "Google flagged a link in this message as dangerous (scam or virus). Do not open it or type your password there.",
 "Este número está na lista de burlas da Feira Comercial. Use outro número. Se o número é seu e acha que é um engano, fale com a equipa: suporte@feira-comercial.com": "This number is on Feira Comercial's scam list. Please use another number. If the number is yours and you think this is a mistake, contact the team: suporte@feira-comercial.com",
 "Este número já foi usado por uma conta suspensa pela Feira Comercial. Não envie dinheiro.": "This number was already used by an account suspended by Feira Comercial. Do not send money.",
 "Este perfil não existe ou foi removido.": "This profile does not exist or has been removed.",

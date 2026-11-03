@@ -1763,6 +1763,9 @@ function avisoBurla(msg) {
     // número que já foi de uma conta suspensa (a base de dados marca a mensagem): aviso vermelho, sempre
     if (msg.alerta === 'numero_proibido')
         return '<div class="aviso-burla perigo" role="alert">🚫 <span>' + escHtml(FC.t('Este número está na lista de burlas da Feira Comercial (conta suspensa ou várias denúncias). Não envie dinheiro.')) + '</span> ' + linkVerificar(msg.content) + '<a onclick="denunciarConversa()">' + FC.t('Denunciar') + '</a></div>';
+    // link que a Google marcou como burla, vírus ou programa indesejado (verificação no servidor)
+    if (msg.alerta === 'link_perigoso')
+        return '<div class="aviso-burla perigo" role="alert">⛔ <span>' + escHtml(FC.t('A Google marcou um link desta mensagem como perigoso (burla ou vírus). Não o abra nem escreva lá a sua palavra-passe.')) + '</span> <a onclick="denunciarConversa()">' + FC.t('Denunciar') + '</a></div>';
     const s = seloDe(msg.sender_id);
     if (s && s !== 'verificada') return '';          // Equipa / Administrador
     const p = perfisCache[msg.sender_id] || {};
