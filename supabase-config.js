@@ -122,7 +122,7 @@ FC.POUPAR_TRAFEGO = true;
    Vazio = desligado. Para ligar: 1) criar o widget em dash.cloudflare.com → Turnstile;
    2) pôr aqui a "Site Key"; 3) no Supabase → Authentication → Attack Protection → Captcha:
    escolher Turnstile e colar a "Secret Key". (Fazer o passo 2 ANTES do 3, senão ninguém entra.) */
-FC.CAPTCHA_SITE_KEY = '';
+FC.CAPTCHA_SITE_KEY = '0x4AAAAAAFyKG-VbldRoUDQz';
 FC._captchas = [];
 FC.prepararCaptcha = function () {
   if (!FC.CAPTCHA_SITE_KEY) return;
