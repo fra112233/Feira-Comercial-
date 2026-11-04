@@ -23,6 +23,7 @@
 <link rel="apple-touch-icon" href="images/icone-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="preconnect" href="https://challenges.cloudflare.com">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="atualizacao.js"></script>
@@ -206,9 +207,8 @@ function traduzir(err) {
 
 async function reenviarConfirmacao() {
   const email = $('email').value.trim();
-  if (FC.captchaEmFalta()) { aviso(FC.MSG_CAPTCHA); return; }
   try {
-    const { error } = await supabaseClient.auth.resend({ type: 'signup', email, options: { captchaToken: FC.tokenCaptcha() } });
+    const { error } = await supabaseClient.auth.resend({ type: 'signup', email, options: { captchaToken: await FC.obterCaptcha() } });
     if (error) throw error;
     aviso('Enviámos de novo o e-mail de confirmação para <b>' + esc(email) + '</b>. Veja também a pasta de Spam.', 'ok');
   } catch (err) { aviso(traduzir(err)); }
@@ -224,8 +224,7 @@ async function entrar(e) {
 
   const btn = $('btnEntrar'); btn.disabled = true; btn.classList.add('carregando'); $('txtEntrar').textContent = 'A entrar…';
   try {
-    if (FC.captchaEmFalta()) { aviso(FC.MSG_CAPTCHA); btn.disabled = false; btn.classList.remove('carregando'); $('txtEntrar').textContent = 'Entrar'; return; }
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: senha, options: { captchaToken: FC.tokenCaptcha() } });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: senha, options: { captchaToken: await FC.obterCaptcha() } });
     if (error) throw error;
     try { localStorage.setItem(CHAVE_TERMOS, '1'); localStorage.removeItem('fc_profile'); } catch (x) {}
     $('txtEntrar').textContent = 'Bem-vindo!';

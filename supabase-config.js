@@ -124,20 +124,11 @@ FC.POUPAR_TRAFEGO = true;
    escolher Turnstile e colar a "Secret Key". (Fazer o passo 2 ANTES do 3, senão ninguém entra.) */
 FC.CAPTCHA_SITE_KEY = '0x4AAAAAAFyKG-VbldRoUDQz';
 FC._captchas = [];
-FC.prepararCaptcha = function () {
-  if (!FC.CAPTCHA_SITE_KEY) return;
-  const caixas = document.querySelectorAll('.fc-captcha');
-  if (!caixas.length) return;
-  const desenhar = () => caixas.forEach(c => {
-    if (c.dataset.pronto) return; c.dataset.pronto = '1';
-    const w = { token: '', id: null };
-    w.id = window.turnstile.render(c, { sitekey: FC.CAPTCHA_SITE_KEY, language: 'pt', callback: t => { w.token = t; }, 'expired-callback': () => { w.token = ''; } });
-    FC._captchas.push(w);
-  });
-  if (window.turnstile) return desenhar();
-  if (FC._captchaACarregar) return;
+// o script do Cloudflare começa a descarregar logo, antes de a página acabar de abrir
+FC._carregarTurnstile = function () {
+  if (!FC.CAPTCHA_SITE_KEY || window.turnstile || FC._captchaACarregar) return;
   FC._captchaACarregar = true;
-  window.fcTurnstilePronto = () => { FC._captchaACarregar = false; desenhar(); };
+  window.fcTurnstilePronto = () => { FC._captchaACarregar = false; FC.prepararCaptcha(); };
   const s = document.createElement('script');
   s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=fcTurnstilePronto';
   s.async = true;
@@ -145,6 +136,21 @@ FC.prepararCaptcha = function () {
   s.onerror = () => { s.remove(); FC._captchaACarregar = false; };
   document.head.appendChild(s);
 };
+FC.prepararCaptcha = function () {
+  if (!FC.CAPTCHA_SITE_KEY) return;
+  const caixas = document.querySelectorAll('.fc-captcha');
+  if (!caixas.length) return;
+  if (!window.turnstile) return FC._carregarTurnstile();
+  caixas.forEach(c => {
+    if (c.dataset.pronto) return; c.dataset.pronto = '1';
+    const w = { token: '', id: null };
+    // 'interaction-only': a verificação corre escondida; a caixa só aparece se o Cloudflare pedir um clique
+    w.id = window.turnstile.render(c, { sitekey: FC.CAPTCHA_SITE_KEY, language: 'pt', appearance: 'interaction-only',
+      callback: t => { w.token = t; }, 'expired-callback': () => { w.token = ''; }, 'error-callback': () => { w.token = ''; } });
+    FC._captchas.push(w);
+  });
+};
+if (/(Portal|password|Formulario)\.html$/i.test(location.pathname)) FC._carregarTurnstile();
 window.addEventListener('online', () => { if (!window.turnstile) FC.prepararCaptcha(); });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => FC.prepararCaptcha()); else FC.prepararCaptcha();
 // devolve o token (ou undefined se o captcha estiver desligado) e prepara um novo para a próxima vez
@@ -160,6 +166,17 @@ FC.captchaEmFalta = function () {
   const falta = !!FC.CAPTCHA_SITE_KEY && !FC._captchas.some(w => w.token);
   if (falta && !window.turnstile) FC.prepararCaptcha();   // a caixa não carregou (sem internet?) → tentar de novo
   return falta;
+};
+// espera (até 20 s) que a verificação termine e devolve o token — quem carrega no botão cedo não recebe erro
+FC.obterCaptcha = async function (maxMs = 20000) {
+  if (!FC.CAPTCHA_SITE_KEY) return undefined;
+  const fim = Date.now() + maxMs;
+  while (!FC._captchas.some(w => w.token)) {
+    if (!window.turnstile) FC.prepararCaptcha();
+    if (Date.now() > fim) throw new Error('captcha: ' + (window.turnstile ? 'por confirmar' : 'sem ligação'));
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return FC.tokenCaptcha();
 };
 // a caixa ainda não apareceu (sem internet ou a carregar) ou apareceu mas falta confirmar
 Object.defineProperty(FC, 'MSG_CAPTCHA', { get: () => window.turnstile
