@@ -4,15 +4,15 @@
 <div style="padding:26px 24px">
 {{ if eq (printf "%v" .Data.idioma) "en" }}
 <h1 style="margin:0 0 12px;font-size:22px;color:#111">Reset your password</h1>
-<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">We received a request to change your account password. Tap the button to choose a new one. The link is valid for 1 hour.</p>
-<p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px">Change password</a></p>
-<p style="margin:0 0 6px;font-size:14px;color:#333">Or type this code on the site:</p><p style="margin:0 0 4px;font-size:30px;font-weight:700;letter-spacing:6px;color:#111;font-family:monospace">{{ .Token }}</p><p style="margin:0;font-size:12px;color:#71717a">To copy on your phone: press and hold the code and choose Copy.</p>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">We received a request to change your account password. Tap the button: the site opens ready for you to choose a new one — nothing to copy. Valid for 1 hour.</p>
+<p style="margin:0 0 22px"><a href="https://www.feira-comercial.com/password.html?token_hash={{ .TokenHash }}&type=recovery" style="display:block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;font-size:17px;text-align:center;padding:16px 26px;border-radius:12px">Change password</a></p>
+<p style="margin:0 0 4px;font-size:13px;color:#71717a">Only if the button does not open: type this code on the site.</p><p style="margin:0;font-size:22px;font-weight:700;letter-spacing:4px;color:#52525b;font-family:monospace">{{ .Token }}</p>
 <p style="margin:18px 0 0;font-size:12px;color:#71717a">If you did not ask for this change, ignore this e-mail: your password stays the same.</p>
 {{ else }}
 <h1 style="margin:0 0 12px;font-size:22px;color:#111">Recuperar a palavra-passe</h1>
-<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">Recebemos um pedido para mudar a palavra-passe da sua conta. Toque no botão para escolher uma nova. O link é válido durante 1 hora.</p>
-<p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px">Mudar palavra-passe</a></p>
-<p style="margin:0 0 6px;font-size:14px;color:#333">Ou escreva este código no site:</p><p style="margin:0 0 4px;font-size:30px;font-weight:700;letter-spacing:6px;color:#111;font-family:monospace">{{ .Token }}</p><p style="margin:0;font-size:12px;color:#71717a">Para copiar no telemóvel: carregue no código sem largar e escolha Copiar.</p>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">Recebemos um pedido para mudar a palavra-passe da sua conta. Toque no botão: o site abre pronto para escolher a nova — não precisa de copiar nada. Válido durante 1 hora.</p>
+<p style="margin:0 0 22px"><a href="https://www.feira-comercial.com/password.html?token_hash={{ .TokenHash }}&type=recovery" style="display:block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;font-size:17px;text-align:center;padding:16px 26px;border-radius:12px">Mudar palavra-passe</a></p>
+<p style="margin:0 0 4px;font-size:13px;color:#71717a">Só se o botão não abrir: escreva este código no site.</p><p style="margin:0;font-size:22px;font-weight:700;letter-spacing:4px;color:#52525b;font-family:monospace">{{ .Token }}</p>
 <p style="margin:18px 0 0;font-size:12px;color:#71717a">Se não pediu esta mudança, ignore este e-mail: a sua palavra-passe continua a mesma.</p>
 {{ end }}
 </div>
