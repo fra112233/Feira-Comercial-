@@ -247,6 +247,20 @@ async function outraConta() {
 (async function () {
   const q = new URLSearchParams(location.search);
   if (q.get('email')) $('email').value = q.get('email');
+
+  // botão do e-mail de criar conta (link para esta página com token_hash): confirma aqui.
+  // Os verificadores de links dos e-mails só abrem a página, não correm isto, por isso o link não se gasta.
+  let confirmou = false;
+  if (q.get('token_hash') && /^(email|signup)$/.test(q.get('type') || '')) {
+    const token_hash = q.get('token_hash');
+    history.replaceState(null, '', location.pathname);
+    aviso('A confirmar o seu e-mail…', 'ok');
+    const { error } = await supabaseClient.auth.verifyOtp({ token_hash, type: 'email' });
+    if (!error) { confirmou = true; aviso('E-mail confirmado! Bem-vindo à Feira Comercial.', 'ok'); }
+    else aviso(/network|failed to fetch/i.test(error.message || '')
+      ? 'Sem ligação à internet. Ligue os dados e toque de novo no botão do e-mail.'
+      : 'Este link já expirou ou já foi usado. Se a conta ainda não está confirmada, entre com o seu e-mail e palavra-passe para receber um novo.');
+  }
   try { if (localStorage.getItem(CHAVE_TERMOS)) { $('termos').checked = true; $('caixaTermos').style.display = 'none'; } } catch (x) {}
   // quem já entrou neste aparelho vê primeiro o "Entrar"; quem é novo vê primeiro o "Criar conta"
   try {
@@ -272,7 +286,7 @@ async function outraConta() {
   $('sessaoFoto').src = foto || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nome || 'U') + '&background=random&color=fff&size=128');
   $('formEntrar').style.display = 'none';
   $('sessao').style.display = 'block';
-  if (!q.get('voltar')) limparAviso();
+  if (!q.get('voltar') && !confirmou) limparAviso();
 })();
 </script>
 </body>
