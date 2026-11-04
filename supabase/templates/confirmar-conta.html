@@ -5,13 +5,13 @@
 {{ if eq (printf "%v" .Data.idioma) "en" }}
 <h1 style="margin:0 0 12px;font-size:22px;color:#111">Confirm your e-mail</h1>
 <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">Hello! Just one more step to activate your Feira Comercial account. Tap the button to confirm your e-mail.</p>
-<p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px">Confirm e-mail</a></p>
+<p style="margin:0 0 22px"><a href="https://www.feira-comercial.com/Portal.html?token_hash={{ .TokenHash }}&type=email" style="display:block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;font-size:17px;text-align:center;padding:16px 26px;border-radius:12px">Confirm e-mail</a></p>
 
 <p style="margin:18px 0 0;font-size:12px;color:#71717a">If you did not create this account, ignore this e-mail. Feira Comercial never asks for your password by e-mail or message.</p>
 {{ else }}
 <h1 style="margin:0 0 12px;font-size:22px;color:#111">Confirme o seu e-mail</h1>
 <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#333">Olá! Falta só um passo para ativar a sua conta na Feira Comercial. Toque no botão para confirmar o seu e-mail.</p>
-<p style="margin:0 0 22px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:10px">Confirmar e-mail</a></p>
+<p style="margin:0 0 22px"><a href="https://www.feira-comercial.com/Portal.html?token_hash={{ .TokenHash }}&type=email" style="display:block;background:#d9a52e;color:#111;text-decoration:none;font-weight:700;font-size:17px;text-align:center;padding:16px 26px;border-radius:12px">Confirmar e-mail</a></p>
 
 <p style="margin:18px 0 0;font-size:12px;color:#71717a">Se não criou esta conta, ignore este e-mail. A Feira Comercial nunca lhe pede a palavra-passe por e-mail ou mensagem.</p>
 {{ end }}
