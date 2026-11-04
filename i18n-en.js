@@ -315,6 +315,7 @@
 "Confirmar palavra-passe:": "Confirm password:",
 "Confirmação": "Confirmation",
 "Confirme que não é um robô (caixa acima do botão).": "Confirm you are not a robot (box above the button).",
+"Confirme que não é um robô (caixa acima do botão) e tente de novo.": "Confirm you are not a robot (box above the button) and try again.",
 "Construção e Materiais": "Construction and Materials",
 "Conta": "Account",
 "Conta apagada ou desconhecida": "Deleted or unknown account",
