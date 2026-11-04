@@ -196,6 +196,7 @@ $('linkEsqueci').addEventListener('click', function () {
 
 function traduzir(err) {
   const m = ((err && err.message) || '').toLowerCase();
+  if (FC.erroCaptcha(err)) return FC.MSG_CAPTCHA;
   if (m.includes('invalid login credentials')) return 'E-mail ou palavra-passe incorretos. <a href="password.html?email=' + encodeURIComponent($('email').value.trim()) + '">Esqueceu-se da palavra-passe?</a>';
   if (m.includes('email not confirmed')) return 'Ainda não confirmou o seu e-mail. Abra a mensagem que lhe enviámos no registo. <button type="button" onclick="reenviarConfirmacao()">Reenviar e-mail de confirmação</button>';
   if (m.includes('rate limit') || m.includes('too many') || m.includes('security purposes')) return 'Demasiadas tentativas. Aguarde um minuto e tente de novo.';
@@ -205,8 +206,9 @@ function traduzir(err) {
 
 async function reenviarConfirmacao() {
   const email = $('email').value.trim();
+  if (FC.captchaEmFalta()) { aviso(FC.MSG_CAPTCHA); return; }
   try {
-    const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
+    const { error } = await supabaseClient.auth.resend({ type: 'signup', email, options: { captchaToken: FC.tokenCaptcha() } });
     if (error) throw error;
     aviso('Enviámos de novo o e-mail de confirmação para <b>' + esc(email) + '</b>. Veja também a pasta de Spam.', 'ok');
   } catch (err) { aviso(traduzir(err)); }
@@ -222,7 +224,7 @@ async function entrar(e) {
 
   const btn = $('btnEntrar'); btn.disabled = true; btn.classList.add('carregando'); $('txtEntrar').textContent = 'A entrar…';
   try {
-    if (FC.CAPTCHA_SITE_KEY && !FC._captchas.some(w => w.token)) { aviso('Confirme que não é um robô (caixa acima do botão).'); btn.disabled = false; btn.classList.remove('carregando'); $('txtEntrar').textContent = 'Entrar'; return; }
+    if (FC.captchaEmFalta()) { aviso(FC.MSG_CAPTCHA); btn.disabled = false; btn.classList.remove('carregando'); $('txtEntrar').textContent = 'Entrar'; return; }
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password: senha, options: { captchaToken: FC.tokenCaptcha() } });
     if (error) throw error;
     try { localStorage.setItem(CHAVE_TERMOS, '1'); localStorage.removeItem('fc_profile'); } catch (x) {}

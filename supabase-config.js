@@ -149,6 +149,15 @@ FC.tokenCaptcha = function () {
   if (w && window.turnstile) { try { window.turnstile.reset(w.id); } catch (e) {} w.token = ''; }
   return t || undefined;
 };
+// true quando o captcha está ligado mas a pessoa ainda não o confirmou (ou ainda não acabou de carregar)
+FC.captchaEmFalta = function () {
+  return !!FC.CAPTCHA_SITE_KEY && !FC._captchas.some(w => w.token);
+};
+FC.MSG_CAPTCHA = 'Confirme que não é um robô (caixa acima do botão) e tente de novo.';
+// erro do Supabase por falta/validade do captcha → mensagem em português
+FC.erroCaptcha = function (err) {
+  return /captcha/i.test((err && (err.message || err.code)) || '');
+};
 
 /* ---------- Sessão ---------- */
 FC.getSession = async function () {

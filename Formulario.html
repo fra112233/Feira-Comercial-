@@ -601,6 +601,8 @@
         const email   = emailEl.value.trim();
         const celular = celEl.value.trim();
 
+        if (FC.captchaEmFalta()) { setStatus('❌ ' + FC.t(FC.MSG_CAPTCHA), 'error'); return; }
+
         setLoading(true);
         setStatus('A criar a sua conta...', 'info');
 
@@ -690,7 +692,9 @@
         } catch (err) {
             console.error(err);
             const msg = err.message || 'Erro inesperado. Tenta novamente.';
-            if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+            if (FC.erroCaptcha(err)) {
+                setStatus('❌ ' + FC.t(FC.MSG_CAPTCHA), 'error');
+            } else if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
                 setStatus('Este e-mail já tem conta. <a href="Portal.html" style="color:var(--primary)">Entrar</a>', 'error');
             } else if (/pwned|leaked|compromised|known to be|breach/i.test(msg)) {
                 setStatus('❌ Esta palavra-passe já apareceu em fugas de dados na internet e não é segura. Escolha outra, diferente das que usa noutros sites.', 'error');
