@@ -135,11 +135,17 @@ FC.prepararCaptcha = function () {
     FC._captchas.push(w);
   });
   if (window.turnstile) return desenhar();
-  window.fcTurnstilePronto = desenhar;
+  if (FC._captchaACarregar) return;
+  FC._captchaACarregar = true;
+  window.fcTurnstilePronto = () => { FC._captchaACarregar = false; desenhar(); };
   const s = document.createElement('script');
   s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=fcTurnstilePronto';
-  s.async = true; document.head.appendChild(s);
+  s.async = true;
+  // sem internet o script não chega: tenta outra vez quando a ligação voltar (ou no próximo clique)
+  s.onerror = () => { s.remove(); FC._captchaACarregar = false; };
+  document.head.appendChild(s);
 };
+window.addEventListener('online', () => { if (!window.turnstile) FC.prepararCaptcha(); });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => FC.prepararCaptcha()); else FC.prepararCaptcha();
 // devolve o token (ou undefined se o captcha estiver desligado) e prepara um novo para a próxima vez
 FC.tokenCaptcha = function () {
@@ -151,9 +157,14 @@ FC.tokenCaptcha = function () {
 };
 // true quando o captcha está ligado mas a pessoa ainda não o confirmou (ou ainda não acabou de carregar)
 FC.captchaEmFalta = function () {
-  return !!FC.CAPTCHA_SITE_KEY && !FC._captchas.some(w => w.token);
+  const falta = !!FC.CAPTCHA_SITE_KEY && !FC._captchas.some(w => w.token);
+  if (falta && !window.turnstile) FC.prepararCaptcha();   // a caixa não carregou (sem internet?) → tentar de novo
+  return falta;
 };
-FC.MSG_CAPTCHA = 'Confirme que não é um robô (caixa acima do botão) e tente de novo.';
+// a caixa ainda não apareceu (sem internet ou a carregar) ou apareceu mas falta confirmar
+Object.defineProperty(FC, 'MSG_CAPTCHA', { get: () => window.turnstile
+  ? 'Confirme que não é um robô (caixa acima do botão) e tente de novo.'
+  : 'A verificação "não sou robô" ainda não carregou. Confirme que tem internet e tente de novo dentro de alguns segundos.' });
 // erro do Supabase por falta/validade do captcha → mensagem em português
 FC.erroCaptcha = function (err) {
   return /captcha/i.test((err && (err.message || err.code)) || '');
